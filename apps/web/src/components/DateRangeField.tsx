@@ -13,7 +13,7 @@ import {
   type FormState,
 } from "../lib/form-state";
 import { formatMonthYear } from "../lib/format";
-import { inputCls, labelCls } from "./ui";
+import { chipCls, chipOffCls, chipOnCls, inputCls, labelCls } from "./ui";
 
 interface Props {
   state: FormState;
@@ -52,11 +52,7 @@ export function DateRangeField({ state, onChange }: Props) {
               type="button"
               aria-pressed={on}
               onClick={() => onChange(applyDatePreset(state, p.id, today))}
-              className={`rounded-full border px-2.5 py-1 text-sm ${
-                on
-                  ? "border-accent bg-accent text-accent-fg"
-                  : "border-line bg-surface text-fg hover:bg-surface-2"
-              }`}
+              className={`${chipCls} ${on ? chipOnCls : chipOffCls}`}
             >
               {p.label}
             </button>

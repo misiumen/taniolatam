@@ -6,12 +6,19 @@ async function open(page: Page, url = "/szukaj") {
   await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
 }
 
+/** Expands a collapsible form section ("Lot", "Zaawansowane", …) unless it is open already. */
+async function openSection(page: Page, title: string) {
+  const toggle = page.getByRole("button", { name: new RegExp(`^${title}`) });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
 test("Dokąd is a combobox with Gdziekolwiek as a regular suggestion", async ({ page }) => {
   await open(page);
   const to = page.getByRole("combobox", { name: "Dokąd", exact: true });
   // No checkbox any more; an empty field means "gdziekolwiek".
   await expect(page.getByRole("checkbox", { name: "Gdziekolwiek" })).toHaveCount(0);
-  await expect(to).toHaveAttribute("placeholder", /Gdziekolwiek \(wpisz kraj, miasto lub region\)/);
+  await expect(to).toHaveAttribute("placeholder", "Gdziekolwiek lub kraj, miasto…");
 
   // Focused and empty: the anywhere suggestion with its hint.
   await to.focus();
@@ -52,6 +59,8 @@ test("Dokąd is a combobox with Gdziekolwiek as a regular suggestion", async ({ 
 
 test("new filters go to the API and live in the URL", async ({ page }) => {
   await open(page);
+  await openSection(page, "Lot");
+  await openSection(page, "Zaawansowane");
   await expect(page.getByLabel("Pomiń kierunki w kraju wylotu")).toBeChecked();
   await expect(page.getByLabel("Open-jaw (powrót do innego lotniska)")).toBeEnabled();
   await expect(page.getByLabel("Multicity")).toBeDisabled();
@@ -77,6 +86,8 @@ test("new filters go to the API and live in the URL", async ({ page }) => {
   await page.reload();
   await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
   await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  await openSection(page, "Lot");
+  await openSection(page, "Zaawansowane");
   await expect(page.getByLabel("Pomiń kierunki w kraju wylotu")).not.toBeChecked();
   await expect(page.getByLabel("Open-jaw (powrót do innego lotniska)")).toBeChecked();
   await expect(page.getByLabel("Maks. czas lotu")).toHaveValue("8");
@@ -170,6 +181,7 @@ test("dates: presets and the month slider drive from/to; exact dates are on dema
 
 test("freshness window: 48 h sends nothing, 7 days relaxes the age filters", async ({ page }) => {
   await open(page);
+  await openSection(page, "Cena i aktualność");
   await expect(page.getByRole("radio", { name: "do 48 godzin" })).toBeChecked();
   await page.getByRole("radio", { name: /do 7 dni/ }).check();
   const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
@@ -215,6 +227,7 @@ test("airline filter, names, age and currency on cards", async ({ page }) => {
   });
 
   await open(page);
+  await openSection(page, "Lot");
   // Before the first search: only a hint.
   await expect(page.getByTestId("carriers-hint")).toContainText("Po wyszukiwaniu");
   await page.getByRole("button", { name: "Szukaj", exact: true }).click();

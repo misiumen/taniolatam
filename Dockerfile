@@ -1,6 +1,8 @@
 # Gdzie Polecę web (Next.js standalone). Build from the repo root:
-#   docker build -t gdziepolece --build-arg NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty .
+#   docker build -t gdziepolece .
 #   docker run -p 3000:3000 --env-file .env -v gdziepolece-cache:/app/.cache gdziepolece
+# No build args: every setting (incl. MAP_STYLE_URL for the map) is read at runtime, so the same
+# image works on Render, locally and anywhere else.
 
 # ---- deps: install the whole workspace from the lockfile ----
 FROM node:22-alpine AS deps
@@ -16,10 +18,7 @@ RUN npm ci
 # ---- build ----
 FROM deps AS build
 COPY . .
-# Inlined into the client bundle at build time.
-ARG NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
-ENV NEXT_PUBLIC_MAP_STYLE_URL=$NEXT_PUBLIC_MAP_STYLE_URL \
-    NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build -w @gdziepolece/web
 
 # ---- runtime ----

@@ -4,7 +4,6 @@ import { placeKey } from "@gdziepolece/core";
 import type { ApiClient, PlaceSuggestion } from "@gdziepolece/api-client";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PlaceChip } from "../lib/form-state";
-import { inputCls } from "./ui";
 
 interface Props {
   label: string;
@@ -119,7 +118,7 @@ export function PlaceInput({
   return (
     <div className="relative">
       <div
-        className={`flex flex-wrap items-center gap-1.5 rounded-md border border-line bg-surface p-1.5 focus-within:border-accent ${
+        className={`flex flex-wrap items-center gap-1.5 rounded-md border border-line bg-surface p-1.5 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent ${
           disabled ? "opacity-50" : ""
         }`}
         onClick={() => inputRef.current?.focus()}
@@ -157,7 +156,7 @@ export function PlaceInput({
           disabled={disabled}
           value={text}
           placeholder={chips.length === 0 ? placeholder : "Dodaj kolejne…"}
-          className={`${inputCls} min-w-24 flex-1 border-0 bg-transparent p-1`}
+          className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm text-fg outline-none placeholder:text-muted disabled:opacity-50"
           onChange={(e) => {
             setText(e.target.value);
             setOpen(true);

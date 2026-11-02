@@ -74,7 +74,22 @@ Typy żądań i odpowiedzi żyją w `packages/api-client` i są importowane prze
 
 ## Wzorzec formularza
 
-Formularz działa jak planer podróży miejskiej: **skąd** (lotnisko, miasto, kraj, region), **dokąd**
-(to samo lub "gdziekolwiek"), **kiedy** (zakres dat wylotu, długość pobytu, dni tygodnia, pora dnia),
-**jak** (bezpośrednio / 1 przesiadka / dowolnie, max czas podróży, typ linii, multicity, max cena).
-Wynik to lista posortowana po cenie z możliwością przełączenia na mapę.
+Formularz działa jak planer podróży miejskiej i jest podzielony na zwijane sekcje z nagłówkiem i
+jednozdaniową podpowiedzią (zwinięta sekcja pokazuje podsumowanie swoich wartości):
+
+1. **Trasa** — skąd (lotnisko, miasto, kraj, region, grupa) i dokąd (to samo lub „gdziekolwiek”;
+   puste pole = cały świat).
+2. **Termin** — zakres dat wylotu (presety „Najbliższy miesiąc” … „Rok” zsynchronizowane z suwakiem
+   miesięcy albo dokładne daty), długość pobytu lub lot w jedną stronę, dni tygodnia wylotu.
+3. **Lot** — przesiadki (bez / max 1 / dowolnie), maks. czas lotu, typ linii, linie lotnicze z
+   wyników (odznaczenie wyklucza linię).
+4. **Cena i aktualność** — cena maksymalna w zł, dopuszczalny wiek ceny (48 h / 7 dni).
+5. **Zaawansowane** — open-jaw, multicity (wkrótce), pomijanie kierunków w kraju wylotu.
+
+Na start otwarte są Trasa i Termin; „Szukaj” jest przyklejony do dołu kolumny formularza. Nad
+wynikami stoi jednowierszowe podsumowanie wyszukiwania („Polska → gdziekolwiek · pół roku · 7–21 dni ·
+max 1 przesiadka · ceny do 48 h”, wartości domyślne pominięte). Wynik to lista posortowana po cenie
+obok mapy z łukami tras od lotnisk wylotu do kierunków z listy; na węższych ekranach lista i mapa są
+zakładkami, a na telefonie formularz staje się arkuszem. Pusty stan proponuje przykładowe
+wyszukiwania, które wypełniają formularz i od razu szukają. Szczegóły: `apps/web/README.md`, „Układ
+ekranu”.

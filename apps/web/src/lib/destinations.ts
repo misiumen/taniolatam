@@ -22,6 +22,8 @@ export interface DestinationView {
   groupAirports: string[];
   lat?: number;
   lon?: number;
+  /** Departure airport of the cheapest offer, with coordinates when known (for the map arc). */
+  origin: { code: string; city?: string; lat?: number; lon?: number };
 }
 
 export function describeDestinations(
@@ -31,6 +33,7 @@ export function describeDestinations(
 ): DestinationView[] {
   return summaries.map((summary) => {
     const dest = airports[summary.cheapest.destination];
+    const from = airports[summary.cheapest.origin];
     const d = summary.destination;
     const title = dest?.city ?? (d.kind === "city" ? d.name : summary.cheapest.destination);
     return {
@@ -42,6 +45,7 @@ export function describeDestinations(
       groupAirports: groupAirports[placeKey(d)] ?? [],
       lat: dest?.lat,
       lon: dest?.lon,
+      origin: { code: summary.cheapest.origin, city: from?.city, lat: from?.lat, lon: from?.lon },
     };
   });
 }

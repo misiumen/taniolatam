@@ -29,5 +29,6 @@ services:
         value: sqlite
       - key: CACHE_PATH
         value: /data/cache.sqlite
-      - key: NEXT_PUBLIC_MAP_STYLE_URL
+      # Read at runtime by GET /api/v1/config (no Docker build arg needed).
+      - key: MAP_STYLE_URL
         value: https://tiles.openfreemap.org/styles/liberty

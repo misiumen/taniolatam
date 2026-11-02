@@ -67,8 +67,8 @@ docker run -p 3000:3000 --env-file .env -v gdziepolece-cache:/app/.cache gdziepo
 ```
 
 Zmienne (w tym `TRAVELPAYOUTS_TOKEN` i `TRAVELPAYOUTS_MARKER`) trafiają do kontenera z `--env-file`;
-w obrazie nie ma żadnych sekretów. `NEXT_PUBLIC_MAP_STYLE_URL` ustawia się przy budowaniu
-(`--build-arg`). Cache SQLite leży w wolumenie `/app/.cache`.
+w obrazie nie ma żadnych sekretów. `MAP_STYLE_URL` jest czytany w czasie działania (domyślnie
+OpenFreeMap), więc nie wymaga przebudowy. Cache SQLite leży w wolumenie `/app/.cache`.
 
 ### Testy e2e (Playwright)
 
