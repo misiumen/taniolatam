@@ -86,11 +86,35 @@ Schemat: obiekt, klucz to kod IATA (3 wielkie litery), wartość to `{ "cityPl":
 - Kody z tabeli, których nie ma w `airports.json`, są pomijane i wypisywane przez skrypt (aktualnie: KBP, IEV, LWO, KIV, FRU, LAD, PNH, REP). Wymagany kod spoza danych kończy skrypt kodem 1.
 - Skrypt sprawdza pokrycie: każde polskie lotnisko i każdy kod z `place-groups.json` (grupy miejsc i PL-near) ma wpis albo jest zbędny.
 
+### `airlines.json`
+
+Obiekt: kod IATA linii (2 znaki: wielkie litery lub cyfry) → dane linii. Klucze posortowane.
+
+```json
+{
+  "W6": { "name": "Wizz Air", "type": "lowcost", "country": "HU" },
+  "LO": { "name": "LOT Polish Airlines", "type": "scheduled", "country": "PL" }
+}
+```
+
+- `name`: nazwa do wyświetlania zamiast kodu (np. "Wizz Air" zamiast "W6"). Niepusta.
+- `type`: `lowcost`, `scheduled` albo `charter`. Klasyfikacja jest ręczna (stała `AIRLINES` w `scripts/data/build-airlines.mjs`). Czarter oznacza linię, która w Polsce działa głównie czarterowo (np. Enter Air, Smartwings, Corendon, Freebird, Air Cairo).
+- `country`: kod kraju ISO 3166-1 alpha-2 (siedziba przewoźnika).
+- `is_lowcost` (opcjonalne): podpowiedź z Travelpayouts. Pojawia się tylko po `--refresh`, gdy pobranie się uda. Nie zmienia `type`.
+
+Dane są kuratorskie, z pamięci i bez jednego źródła, więc mogą być nieaktualne (linie upadają, łączą się i zmieniają kody). Przy aktualizacji sprawdzamy kod i typ w skrypcie, a nie w pliku wynikowym.
+
+- Pominięte celowo (kod niepewny): RR (Buzz), CD i XR (Corendon, poza XC), Electra Airways. Universal Air nie ma osobnego wpisu, bo najpewniej chodzi o AlMasria (UJ).
+- Pominięte jako już nieistniejące: Vistara (UK, połączona z Air India), Cathay Dragon (KA).
+- Asiana (OZ) jest zostawiona, mimo że została włączona do Korean Air.
+- FlyArystan ma kod FY (nie KC, który należy do Air Astana).
+
 ## Liczby (ostatnie generowanie)
 
 - Lotniska w `airports.json`: 4 008 (large 1 151, medium 2 092, small 765).
 - Kraje: 233. Kontynenty: 7. Podregiony: 23 (w tym Antarktyda bez krajów w danych).
 - Grupy miejsc: 11.
+- Linie lotnicze w `airlines.json`: 259 (lowcost 81, scheduled 161, charter 17).
 - Polskie lotniska (15): BZG, GDN, IEG, KRK, KTW, LCJ, LUZ, POZ, RDO, RZE, SZY, SZZ, WAW, WMI, WRO.
 
 ## Uwagi do danych

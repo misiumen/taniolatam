@@ -1,0 +1,1312 @@
+{
+  "3K": {
+    "name": "Jetstar Asia",
+    "type": "lowcost",
+    "country": "SG"
+  },
+  "3O": {
+    "name": "Air Arabia Maroc",
+    "type": "lowcost",
+    "country": "MA"
+  },
+  "3U": {
+    "name": "Sichuan Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "4O": {
+    "name": "Air Montenegro",
+    "type": "scheduled",
+    "country": "ME"
+  },
+  "4Y": {
+    "name": "Eurowings Discover",
+    "type": "charter",
+    "country": "DE"
+  },
+  "4Z": {
+    "name": "Airlink",
+    "type": "scheduled",
+    "country": "ZA"
+  },
+  "5J": {
+    "name": "Cebu Pacific",
+    "type": "lowcost",
+    "country": "PH"
+  },
+  "5W": {
+    "name": "Wizz Air UK",
+    "type": "lowcost",
+    "country": "GB"
+  },
+  "6E": {
+    "name": "IndiGo",
+    "type": "lowcost",
+    "country": "IN"
+  },
+  "7C": {
+    "name": "Jeju Air",
+    "type": "lowcost",
+    "country": "KR"
+  },
+  "8Q": {
+    "name": "Onur Air",
+    "type": "charter",
+    "country": "TR"
+  },
+  "9C": {
+    "name": "Spring Airlines",
+    "type": "lowcost",
+    "country": "CN"
+  },
+  "9U": {
+    "name": "Air Moldova",
+    "type": "scheduled",
+    "country": "MD"
+  },
+  "A3": {
+    "name": "Aegean Airlines",
+    "type": "scheduled",
+    "country": "GR"
+  },
+  "A5": {
+    "name": "HOP!",
+    "type": "scheduled",
+    "country": "FR"
+  },
+  "A9": {
+    "name": "Georgian Airways",
+    "type": "scheduled",
+    "country": "GE"
+  },
+  "AA": {
+    "name": "American Airlines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "AC": {
+    "name": "Air Canada",
+    "type": "scheduled",
+    "country": "CA"
+  },
+  "AD": {
+    "name": "Azul Brazilian Airlines",
+    "type": "scheduled",
+    "country": "BR"
+  },
+  "AF": {
+    "name": "Air France",
+    "type": "scheduled",
+    "country": "FR"
+  },
+  "AH": {
+    "name": "Air Algérie",
+    "type": "scheduled",
+    "country": "DZ"
+  },
+  "AI": {
+    "name": "Air India",
+    "type": "scheduled",
+    "country": "IN"
+  },
+  "AK": {
+    "name": "AirAsia",
+    "type": "lowcost",
+    "country": "MY"
+  },
+  "AM": {
+    "name": "Aeroméxico",
+    "type": "scheduled",
+    "country": "MX"
+  },
+  "AR": {
+    "name": "Aerolíneas Argentinas",
+    "type": "scheduled",
+    "country": "AR"
+  },
+  "AS": {
+    "name": "Alaska Airlines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "AT": {
+    "name": "Royal Air Maroc",
+    "type": "scheduled",
+    "country": "MA"
+  },
+  "AV": {
+    "name": "Avianca",
+    "type": "scheduled",
+    "country": "CO"
+  },
+  "AY": {
+    "name": "Finnair",
+    "type": "scheduled",
+    "country": "FI"
+  },
+  "AZ": {
+    "name": "ITA Airways",
+    "type": "scheduled",
+    "country": "IT"
+  },
+  "B2": {
+    "name": "Belavia",
+    "type": "scheduled",
+    "country": "BY"
+  },
+  "B6": {
+    "name": "JetBlue",
+    "type": "lowcost",
+    "country": "US"
+  },
+  "BA": {
+    "name": "British Airways",
+    "type": "scheduled",
+    "country": "GB"
+  },
+  "BC": {
+    "name": "Skymark Airlines",
+    "type": "lowcost",
+    "country": "JP"
+  },
+  "BG": {
+    "name": "Biman Bangladesh Airlines",
+    "type": "scheduled",
+    "country": "BD"
+  },
+  "BI": {
+    "name": "Royal Brunei Airlines",
+    "type": "scheduled",
+    "country": "BN"
+  },
+  "BJ": {
+    "name": "Nouvelair",
+    "type": "charter",
+    "country": "TN"
+  },
+  "BL": {
+    "name": "Pacific Airlines",
+    "type": "lowcost",
+    "country": "VN"
+  },
+  "BR": {
+    "name": "EVA Air",
+    "type": "scheduled",
+    "country": "TW"
+  },
+  "BT": {
+    "name": "airBaltic",
+    "type": "scheduled",
+    "country": "LV"
+  },
+  "BW": {
+    "name": "Caribbean Airlines",
+    "type": "scheduled",
+    "country": "TT"
+  },
+  "BX": {
+    "name": "Air Busan",
+    "type": "lowcost",
+    "country": "KR"
+  },
+  "BY": {
+    "name": "TUI Airways",
+    "type": "charter",
+    "country": "GB"
+  },
+  "CA": {
+    "name": "Air China",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "CD": {
+    "name": "Corendon Dutch Airlines",
+    "type": "charter",
+    "country": "NL"
+  },
+  "CI": {
+    "name": "China Airlines",
+    "type": "scheduled",
+    "country": "TW"
+  },
+  "CM": {
+    "name": "Copa Airlines",
+    "type": "scheduled",
+    "country": "PA"
+  },
+  "CU": {
+    "name": "Cubana de Aviación",
+    "type": "scheduled",
+    "country": "CU"
+  },
+  "CX": {
+    "name": "Cathay Pacific",
+    "type": "scheduled",
+    "country": "HK"
+  },
+  "CZ": {
+    "name": "China Southern Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "D7": {
+    "name": "AirAsia X",
+    "type": "lowcost",
+    "country": "MY"
+  },
+  "D8": {
+    "name": "Norwegian Air International",
+    "type": "lowcost",
+    "country": "IE"
+  },
+  "DD": {
+    "name": "Nok Air",
+    "type": "lowcost",
+    "country": "TH"
+  },
+  "DE": {
+    "name": "Condor",
+    "type": "scheduled",
+    "country": "DE"
+  },
+  "DL": {
+    "name": "Delta Air Lines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "DM": {
+    "name": "Arajet",
+    "type": "lowcost",
+    "country": "DO"
+  },
+  "DP": {
+    "name": "Pobeda",
+    "type": "lowcost",
+    "country": "RU"
+  },
+  "DS": {
+    "name": "easyJet Switzerland",
+    "type": "lowcost",
+    "country": "CH"
+  },
+  "DT": {
+    "name": "TAAG Angola Airlines",
+    "type": "scheduled",
+    "country": "AO"
+  },
+  "DV": {
+    "name": "SCAT Airlines",
+    "type": "scheduled",
+    "country": "KZ"
+  },
+  "DY": {
+    "name": "Norwegian",
+    "type": "lowcost",
+    "country": "NO"
+  },
+  "E4": {
+    "name": "Enter Air",
+    "type": "charter",
+    "country": "PL"
+  },
+  "EC": {
+    "name": "easyJet Europe",
+    "type": "lowcost",
+    "country": "AT"
+  },
+  "EI": {
+    "name": "Aer Lingus",
+    "type": "scheduled",
+    "country": "IE"
+  },
+  "EK": {
+    "name": "Emirates",
+    "type": "scheduled",
+    "country": "AE"
+  },
+  "EN": {
+    "name": "Air Dolomiti",
+    "type": "scheduled",
+    "country": "IT"
+  },
+  "ET": {
+    "name": "Ethiopian Airlines",
+    "type": "scheduled",
+    "country": "ET"
+  },
+  "EU": {
+    "name": "Chengdu Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "EW": {
+    "name": "Eurowings",
+    "type": "lowcost",
+    "country": "DE"
+  },
+  "EY": {
+    "name": "Etihad Airways",
+    "type": "scheduled",
+    "country": "AE"
+  },
+  "F3": {
+    "name": "flyadeal",
+    "type": "lowcost",
+    "country": "SA"
+  },
+  "F8": {
+    "name": "Flair Airlines",
+    "type": "lowcost",
+    "country": "CA"
+  },
+  "F9": {
+    "name": "Frontier Airlines",
+    "type": "lowcost",
+    "country": "US"
+  },
+  "FA": {
+    "name": "FlySafair",
+    "type": "lowcost",
+    "country": "ZA"
+  },
+  "FB": {
+    "name": "Bulgaria Air",
+    "type": "scheduled",
+    "country": "BG"
+  },
+  "FD": {
+    "name": "Thai AirAsia",
+    "type": "lowcost",
+    "country": "TH"
+  },
+  "FH": {
+    "name": "Freebird Airlines",
+    "type": "charter",
+    "country": "TR"
+  },
+  "FI": {
+    "name": "Icelandair",
+    "type": "scheduled",
+    "country": "IS"
+  },
+  "FJ": {
+    "name": "Fiji Airways",
+    "type": "scheduled",
+    "country": "FJ"
+  },
+  "FO": {
+    "name": "Flybondi",
+    "type": "lowcost",
+    "country": "AR"
+  },
+  "FR": {
+    "name": "Ryanair",
+    "type": "lowcost",
+    "country": "IE"
+  },
+  "FV": {
+    "name": "Rossiya",
+    "type": "scheduled",
+    "country": "RU"
+  },
+  "FY": {
+    "name": "FlyArystan",
+    "type": "lowcost",
+    "country": "KZ"
+  },
+  "FZ": {
+    "name": "flydubai",
+    "type": "lowcost",
+    "country": "AE"
+  },
+  "G3": {
+    "name": "GOL Linhas Aéreas",
+    "type": "lowcost",
+    "country": "BR"
+  },
+  "G4": {
+    "name": "Allegiant Air",
+    "type": "lowcost",
+    "country": "US"
+  },
+  "G9": {
+    "name": "Air Arabia",
+    "type": "lowcost",
+    "country": "AE"
+  },
+  "GA": {
+    "name": "Garuda Indonesia",
+    "type": "scheduled",
+    "country": "ID"
+  },
+  "GF": {
+    "name": "Gulf Air",
+    "type": "scheduled",
+    "country": "BH"
+  },
+  "GK": {
+    "name": "Jetstar Japan",
+    "type": "lowcost",
+    "country": "JP"
+  },
+  "GL": {
+    "name": "Air Greenland",
+    "type": "scheduled",
+    "country": "GL"
+  },
+  "GM": {
+    "name": "Chair Airlines",
+    "type": "charter",
+    "country": "CH"
+  },
+  "GQ": {
+    "name": "Sky Express",
+    "type": "scheduled",
+    "country": "GR"
+  },
+  "GS": {
+    "name": "Tianjin Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "H2": {
+    "name": "Sky Airline",
+    "type": "lowcost",
+    "country": "CL"
+  },
+  "HA": {
+    "name": "Hawaiian Airlines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "HD": {
+    "name": "Air Do",
+    "type": "lowcost",
+    "country": "JP"
+  },
+  "HF": {
+    "name": "Air Côte d'Ivoire",
+    "type": "scheduled",
+    "country": "CI"
+  },
+  "HM": {
+    "name": "Air Seychelles",
+    "type": "scheduled",
+    "country": "SC"
+  },
+  "HO": {
+    "name": "Juneyao Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "HU": {
+    "name": "Hainan Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "HV": {
+    "name": "Transavia",
+    "type": "lowcost",
+    "country": "NL"
+  },
+  "HX": {
+    "name": "Hong Kong Airlines",
+    "type": "scheduled",
+    "country": "HK"
+  },
+  "HY": {
+    "name": "Uzbekistan Airways",
+    "type": "scheduled",
+    "country": "UZ"
+  },
+  "I2": {
+    "name": "Iberia Express",
+    "type": "lowcost",
+    "country": "ES"
+  },
+  "IA": {
+    "name": "Iraqi Airways",
+    "type": "scheduled",
+    "country": "IQ"
+  },
+  "IB": {
+    "name": "Iberia",
+    "type": "scheduled",
+    "country": "ES"
+  },
+  "ID": {
+    "name": "Batik Air",
+    "type": "scheduled",
+    "country": "ID"
+  },
+  "IR": {
+    "name": "Iran Air",
+    "type": "scheduled",
+    "country": "IR"
+  },
+  "IW": {
+    "name": "Wings Air",
+    "type": "scheduled",
+    "country": "ID"
+  },
+  "IX": {
+    "name": "Air India Express",
+    "type": "lowcost",
+    "country": "IN"
+  },
+  "J2": {
+    "name": "Azerbaijan Airlines",
+    "type": "scheduled",
+    "country": "AZ"
+  },
+  "J9": {
+    "name": "Jazeera Airways",
+    "type": "lowcost",
+    "country": "KW"
+  },
+  "JA": {
+    "name": "JetSMART",
+    "type": "lowcost",
+    "country": "CL"
+  },
+  "JJ": {
+    "name": "LATAM Brasil",
+    "type": "scheduled",
+    "country": "BR"
+  },
+  "JL": {
+    "name": "Japan Airlines",
+    "type": "scheduled",
+    "country": "JP"
+  },
+  "JQ": {
+    "name": "Jetstar Airways",
+    "type": "lowcost",
+    "country": "AU"
+  },
+  "JT": {
+    "name": "Lion Air",
+    "type": "lowcost",
+    "country": "ID"
+  },
+  "JU": {
+    "name": "Air Serbia",
+    "type": "scheduled",
+    "country": "RS"
+  },
+  "JX": {
+    "name": "STARLUX Airlines",
+    "type": "scheduled",
+    "country": "TW"
+  },
+  "K6": {
+    "name": "Cambodia Angkor Air",
+    "type": "scheduled",
+    "country": "KH"
+  },
+  "KC": {
+    "name": "Air Astana",
+    "type": "scheduled",
+    "country": "KZ"
+  },
+  "KE": {
+    "name": "Korean Air",
+    "type": "scheduled",
+    "country": "KR"
+  },
+  "KL": {
+    "name": "KLM",
+    "type": "scheduled",
+    "country": "NL"
+  },
+  "KM": {
+    "name": "Air Malta",
+    "type": "scheduled",
+    "country": "MT"
+  },
+  "KN": {
+    "name": "China United Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "KP": {
+    "name": "ASKY Airlines",
+    "type": "scheduled",
+    "country": "TG"
+  },
+  "KQ": {
+    "name": "Kenya Airways",
+    "type": "scheduled",
+    "country": "KE"
+  },
+  "KU": {
+    "name": "Kuwait Airways",
+    "type": "scheduled",
+    "country": "KW"
+  },
+  "LA": {
+    "name": "LATAM Airlines",
+    "type": "scheduled",
+    "country": "CL"
+  },
+  "LG": {
+    "name": "Luxair",
+    "type": "scheduled",
+    "country": "LU"
+  },
+  "LH": {
+    "name": "Lufthansa",
+    "type": "scheduled",
+    "country": "DE"
+  },
+  "LJ": {
+    "name": "Jin Air",
+    "type": "lowcost",
+    "country": "KR"
+  },
+  "LM": {
+    "name": "Loganair",
+    "type": "scheduled",
+    "country": "GB"
+  },
+  "LN": {
+    "name": "Libyan Airlines",
+    "type": "scheduled",
+    "country": "LY"
+  },
+  "LO": {
+    "name": "LOT Polish Airlines",
+    "type": "scheduled",
+    "country": "PL"
+  },
+  "LS": {
+    "name": "Jet2",
+    "type": "lowcost",
+    "country": "GB"
+  },
+  "LX": {
+    "name": "SWISS",
+    "type": "scheduled",
+    "country": "CH"
+  },
+  "LY": {
+    "name": "El Al",
+    "type": "scheduled",
+    "country": "IL"
+  },
+  "MD": {
+    "name": "Air Madagascar",
+    "type": "scheduled",
+    "country": "MG"
+  },
+  "ME": {
+    "name": "Middle East Airlines",
+    "type": "scheduled",
+    "country": "LB"
+  },
+  "MF": {
+    "name": "Xiamen Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "MH": {
+    "name": "Malaysia Airlines",
+    "type": "scheduled",
+    "country": "MY"
+  },
+  "MK": {
+    "name": "Air Mauritius",
+    "type": "scheduled",
+    "country": "MU"
+  },
+  "MM": {
+    "name": "Peach Aviation",
+    "type": "lowcost",
+    "country": "JP"
+  },
+  "MS": {
+    "name": "EgyptAir",
+    "type": "scheduled",
+    "country": "EG"
+  },
+  "MU": {
+    "name": "China Eastern Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "N0": {
+    "name": "Norse Atlantic",
+    "type": "lowcost",
+    "country": "NO"
+  },
+  "NF": {
+    "name": "Air Vanuatu",
+    "type": "scheduled",
+    "country": "VU"
+  },
+  "NH": {
+    "name": "ANA All Nippon Airways",
+    "type": "scheduled",
+    "country": "JP"
+  },
+  "NK": {
+    "name": "Spirit Airlines",
+    "type": "lowcost",
+    "country": "US"
+  },
+  "NP": {
+    "name": "Nile Air",
+    "type": "charter",
+    "country": "EG"
+  },
+  "NT": {
+    "name": "Binter",
+    "type": "scheduled",
+    "country": "ES"
+  },
+  "NX": {
+    "name": "Air Macau",
+    "type": "scheduled",
+    "country": "MO"
+  },
+  "NZ": {
+    "name": "Air New Zealand",
+    "type": "scheduled",
+    "country": "NZ"
+  },
+  "OB": {
+    "name": "Boliviana de Aviación",
+    "type": "scheduled",
+    "country": "BO"
+  },
+  "OD": {
+    "name": "Batik Air Malaysia",
+    "type": "lowcost",
+    "country": "MY"
+  },
+  "OG": {
+    "name": "PLAY",
+    "type": "lowcost",
+    "country": "IS"
+  },
+  "OK": {
+    "name": "Czech Airlines",
+    "type": "scheduled",
+    "country": "CZ"
+  },
+  "OM": {
+    "name": "MIAT Mongolian Airlines",
+    "type": "scheduled",
+    "country": "MN"
+  },
+  "OO": {
+    "name": "SkyWest Airlines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "OQ": {
+    "name": "Chongqing Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "OR": {
+    "name": "TUI fly Netherlands",
+    "type": "charter",
+    "country": "NL"
+  },
+  "OS": {
+    "name": "Austrian Airlines",
+    "type": "scheduled",
+    "country": "AT"
+  },
+  "OU": {
+    "name": "Croatia Airlines",
+    "type": "scheduled",
+    "country": "HR"
+  },
+  "OZ": {
+    "name": "Asiana Airlines",
+    "type": "scheduled",
+    "country": "KR"
+  },
+  "P4": {
+    "name": "Air Peace",
+    "type": "scheduled",
+    "country": "NG"
+  },
+  "P5": {
+    "name": "Wingo",
+    "type": "lowcost",
+    "country": "PA"
+  },
+  "PC": {
+    "name": "Pegasus Airlines",
+    "type": "lowcost",
+    "country": "TR"
+  },
+  "PD": {
+    "name": "Porter Airlines",
+    "type": "scheduled",
+    "country": "CA"
+  },
+  "PG": {
+    "name": "Bangkok Airways",
+    "type": "scheduled",
+    "country": "TH"
+  },
+  "PK": {
+    "name": "Pakistan International Airlines",
+    "type": "scheduled",
+    "country": "PK"
+  },
+  "PR": {
+    "name": "Philippine Airlines",
+    "type": "scheduled",
+    "country": "PH"
+  },
+  "PS": {
+    "name": "Ukraine International Airlines",
+    "type": "scheduled",
+    "country": "UA"
+  },
+  "PX": {
+    "name": "Air Niugini",
+    "type": "scheduled",
+    "country": "PG"
+  },
+  "QF": {
+    "name": "Qantas",
+    "type": "scheduled",
+    "country": "AU"
+  },
+  "QG": {
+    "name": "Citilink",
+    "type": "lowcost",
+    "country": "ID"
+  },
+  "QH": {
+    "name": "Bamboo Airways",
+    "type": "lowcost",
+    "country": "VN"
+  },
+  "QK": {
+    "name": "Jazz Aviation",
+    "type": "scheduled",
+    "country": "CA"
+  },
+  "QP": {
+    "name": "Akasa Air",
+    "type": "lowcost",
+    "country": "IN"
+  },
+  "QR": {
+    "name": "Qatar Airways",
+    "type": "scheduled",
+    "country": "QA"
+  },
+  "QS": {
+    "name": "Smartwings",
+    "type": "charter",
+    "country": "CZ"
+  },
+  "QU": {
+    "name": "SkyUp",
+    "type": "lowcost",
+    "country": "UA"
+  },
+  "QV": {
+    "name": "Lao Airlines",
+    "type": "scheduled",
+    "country": "LA"
+  },
+  "QZ": {
+    "name": "Indonesia AirAsia",
+    "type": "lowcost",
+    "country": "ID"
+  },
+  "RA": {
+    "name": "Nepal Airlines",
+    "type": "scheduled",
+    "country": "NP"
+  },
+  "RJ": {
+    "name": "Royal Jordanian",
+    "type": "scheduled",
+    "country": "JO"
+  },
+  "RK": {
+    "name": "Ryanair UK",
+    "type": "lowcost",
+    "country": "GB"
+  },
+  "RO": {
+    "name": "TAROM",
+    "type": "scheduled",
+    "country": "RO"
+  },
+  "RR": {
+    "name": "Buzz (Ryanair)",
+    "type": "lowcost",
+    "country": "PL"
+  },
+  "S7": {
+    "name": "S7 Airlines",
+    "type": "scheduled",
+    "country": "RU"
+  },
+  "SA": {
+    "name": "South African Airways",
+    "type": "scheduled",
+    "country": "ZA"
+  },
+  "SC": {
+    "name": "Shandong Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "SG": {
+    "name": "SpiceJet",
+    "type": "lowcost",
+    "country": "IN"
+  },
+  "SJ": {
+    "name": "Sriwijaya Air",
+    "type": "lowcost",
+    "country": "ID"
+  },
+  "SK": {
+    "name": "SAS",
+    "type": "scheduled",
+    "country": "SE"
+  },
+  "SL": {
+    "name": "Thai Lion Air",
+    "type": "lowcost",
+    "country": "TH"
+  },
+  "SM": {
+    "name": "Air Cairo",
+    "type": "charter",
+    "country": "EG"
+  },
+  "SN": {
+    "name": "Brussels Airlines",
+    "type": "scheduled",
+    "country": "BE"
+  },
+  "SP": {
+    "name": "SATA Air Açores",
+    "type": "scheduled",
+    "country": "PT"
+  },
+  "SQ": {
+    "name": "Singapore Airlines",
+    "type": "scheduled",
+    "country": "SG"
+  },
+  "SS": {
+    "name": "Corsair",
+    "type": "scheduled",
+    "country": "FR"
+  },
+  "SU": {
+    "name": "Aeroflot",
+    "type": "scheduled",
+    "country": "RU"
+  },
+  "SV": {
+    "name": "Saudia",
+    "type": "scheduled",
+    "country": "SA"
+  },
+  "SW": {
+    "name": "Air Namibia",
+    "type": "scheduled",
+    "country": "NA"
+  },
+  "SY": {
+    "name": "Sun Country Airlines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "TB": {
+    "name": "TUI fly Belgium",
+    "type": "charter",
+    "country": "BE"
+  },
+  "TC": {
+    "name": "Air Tanzania",
+    "type": "scheduled",
+    "country": "TZ"
+  },
+  "TG": {
+    "name": "Thai Airways International",
+    "type": "scheduled",
+    "country": "TH"
+  },
+  "TK": {
+    "name": "Turkish Airlines",
+    "type": "scheduled",
+    "country": "TR"
+  },
+  "TM": {
+    "name": "LAM Mozambique Airlines",
+    "type": "scheduled",
+    "country": "MZ"
+  },
+  "TO": {
+    "name": "Transavia France",
+    "type": "lowcost",
+    "country": "FR"
+  },
+  "TP": {
+    "name": "TAP Air Portugal",
+    "type": "scheduled",
+    "country": "PT"
+  },
+  "TR": {
+    "name": "Scoot",
+    "type": "lowcost",
+    "country": "SG"
+  },
+  "TS": {
+    "name": "Air Transat",
+    "type": "scheduled",
+    "country": "CA"
+  },
+  "TU": {
+    "name": "Tunisair",
+    "type": "scheduled",
+    "country": "TN"
+  },
+  "TW": {
+    "name": "T'way Air",
+    "type": "lowcost",
+    "country": "KR"
+  },
+  "TX": {
+    "name": "Air Caraïbes",
+    "type": "scheduled",
+    "country": "FR"
+  },
+  "U2": {
+    "name": "easyJet",
+    "type": "lowcost",
+    "country": "GB"
+  },
+  "U6": {
+    "name": "Ural Airlines",
+    "type": "scheduled",
+    "country": "RU"
+  },
+  "UA": {
+    "name": "United Airlines",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "UB": {
+    "name": "Myanmar National Airlines",
+    "type": "scheduled",
+    "country": "MM"
+  },
+  "UJ": {
+    "name": "AlMasria Universal Airlines",
+    "type": "charter",
+    "country": "EG"
+  },
+  "UL": {
+    "name": "SriLankan Airlines",
+    "type": "scheduled",
+    "country": "LK"
+  },
+  "UM": {
+    "name": "Air Zimbabwe",
+    "type": "scheduled",
+    "country": "ZW"
+  },
+  "UO": {
+    "name": "HK Express",
+    "type": "lowcost",
+    "country": "HK"
+  },
+  "UR": {
+    "name": "Uganda Airlines",
+    "type": "scheduled",
+    "country": "UG"
+  },
+  "UX": {
+    "name": "Air Europa",
+    "type": "scheduled",
+    "country": "ES"
+  },
+  "V7": {
+    "name": "Volotea",
+    "type": "lowcost",
+    "country": "ES"
+  },
+  "VA": {
+    "name": "Virgin Australia",
+    "type": "scheduled",
+    "country": "AU"
+  },
+  "VB": {
+    "name": "Viva Aerobus",
+    "type": "lowcost",
+    "country": "MX"
+  },
+  "VF": {
+    "name": "AJet",
+    "type": "lowcost",
+    "country": "TR"
+  },
+  "VJ": {
+    "name": "Vietjet Air",
+    "type": "lowcost",
+    "country": "VN"
+  },
+  "VN": {
+    "name": "Vietnam Airlines",
+    "type": "scheduled",
+    "country": "VN"
+  },
+  "VS": {
+    "name": "Virgin Atlantic",
+    "type": "scheduled",
+    "country": "GB"
+  },
+  "VY": {
+    "name": "Vueling",
+    "type": "lowcost",
+    "country": "ES"
+  },
+  "VZ": {
+    "name": "Thai Vietjet Air",
+    "type": "lowcost",
+    "country": "TH"
+  },
+  "W4": {
+    "name": "Wizz Air Malta",
+    "type": "lowcost",
+    "country": "MT"
+  },
+  "W5": {
+    "name": "Mahan Air",
+    "type": "scheduled",
+    "country": "IR"
+  },
+  "W6": {
+    "name": "Wizz Air",
+    "type": "lowcost",
+    "country": "HU"
+  },
+  "WB": {
+    "name": "RwandAir",
+    "type": "scheduled",
+    "country": "RW"
+  },
+  "WE": {
+    "name": "Thai Smile",
+    "type": "scheduled",
+    "country": "TH"
+  },
+  "WF": {
+    "name": "Widerøe",
+    "type": "scheduled",
+    "country": "NO"
+  },
+  "WG": {
+    "name": "Sunwing Airlines",
+    "type": "charter",
+    "country": "CA"
+  },
+  "WK": {
+    "name": "Edelweiss Air",
+    "type": "charter",
+    "country": "CH"
+  },
+  "WN": {
+    "name": "Southwest Airlines",
+    "type": "lowcost",
+    "country": "US"
+  },
+  "WS": {
+    "name": "WestJet",
+    "type": "scheduled",
+    "country": "CA"
+  },
+  "WY": {
+    "name": "Oman Air",
+    "type": "scheduled",
+    "country": "OM"
+  },
+  "X3": {
+    "name": "TUI fly Deutschland",
+    "type": "charter",
+    "country": "DE"
+  },
+  "XC": {
+    "name": "Corendon Airlines",
+    "type": "charter",
+    "country": "TR"
+  },
+  "XQ": {
+    "name": "SunExpress",
+    "type": "lowcost",
+    "country": "TR"
+  },
+  "XR": {
+    "name": "Corendon Airlines Europe",
+    "type": "charter",
+    "country": "MT"
+  },
+  "XY": {
+    "name": "flynas",
+    "type": "lowcost",
+    "country": "SA"
+  },
+  "Y4": {
+    "name": "Volaris",
+    "type": "lowcost",
+    "country": "MX"
+  },
+  "YM": {
+    "name": "Montenegro Airlines",
+    "type": "scheduled",
+    "country": "ME"
+  },
+  "YW": {
+    "name": "Air Nostrum",
+    "type": "scheduled",
+    "country": "ES"
+  },
+  "YX": {
+    "name": "Republic Airways",
+    "type": "scheduled",
+    "country": "US"
+  },
+  "Z2": {
+    "name": "Philippines AirAsia",
+    "type": "lowcost",
+    "country": "PH"
+  },
+  "ZE": {
+    "name": "Eastar Jet",
+    "type": "lowcost",
+    "country": "KR"
+  },
+  "ZG": {
+    "name": "Zipair Tokyo",
+    "type": "lowcost",
+    "country": "JP"
+  },
+  "ZH": {
+    "name": "Shenzhen Airlines",
+    "type": "scheduled",
+    "country": "CN"
+  },
+  "ZL": {
+    "name": "Rex Regional Express",
+    "type": "scheduled",
+    "country": "AU"
+  }
+}
