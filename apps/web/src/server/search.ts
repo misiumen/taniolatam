@@ -1,6 +1,6 @@
-import type { AirportInfo, SearchResponse } from "@taniolatam/api-client";
-import { placeKey, searchDestinations } from "@taniolatam/core";
-import type { SearchRequest } from "@taniolatam/api-client";
+import type { AirportInfo, SearchResponse } from "@gdziepolece/api-client";
+import { placeKey, searchDestinations } from "@gdziepolece/core";
+import type { SearchRequest } from "@gdziepolece/api-client";
 import type { ServerContext } from "./context";
 
 /** Runs one search and shapes it into the `/api/v1/search` response. */

@@ -6,7 +6,7 @@ import type {
   SearchQuery,
   TripSpec,
   Weekday,
-} from "@taniolatam/core";
+} from "@gdziepolece/core";
 
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 

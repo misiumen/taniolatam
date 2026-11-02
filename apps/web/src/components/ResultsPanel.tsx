@@ -1,6 +1,6 @@
 "use client";
 
-import type { ApiClient, SearchResponse } from "@taniolatam/api-client";
+import type { ApiClient, SearchResponse } from "@gdziepolece/api-client";
 import { useEffect, useMemo, useState } from "react";
 import {
   describeDestinations,

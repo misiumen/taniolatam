@@ -1,4 +1,4 @@
-# Dane referencyjne TanioLatam
+# Dane referencyjne Gdzie Polecę
 
 Słowniki lotnisk, krajów i regionów używane przez aplikację. Pliki są generowane, nie edytować ręcznie.
 

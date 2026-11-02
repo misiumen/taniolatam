@@ -1,4 +1,4 @@
-import { placeKey, type DestinationSummary, type Offer } from "@taniolatam/core";
+import { placeKey, type DestinationSummary, type Offer } from "@gdziepolece/core";
 import { describe, expect, it } from "vitest";
 import { describeDestinations, sortDestinations } from "./destinations";
 

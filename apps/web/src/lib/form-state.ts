@@ -5,7 +5,7 @@ import {
   type Place,
   type SearchQuery,
   type Weekday,
-} from "@taniolatam/core";
+} from "@gdziepolece/core";
 
 export interface PlaceChip {
   place: Place;

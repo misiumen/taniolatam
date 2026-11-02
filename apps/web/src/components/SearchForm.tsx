@@ -1,7 +1,7 @@
 "use client";
 
-import type { Weekday } from "@taniolatam/core";
-import type { ApiClient } from "@taniolatam/api-client";
+import type { Weekday } from "@gdziepolece/core";
+import type { ApiClient } from "@gdziepolece/api-client";
 import {
   ALL_CARRIER_TYPES,
   MAX_DURATION_HOURS,

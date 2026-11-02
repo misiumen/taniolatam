@@ -8,8 +8,8 @@ import {
   PlaceIndex,
   type PlaceData,
   type SourceRegistry,
-} from "@taniolatam/core";
-import { loadPlaceData, openCache } from "@taniolatam/core/node";
+} from "@gdziepolece/core";
+import { loadPlaceData, openCache } from "@gdziepolece/core/node";
 import { PlaceSuggester } from "./suggest";
 
 export interface ServerContext {
@@ -24,9 +24,9 @@ export interface ServerContext {
   enabledSources(): FlightSource[];
 }
 
-/** `TANIOLATAM_DATA_DIR`, else the nearest `data/` (with airports.json) above the cwd. */
+/** `GDZIEPOLECE_DATA_DIR`, else the nearest `data/` (with airports.json) above the cwd. */
 export function findDataDir(cwd = process.cwd(), env = process.env): string | undefined {
-  if (env.TANIOLATAM_DATA_DIR) return env.TANIOLATAM_DATA_DIR;
+  if (env.GDZIEPOLECE_DATA_DIR) return env.GDZIEPOLECE_DATA_DIR;
   let dir = resolve(cwd);
   for (;;) {
     if (existsSync(join(dir, "data", "airports.json"))) return join(dir, "data");
@@ -60,7 +60,7 @@ async function init(): Promise<ServerContext> {
   };
 }
 
-const KEY = Symbol.for("taniolatam.web.serverContext");
+const KEY = Symbol.for("gdziepolece.web.serverContext");
 type Holder = { [KEY]?: Promise<ServerContext> };
 
 /**

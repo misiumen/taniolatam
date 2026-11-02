@@ -93,7 +93,7 @@ describe("parseAirportCities", () => {
 
 describe("loader", () => {
   async function dirWith(files: Record<string, unknown>) {
-    const dir = await mkdtemp(join(tmpdir(), "taniolatam-cities-"));
+    const dir = await mkdtemp(join(tmpdir(), "gdziepolece-cities-"));
     for (const [name, v] of Object.entries(files)) {
       await writeFile(join(dir, name), JSON.stringify(v));
     }

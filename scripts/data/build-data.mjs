@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generator słowników danych TanioLatam z OurAirports (dane w domenie publicznej).
+ * Generator słowników danych Gdzie Polecę z OurAirports (dane w domenie publicznej).
  *
  * Uruchomienie z katalogu głównego repo:
  *   node scripts/data/build-data.mjs [--refresh]

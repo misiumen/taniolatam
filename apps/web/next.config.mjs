@@ -17,7 +17,7 @@ const nextConfig = {
   // Trace files from the repo root so standalone output includes workspace packages.
   outputFileTracingRoot: repoRoot,
   // core and api-client ship as TypeScript source (see packages/core/src/index.ts).
-  transpilePackages: ["@taniolatam/core", "@taniolatam/api-client"],
+  transpilePackages: ["@gdziepolece/core", "@gdziepolece/api-client"],
   // Optional native module, imported lazily by core's openCache(); never bundle it.
   serverExternalPackages: ["better-sqlite3"],
   poweredByHeader: false,

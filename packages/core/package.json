@@ -1,8 +1,8 @@
 {
-  "name": "@taniolatam/core",
+  "name": "@gdziepolece/core",
   "version": "0.1.0",
   "private": true,
-  "description": "TanioLatam domain core: places, flight sources, aggregation, cache (framework-free TypeScript).",
+  "description": "Gdzie Polecę domain core: places, flight sources, aggregation, cache (framework-free TypeScript).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

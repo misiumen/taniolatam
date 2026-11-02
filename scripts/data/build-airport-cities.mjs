@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generator nazw miast obsługiwanych przez lotniska (TanioLatam).
+ * Generator nazw miast obsługiwanych przez lotniska (Gdzie Polecę).
  *
  * Uruchomienie z katalogu głównego repo:
  *   node scripts/data/build-airport-cities.mjs

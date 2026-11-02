@@ -1,11 +1,11 @@
 /**
- * @taniolatam/core — isomorphic entry (no Node built-ins). Node-only helpers (file loader,
- * SQLite cache) live in "@taniolatam/core/node".
+ * @gdziepolece/core — isomorphic entry (no Node built-ins). Node-only helpers (file loader,
+ * SQLite cache) live in "@gdziepolece/core/node".
  *
  * Shipped as TypeScript source with explicit `.ts` import specifiers (no build step):
  * - Node 22.18+ runs it directly (native type stripping; erasable syntax only).
  * - Vitest/Vite handles it natively.
- * - Next.js: add `transpilePackages: ["@taniolatam/core"]`; consumers' tsconfig needs
+ * - Next.js: add `transpilePackages: ["@gdziepolece/core"]`; consumers' tsconfig needs
  *   `"allowImportingTsExtensions": true` (fine with `noEmit`, which Next uses).
  */
 export * from "./aggregate/index.ts";

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TanioLatam — najtańsze loty z mapą",
+  title: "Gdzie Polecę — najtańsze loty z mapą",
   description:
     "Znajdź najtańsze kierunki: wybierz skąd lecisz, kiedy i na jak długo, a zobaczysz ceny na liście i na mapie.",
 };

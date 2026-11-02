@@ -1,5 +1,5 @@
-import type { CalendarDay, CalendarResponse } from "@taniolatam/api-client";
-import type { FlightSource, Offer, TripSpec } from "@taniolatam/core";
+import type { CalendarDay, CalendarResponse } from "@gdziepolece/api-client";
+import type { FlightSource, Offer, TripSpec } from "@gdziepolece/core";
 import type { Validated } from "./validate";
 
 export interface CalendarParams {

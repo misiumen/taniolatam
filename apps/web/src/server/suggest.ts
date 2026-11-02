@@ -1,6 +1,6 @@
-import { airportCityEn, airportCityPl } from "@taniolatam/core";
-import type { Airport, Place, PlaceData, PlaceKind } from "@taniolatam/core";
-import type { PlaceSuggestion } from "@taniolatam/api-client";
+import { airportCityEn, airportCityPl } from "@gdziepolece/core";
+import type { Airport, Place, PlaceData, PlaceKind } from "@gdziepolece/core";
+import type { PlaceSuggestion } from "@gdziepolece/api-client";
 
 export const KIND_LABELS: Record<PlaceKind, string> = {
   airport: "Lotnisko",

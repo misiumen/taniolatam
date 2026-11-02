@@ -121,14 +121,14 @@ describe("parsing and loading", () => {
   });
 
   it("throws a clear error when the data files are missing", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "taniolatam-empty-"));
+    const dir = await mkdtemp(join(tmpdir(), "gdziepolece-empty-"));
     await expect(loadPlaceData(dir)).rejects.toThrow(
       /Reference data file not found: .*airports\.json/,
     );
   });
 
   it("loads and indexes valid files", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "taniolatam-data-"));
+    const dir = await mkdtemp(join(tmpdir(), "gdziepolece-data-"));
     await writeFile(join(dir, "airports.json"), JSON.stringify(fixtureData.airports));
     await writeFile(join(dir, "regions.json"), JSON.stringify(fixtureData.regions));
     await writeFile(join(dir, "place-groups.json"), JSON.stringify(fixtureData.groups));

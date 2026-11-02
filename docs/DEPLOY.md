@@ -1,53 +1,47 @@
-# Wdrożenie na gdziepolece.pl (droga 1: domena w nazwa.pl, aplikacja w Railway)
+# Wdrożenie na gdziepolece.pl (droga 1: domena w nazwa.pl, aplikacja w Render)
 
 Nazwa.pl służy tylko do rekordów DNS. Nie potrzebujesz tam żadnego API ani tokena.
-Aplikacja działa w Railway, który sam buduje obraz z `Dockerfile` po każdym pushu na gałąź `main`.
+Aplikacja działa w Render, który sam buduje obraz z `Dockerfile` po każdym pushu na gałąź `main`.
+Railway odpadł (zamknięte rejestracje po awarii z 27.10.2026). Zapasowa opcja: Fly.io, opis na końcu.
 
-## Krok 1. Konto Railway i połączenie z repozytorium (ty, ok. 5 minut)
+## Gdzie trafia token Travelpayouts
 
-1. Wejdź na railway.com i zaloguj się kontem GitHub.
-2. Kliknij "New Project" → "Deploy from GitHub repo" → wybierz `misiumen/taniolatam`.
-3. W ustawieniach usługi (Settings → Source) ustaw gałąź `main`.
-4. Railway wykryje `Dockerfile` i `railway.json` i zbuduje aplikację. Pierwszy build trwa kilka minut.
+Token i marker wpisujesz **dokładnie raz**, u dostawcy hostingu, w zmiennych środowiskowych usługi.
+Stamtąd aplikacja czyta je przy każdym starcie. Nie ma sposobu, żeby pominąć ten jeden krok, bo żaden
+hosting nie ma dostępu do plików na twoim dysku, a token nie może trafić do repozytorium.
+Plik `.env` na twoim komputerze służy tylko do uruchamiania aplikacji lokalnie.
 
-## Krok 2. Zmienne środowiskowe (ty, w Railway → Variables)
+## Krok 1. Konto Render i połączenie z repozytorium (ty, ok. 5 minut)
 
-Wpisz dokładnie te pary. Tokena nie wklejaj nigdzie indziej, w szczególności nie do repozytorium.
+1. Wejdź na render.com i zaloguj się kontem GitHub.
+2. Kliknij "New" → "Blueprint" → wybierz repozytorium `misiumen/taniolatam`.
+3. Render odczyta plik `render.yaml` z gałęzi `main` i pokaże usługę `gdziepolece` z dyskiem `/data`.
+4. Przy dwóch zmiennych oznaczonych jako tajne poprosi o wartości:
+   `TRAVELPAYOUTS_TOKEN` i `TRAVELPAYOUTS_MARKER`. Przepisz je z pliku `.env` na swoim dysku.
+5. Kliknij "Apply". Pierwszy build trwa kilka minut. Reszta zmiennych jest już w `render.yaml`.
 
-| Zmienna | Wartość |
-|---|---|
-| `SOURCE_TRAVELPAYOUTS` | `1` |
-| `TRAVELPAYOUTS_TOKEN` | token z ustawień konta Travelpayouts |
-| `TRAVELPAYOUTS_MARKER` | marker z Travelpayouts |
-| `SOURCE_MOCK` | `0` |
-| `CACHE_DRIVER` | `sqlite` |
-| `CACHE_PATH` | `/data/cache.sqlite` |
-| `NEXT_PUBLIC_MAP_STYLE_URL` | `https://tiles.openfreemap.org/styles/liberty` |
-| `PORT` | `3000` |
+Plan `starter` kosztuje ok. 7 USD miesięcznie plus ok. 0,25 USD za dysk 1 GB. Darmowy plan Render nie ma dysku
+i usypia usługę po 15 minutach bezczynności; jeśli chcesz zacząć za darmo, zmień w `render.yaml`
+`plan: free`, usuń sekcję `disk` i ustaw `CACHE_DRIVER=memory`.
 
-Po zapisaniu zmiennych Railway sam przebuduje aplikację.
+## Krok 2. Domena (ty, w Render i w nazwa.pl)
 
-## Krok 3. Dysk na cache (ty, w Railway)
-
-Kliknij prawym na usługę → "Add Volume" → mount path `/data`. Bez tego cache znika przy każdym restarcie;
-aplikacja dalej działa, tylko wolniej.
-
-## Krok 4. Domena (ty, w Railway i w nazwa.pl)
-
-1. Railway → usługa → Settings → Networking → "Custom Domain" → wpisz `gdziepolece.pl`, potem drugi raz `www.gdziepolece.pl`.
-2. Railway pokaże wartości rekordów DNS (zwykle CNAME dla `www` i rekord dla domeny głównej).
-3. Panel nazwa.pl → domena gdziepolece.pl → strefa DNS → dodaj rekordy dokładnie tak, jak podał Railway.
-   Jeśli panel nie pozwala na CNAME dla domeny głównej (bez www), użyj rekordu A z adresem IP podanym przez Railway
-   albo wpisz tylko `www` i ustaw przekierowanie z gdziepolece.pl na www.gdziepolece.pl w panelu nazwa.pl.
-4. Propagacja DNS trwa od kilku minut do kilku godzin. Certyfikat HTTPS Railway wystawia sam.
-
-## Koszt
-
-Railway: plan Hobby ok. 5 USD miesięcznie, w tym zużycie małej usługi i dysku. Domena opłacana w nazwa.pl.
+1. Render → usługa `gdziepolece` → Settings → Custom Domains → dodaj `gdziepolece.pl` oraz `www.gdziepolece.pl`.
+2. Render pokaże rekordy: dla `www` rekord CNAME wskazujący na adres usługi w Render, dla domeny głównej rekord A
+   z adresem IP (Render podaje go przy dodawaniu domeny bez www).
+3. Panel nazwa.pl → domena gdziepolece.pl → strefa DNS → dodaj rekordy dokładnie tak, jak podał Render.
+4. Propagacja DNS trwa od kilku minut do kilku godzin. Certyfikat HTTPS Render wystawia sam.
 
 ## Aktualizacje
 
 Każdy push na `main` uruchamia nowy build i wdrożenie. Gałęzie robocze nie są wdrażane.
+
+## Opcja zapasowa: Fly.io
+
+1. Zainstaluj `flyctl` lokalnie i zaloguj się (`fly auth login`).
+2. W katalogu repozytorium: `fly launch --no-deploy` (wykryje Dockerfile), potem `fly volumes create data --size 1`,
+   `fly secrets set TRAVELPAYOUTS_TOKEN=... TRAVELPAYOUTS_MARKER=...`, `fly deploy`.
+3. Domena: `fly certs add gdziepolece.pl` pokaże rekordy A/AAAA do wpisania w nazwa.pl.
 
 ## Lokalnie
 

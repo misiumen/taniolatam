@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Offer } from "@taniolatam/core";
+import type { Offer } from "@gdziepolece/core";
 import { foldCalendar, parseCalendarParams } from "./calendar";
 
 const offer = (date: string, price: number, stops: number): Offer => ({

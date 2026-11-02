@@ -1,7 +1,7 @@
 // Runs the production build exactly as the Docker image does: `output: "standalone"` leaves
 // `.next/static` and `public/` out of the standalone tree, so copy them in, then start server.js.
 //
-//   npm run build && npm run start:standalone -w @taniolatam/web
+//   npm run build && npm run start:standalone -w @gdziepolece/web
 //
 // Env: PORT (default 3000), START_HOST (default 127.0.0.1; Docker uses 0.0.0.0). Variables from the
 // repo-root `.env` (e.g. TRAVELPAYOUTS_TOKEN) are loaded unless already set in the environment.
@@ -15,7 +15,7 @@ const standaloneWeb = resolve(webDir, ".next/standalone/apps/web");
 const serverJs = resolve(standaloneWeb, "server.js");
 
 if (!existsSync(serverJs)) {
-  console.error(`Brak ${serverJs}.\nNajpierw zbuduj aplikację: npm run build -w @taniolatam/web`);
+  console.error(`Brak ${serverJs}.\nNajpierw zbuduj aplikację: npm run build -w @gdziepolece/web`);
   process.exit(1);
 }
 
@@ -34,7 +34,7 @@ process.env.NODE_ENV = "production";
 process.env.PORT ??= "3000";
 // server.js binds to HOSTNAME, which many shells preset to the machine name.
 process.env.HOSTNAME = process.env.START_HOST ?? "127.0.0.1";
-process.env.TANIOLATAM_DATA_DIR ||= resolve(repoRoot, "data");
+process.env.GDZIEPOLECE_DATA_DIR ||= resolve(repoRoot, "data");
 
 // server.js does process.chdir() to its own directory and runs until the process is stopped.
 await import(serverJs);

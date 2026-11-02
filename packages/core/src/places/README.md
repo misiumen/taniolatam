@@ -2,8 +2,8 @@
 
 `PlaceIndex` resolves user places (airport, city, country, subregion, continent, group, custom set,
 "anywhere") into airport IATA codes. Data comes from three JSON files in `<repo>/data/`
-(override with `TANIOLATAM_DATA_DIR`). They are loaded and validated by `loadPlaceData()` /
-`loadPlaceIndex()` from `@taniolatam/core/node`; a missing file throws `PlaceDataError` with the
+(override with `GDZIEPOLECE_DATA_DIR`). They are loaded and validated by `loadPlaceData()` /
+`loadPlaceIndex()` from `@gdziepolece/core/node`; a missing file throws `PlaceDataError` with the
 path. In the browser or tests, build the index from objects: `new PlaceIndex(parsePlaceData(raw))`.
 
 TypeScript types: `./types.ts`. All codes are uppercase except subregion/continent codes, which are

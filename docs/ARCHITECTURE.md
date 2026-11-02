@@ -1,6 +1,6 @@
 # Architektura
 
-Wersja wizualna z makietami ekranów: artefakt "TanioLatam Architektura" (link w rozmowie).
+Wersja wizualna z makietami ekranów: artefakt "Gdzie Polecę Architektura" (link w rozmowie).
 
 ## Warstwy
 
@@ -16,7 +16,7 @@ flowchart TB
     D[/GET /deals/]
     P[/GET /places/]
   end
-  subgraph Core["@taniolatam/core (czysty TypeScript)"]
+  subgraph Core["@gdziepolece/core (czysty TypeScript)"]
     R[places: resolver<br/>Polska → WAW, WMI, KRK, ...]
     PL[aggregate: planner<br/>siatka lotniska × kraje × miesiące]
     RU[aggregate: runner<br/>limity zapytań per źródło]
@@ -69,7 +69,7 @@ Typy żądań i odpowiedzi żyją w `packages/api-client` i są importowane prze
 ## Web i mobile
 
 - Web: Next.js. Trzy strefy na desktopie (formularz, lista, mapa), na telefonie zakładki Lista / Mapa.
-- Mobile: Expo (React Native) w fazie 3. Współdzieli `@taniolatam/core` (typy, resolver do podpowiedzi offline) i `packages/api-client`. Nie współdzieli komponentów UI; ekrany są natywne.
+- Mobile: Expo (React Native) w fazie 3. Współdzieli `@gdziepolece/core` (typy, resolver do podpowiedzi offline) i `packages/api-client`. Nie współdzieli komponentów UI; ekrany są natywne.
 - Jeden backend dla obu. Gdy mobile wejdzie, API zostaje wydzielone do `apps/api` bez zmiany kontraktu.
 
 ## Wzorzec formularza

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SearchQuery } from "@taniolatam/core";
+import type { SearchQuery } from "@gdziepolece/core";
 import { ApiError, calendarQuery, createApiClient } from "../src/index.ts";
 
 const query: SearchQuery = {

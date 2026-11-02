@@ -56,7 +56,7 @@ export function calendarQuery(req: CalendarRequest): string {
 
 /**
  * `baseUrl` is the origin of the API ("" for same-origin in the browser,
- * "https://taniolatam.example" for mobile). `fetchImpl` defaults to the global `fetch`.
+ * "https://gdziepolece.example" for mobile). `fetchImpl` defaults to the global `fetch`.
  */
 export function createApiClient(baseUrl = "", fetchImpl?: FetchLike): ApiClient {
   const base = baseUrl.replace(/\/+$/, "");

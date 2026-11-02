@@ -48,11 +48,11 @@ jobs:
 
       # `next dev` with the mock source; no secrets or external services needed.
       - name: E2E (dev server)
-        run: npm run e2e -w @taniolatam/web
+        run: npm run e2e -w @gdziepolece/web
 
       # The production build served the way Docker serves it (standalone + static assets).
       - name: E2E (production build)
-        run: npm run e2e:prod -w @taniolatam/web
+        run: npm run e2e:prod -w @gdziepolece/web
 
       - name: Upload Playwright report
         if: failure()

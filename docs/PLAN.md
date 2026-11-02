@@ -3,7 +3,7 @@
 Stan na: 2026-11-02. Dokument żyje: aktualizujemy go, gdy zmienią się decyzje.
 
 **Nazwa produktu: Gdzie Polecę** (domena gdziepolece.pl, decyzja z 2026-11-02). Nazwa robocza repozytorium
-"taniolatam" pozostaje tylko w adresie repozytorium; nazwy pakietów, UI i dokumentacja używają "Gdzie Polecę".
+"gdziepolece" pozostaje tylko w adresie repozytorium; nazwy pakietów, UI i dokumentacja używają "Gdzie Polecę".
 
 ## 1. Cel
 
@@ -75,7 +75,7 @@ większość serwisów "tanie loty".
 ## 4. Architektura
 
 Domena produkcyjna: **gdziepolece.pl** (zakupiona 2026-11-02). Szczegóły i rysunki: `docs/ARCHITECTURE.md`. Dwa klienty (web i mobile) korzystają z jednego API
-i wspólnego pakietu `@taniolatam/core`.
+i wspólnego pakietu `@gdziepolece/core`.
 
 ```
 apps/web     (Next.js 15, TypeScript, Tailwind, MapLibre)

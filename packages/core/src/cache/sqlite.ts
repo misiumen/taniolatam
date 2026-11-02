@@ -52,7 +52,7 @@ export class SqliteCache implements Cache {
 export interface OpenCacheOptions {
   /** "sqlite" (default) or "memory". */
   driver?: "sqlite" | "memory";
-  /** SQLite file path; ":memory:" works too. Default ".cache/taniolatam.sqlite". */
+  /** SQLite file path; ":memory:" works too. Default ".cache/gdziepolece.sqlite". */
   path?: string;
   now?: () => number;
   /** Where the fallback warning goes. Default console.warn. */
@@ -66,7 +66,7 @@ export interface OpenCacheOptions {
 export async function openCache(opts: OpenCacheOptions = {}): Promise<Cache> {
   const warn = opts.warn ?? ((msg: string) => console.warn(msg));
   if (opts.driver === "memory") return new MemoryCache({ now: opts.now });
-  const path = opts.path ?? ".cache/taniolatam.sqlite";
+  const path = opts.path ?? ".cache/gdziepolece.sqlite";
   try {
     const { default: Sqlite } = await import("better-sqlite3");
     if (path !== ":memory:") {
@@ -77,7 +77,7 @@ export async function openCache(opts: OpenCacheOptions = {}): Promise<Cache> {
     return new SqliteCache(new Sqlite(path), { now: opts.now });
   } catch (err) {
     warn(
-      `[taniolatam] SQLite cache unavailable (${(err as Error).message}); using in-memory cache.`,
+      `[gdziepolece] SQLite cache unavailable (${(err as Error).message}); using in-memory cache.`,
     );
     return new MemoryCache({ now: opts.now });
   }

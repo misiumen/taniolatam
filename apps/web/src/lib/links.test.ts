@@ -1,4 +1,4 @@
-import type { Offer } from "@taniolatam/core";
+import type { Offer } from "@gdziepolece/core";
 import { describe, expect, it } from "vitest";
 import { openJawLegs, verifyLinks } from "./links";
 

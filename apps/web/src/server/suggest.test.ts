@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { loadPlaceData } from "@taniolatam/core/node";
+import { loadPlaceData } from "@gdziepolece/core/node";
 import { findDataDir } from "./context";
 import { ANYWHERE_SUGGESTION, MAX_SUGGESTIONS, PlaceSuggester } from "./suggest";
 

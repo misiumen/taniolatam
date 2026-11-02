@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from "@taniolatam/api-client";
+import type { ApiErrorBody } from "@gdziepolece/api-client";
 
 export function errorResponse(status: number, error: string, code?: string): Response {
   const body: ApiErrorBody = code ? { error, code } : { error };
@@ -6,6 +6,6 @@ export function errorResponse(status: number, error: string, code?: string): Res
 }
 
 export function serverError(err: unknown): Response {
-  console.error("[taniolatam] API error:", err);
+  console.error("[gdziepolece] API error:", err);
   return errorResponse(500, "Wystąpił błąd serwera. Spróbuj ponownie za chwilę.", "internal");
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@taniolatam/web",
+  "name": "@gdziepolece/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,8 +15,8 @@
     "e2e:prod": "playwright test -c playwright.prod.config.ts"
   },
   "dependencies": {
-    "@taniolatam/api-client": "*",
-    "@taniolatam/core": "*",
+    "@gdziepolece/api-client": "*",
+    "@gdziepolece/core": "*",
     "maplibre-gl": "^6.16.0",
     "next": "^15.5.28",
     "react": "^19.1.10",

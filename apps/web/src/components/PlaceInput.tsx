@@ -1,7 +1,7 @@
 "use client";
 
-import { placeKey } from "@taniolatam/core";
-import type { ApiClient, PlaceSuggestion } from "@taniolatam/api-client";
+import { placeKey } from "@gdziepolece/core";
+import type { ApiClient, PlaceSuggestion } from "@gdziepolece/api-client";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PlaceChip } from "../lib/form-state";
 import { inputCls } from "./ui";

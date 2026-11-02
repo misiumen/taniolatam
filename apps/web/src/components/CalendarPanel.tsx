@@ -1,7 +1,7 @@
 "use client";
 
-import { ApiError, type ApiClient, type CalendarResponse } from "@taniolatam/api-client";
-import { monthRange, weekdayOf, type Offer } from "@taniolatam/core";
+import { ApiError, type ApiClient, type CalendarResponse } from "@gdziepolece/api-client";
+import { monthRange, weekdayOf, type Offer } from "@gdziepolece/core";
 import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "../lib/format";
 import { dayLink } from "../lib/links";

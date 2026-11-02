@@ -1,7 +1,7 @@
 "use client";
 
-import type { ApiClient } from "@taniolatam/api-client";
-import { daysBetween, type Offer } from "@taniolatam/core";
+import type { ApiClient } from "@gdziepolece/api-client";
+import { daysBetween, type Offer } from "@gdziepolece/core";
 import type { DestinationView } from "../lib/destinations";
 import {
   formatDateRange,

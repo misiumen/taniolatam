@@ -1,4 +1,4 @@
-# TanioLatam — dodatkowe źródła danych (poza PLAN.md, sekcja 3)
+# Gdzie Polecę — dodatkowe źródła danych (poza PLAN.md, sekcja 3)
 
 Stan na: 2026-11-02. Dokument uzupełnia `docs/PLAN.md` sekcja 3. **Nie powtarza** źródeł już ocenionych tam
 (Travelpayouts/Aviasales Data i Search API, Kiwi Tequila, Duffel, Skyscanner Partners, Google Flights, Amadeus,

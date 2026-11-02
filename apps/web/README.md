@@ -1,8 +1,8 @@
-# apps/web — TanioLatam (Next.js)
+# apps/web — Gdzie Polecę (Next.js)
 
 Interfejs webowy i API v1 (`/api/v1/*`) w jednym procesie Next.js 15 (App Router, TypeScript,
 Tailwind 4). Logika wyszukiwania, dane miejsc, cache i źródła ofert pochodzą z
-`@taniolatam/core`; typy żądań/odpowiedzi i klient fetch z `@taniolatam/api-client`.
+`@gdziepolece/core`; typy żądań/odpowiedzi i klient fetch z `@gdziepolece/api-client`.
 
 ## Uruchomienie
 
@@ -11,9 +11,9 @@ Z katalogu głównego repozytorium (Node 22, `npm install` raz):
 ```bash
 cp .env.example .env        # SOURCE_MOCK=1 działa bez żadnych kluczy
 npm run dev                 # http://localhost:3000  → przekierowuje na /szukaj
-npm run build && npm run start:standalone -w @taniolatam/web   # wersja produkcyjna jak w Dockerze
-npm run e2e -w @taniolatam/web                      # Playwright na `next dev` (poza `npm run check`)
-npm run build && npm run e2e:prod -w @taniolatam/web   # ten sam zestaw na buildzie produkcyjnym
+npm run build && npm run start:standalone -w @gdziepolece/web   # wersja produkcyjna jak w Dockerze
+npm run e2e -w @gdziepolece/web                      # Playwright na `next dev` (poza `npm run check`)
+npm run build && npm run e2e:prod -w @gdziepolece/web   # ten sam zestaw na buildzie produkcyjnym
 ```
 
 ### Produkcyjnie lokalnie (`start:standalone`)
@@ -21,14 +21,14 @@ npm run build && npm run e2e:prod -w @taniolatam/web   # ten sam zestaw na build
 `next.config.mjs` ustawia `output: "standalone"`. Taki build **nie zawiera** `.next/static` ani `public/`,
 więc `node apps/web/.next/standalone/apps/web/server.js` uruchomiony „na gołym” buildzie zwraca
 400/404 dla `/_next/static/*` (brak CSS i JS). Dockerfile kopiuje te katalogi do drzewa standalone,
-a skrypt `npm run start:standalone -w @taniolatam/web` (`scripts/start-standalone.mjs`) robi to samo
+a skrypt `npm run start:standalone -w @gdziepolece/web` (`scripts/start-standalone.mjs`) robi to samo
 lokalnie i startuje serwer, więc test lokalny odpowiada obrazowi Dockera:
 
 - `.next/static` → `.next/standalone/apps/web/.next/static`, `public` → `.next/standalone/apps/web/public`
   (kopiowane przy każdym starcie; wymaga wcześniejszego `npm run build`),
 - zmienne z `.env` w korzeniu repo są ładowane, o ile nie ustawiono ich już w środowisku,
 - `PORT` (domyślnie 3000) i `START_HOST` (domyślnie `127.0.0.1`; w Dockerze `0.0.0.0`),
-- `TANIOLATAM_DATA_DIR` domyślnie wskazuje `<repo>/data`.
+- `GDZIEPOLECE_DATA_DIR` domyślnie wskazuje `<repo>/data`.
 
 Uwaga: `NEXT_PUBLIC_*` (np. styl mapy) jest wbudowywane w czasie `npm run build`, nie startu.
 
@@ -39,25 +39,25 @@ W produkcji (`next start`, Docker) zmienne muszą być ustawione w środowisku p
 ### Docker
 
 ```bash
-docker build -t taniolatam \
+docker build -t gdziepolece \
   --build-arg NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty .
-docker run -p 3000:3000 --env-file .env -v taniolatam-cache:/app/.cache taniolatam
+docker run -p 3000:3000 --env-file .env -v gdziepolece-cache:/app/.cache gdziepolece
 ```
 
 `Dockerfile` leży w korzeniu repo (wieloetapowy, `node:22-alpine`, `output: 'standalone'`);
 kopiuje `.next/static` i `public/` obok `server.js` (`apps/web/.next/static`, `apps/web/public`),
-kopiuje `data/` i ustawia `TANIOLATAM_DATA_DIR=/app/data`, `CACHE_PATH=/app/.cache/taniolatam.sqlite`.
+kopiuje `data/` i ustawia `GDZIEPOLECE_DATA_DIR=/app/data`, `CACHE_PATH=/app/.cache/gdziepolece.sqlite`.
 
 ## Zmienne środowiskowe
 
 | Zmienna | Domyślnie | Opis |
 |---|---|---|
 | `SOURCE_MOCK` | `1` w `.env.example` | źródło testowe (deterministyczne, bez kluczy) |
-| `SOURCE_TRAVELPAYOUTS`, `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER` | wyłączone | adapter Travelpayouts (gdy dostępny w `@taniolatam/core`) |
+| `SOURCE_TRAVELPAYOUTS`, `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER` | wyłączone | adapter Travelpayouts (gdy dostępny w `@gdziepolece/core`) |
 | `CACHE_DRIVER` | `sqlite` | `sqlite` lub `memory`; bez natywnego `better-sqlite3` automatycznie `memory` |
-| `CACHE_PATH` | `.cache/taniolatam.sqlite` | plik cache SQLite (względem katalogu uruchomienia) |
+| `CACHE_PATH` | `.cache/gdziepolece.sqlite` | plik cache SQLite (względem katalogu uruchomienia) |
 | `SEARCH_MAX_TASKS` | `300` | twardy limit zapytań do źródeł na jedno wyszukiwanie |
-| `TANIOLATAM_DATA_DIR` | `<repo>/data` | katalog z `airports.json`, `regions.json`, `place-groups.json` |
+| `GDZIEPOLECE_DATA_DIR` | `<repo>/data` | katalog z `airports.json`, `regions.json`, `place-groups.json` |
 | `NEXT_PUBLIC_MAP_STYLE_URL` | `https://tiles.openfreemap.org/styles/liberty` | styl MapLibre; wbudowywany w czasie builda |
 
 Bez żadnego włączonego źródła `POST /api/v1/search` zwraca 503 z komunikatem po polsku.
@@ -73,7 +73,7 @@ Bez żadnego włączonego źródła `POST /api/v1/search` zwraca 503 z komunikat
 `airports` w odpowiedzi wyszukiwania to dodatek do kontraktu: współrzędne i nazwy lotnisk użytych
 w wynikach (przeglądarka nie ma słownika lotnisk). Drugi dodatek, `groupAirports`, podaje kody
 wszystkich lotnisk miasta, gdy jest ich więcej niż jedno. Filtr `excludeOriginCountries` jest
-przekazywany do `@taniolatam/core` (brak wartości = włączony). Wyniki są grupowane po mieście.
+przekazywany do `@gdziepolece/core` (brak wartości = włączony). Wyniki są grupowane po mieście.
 
 ## Układ ekranu (`/szukaj`)
 
@@ -104,13 +104,13 @@ Kod: `src/components/` (UI), `src/lib/` (stan formularza ↔ URL, formatowanie, 
 
 ## Testy
 
-- `npm test -w @taniolatam/web` — testy jednostkowe (walidacja, podpowiedzi, stan formularza, kalendarz).
-- `npm run e2e -w @taniolatam/web` — Playwright: uruchamia `next dev` z `SOURCE_MOCK=1`, wysyła
+- `npm test -w @gdziepolece/web` — testy jednostkowe (walidacja, podpowiedzi, stan formularza, kalendarz).
+- `npm run e2e -w @gdziepolece/web` — Playwright: uruchamia `next dev` z `SOURCE_MOCK=1`, wysyła
   domyślny formularz, sprawdza kartę kierunku, kalendarz, pole „Dokąd”, nowe filtry i stan w URL.
   Port: `E2E_PORT` (domyślnie 3100). Testy nie sięgają do zewnętrznych hostów (kafelki mapy mają
   tło zastępcze). Własna przeglądarka: `PW_CHROMIUM_PATH=/ścieżka/do/chromium`; w przeciwnym razie
   `npx playwright install chromium`.
-- `npm run e2e:prod -w @taniolatam/web` — te same testy na buildzie produkcyjnym uruchomionym przez
+- `npm run e2e:prod -w @gdziepolece/web` — te same testy na buildzie produkcyjnym uruchomionym przez
   `start:standalone` na wolnym porcie (`playwright.prod.config.ts`; wymaga wcześniejszego `npm run build`).
   Raport HTML (w CI) trafia do `playwright-report-prod/`.
 - CI (`.github/workflows/ci.yml`): `npm ci`, `npm run check`, `npm run build`, oba warianty e2e

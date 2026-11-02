@@ -5,7 +5,7 @@ import type {
   Place,
   PlaceKind,
   SearchQuery,
-} from "@taniolatam/core";
+} from "@gdziepolece/core";
 
 /**
  * `POST /api/v1/search` body: exactly the core `SearchQuery`, as JSON. `filters.excludeOriginCountries`

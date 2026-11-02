@@ -1,6 +1,6 @@
-# TanioLatam web (Next.js standalone). Build from the repo root:
-#   docker build -t taniolatam --build-arg NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty .
-#   docker run -p 3000:3000 --env-file .env -v taniolatam-cache:/app/.cache taniolatam
+# Gdzie Polecę web (Next.js standalone). Build from the repo root:
+#   docker build -t gdziepolece --build-arg NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty .
+#   docker run -p 3000:3000 --env-file .env -v gdziepolece-cache:/app/.cache gdziepolece
 
 # ---- deps: install the whole workspace from the lockfile ----
 FROM node:22-alpine AS deps
@@ -20,7 +20,7 @@ COPY . .
 ARG NEXT_PUBLIC_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
 ENV NEXT_PUBLIC_MAP_STYLE_URL=$NEXT_PUBLIC_MAP_STYLE_URL \
     NEXT_TELEMETRY_DISABLED=1
-RUN npm run build -w @taniolatam/web
+RUN npm run build -w @gdziepolece/web
 
 # ---- runtime ----
 FROM node:22-alpine AS runner
@@ -29,8 +29,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
-    TANIOLATAM_DATA_DIR=/app/data \
-    CACHE_PATH=/app/.cache/taniolatam.sqlite
+    GDZIEPOLECE_DATA_DIR=/app/data \
+    CACHE_PATH=/app/.cache/gdziepolece.sqlite
 # Standalone output is rooted at the repo root (outputFileTracingRoot), so server.js lives in apps/web.
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static

@@ -1,4 +1,4 @@
-import type { PlacesResponse } from "@taniolatam/api-client";
+import type { PlacesResponse } from "@gdziepolece/api-client";
 import { getServerContext } from "../../../../server/context";
 import { errorResponse, serverError } from "../../../../server/http";
 

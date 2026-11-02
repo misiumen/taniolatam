@@ -1,5 +1,5 @@
-import type { AirportInfo } from "@taniolatam/api-client";
-import { placeKey, type DestinationSummary } from "@taniolatam/core";
+import type { AirportInfo } from "@gdziepolece/api-client";
+import { placeKey, type DestinationSummary } from "@gdziepolece/core";
 
 export type SortMode = "price" | "duration" | "direct" | "fresh";
 

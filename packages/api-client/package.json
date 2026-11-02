@@ -1,8 +1,8 @@
 {
-  "name": "@taniolatam/api-client",
+  "name": "@gdziepolece/api-client",
   "version": "0.1.0",
   "private": true,
-  "description": "Request/response types and a tiny fetch wrapper for the TanioLatam /api/v1 contract (shared by web and mobile).",
+  "description": "Request/response types and a tiny fetch wrapper for the Gdzie Polecę /api/v1 contract (shared by web and mobile).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -13,6 +13,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@taniolatam/core": "*"
+    "@gdziepolece/core": "*"
   }
 }

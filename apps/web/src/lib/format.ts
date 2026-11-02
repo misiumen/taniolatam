@@ -1,4 +1,4 @@
-import type { Offer } from "@taniolatam/core";
+import type { Offer } from "@gdziepolece/core";
 
 export function formatPrice(price: number, currency = "PLN"): string {
   const rounded = Math.round(price);

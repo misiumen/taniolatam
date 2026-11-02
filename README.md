@@ -1,4 +1,4 @@
-# TanioLatam
+# Gdzie Polecę
 
 Wyszukiwarka najtańszych kierunków lotniczych: podajesz skąd (lotnisko, miasto, kraj, region),
 dokąd (albo „gdziekolwiek”) i kiedy, a dostajesz listę i mapę destynacji posortowaną po cenie,
@@ -12,9 +12,9 @@ Plan, źródła danych i koszty: [docs/PLAN.md](docs/PLAN.md). Architektura:
 
 ## Struktura
 
-- `packages/core` — `@taniolatam/core`: domena, rozwijanie miejsc, źródła lotów (interfejs + mock,
+- `packages/core` — `@gdziepolece/core`: domena, rozwijanie miejsc, źródła lotów (interfejs + mock,
   Travelpayouts), agregacja (planner, runner z limitami, deduplikacja, filtry, ranking), cache.
-- `packages/api-client` — `@taniolatam/api-client`: typy i klient `/api/v1` (web i przyszła aplikacja mobilna).
+- `packages/api-client` — `@gdziepolece/api-client`: typy i klient `/api/v1` (web i przyszła aplikacja mobilna).
 - `apps/web` — Next.js: interfejs (formularz, lista, mapa, kalendarz cen) i API v1.
 - `data/` — słowniki lotnisk i regionów (OurAirports), schemat w
   [packages/core/src/places/README.md](packages/core/src/places/README.md).
@@ -53,7 +53,7 @@ npm run dev            # http://localhost:3000 → /szukaj
 
 ```sh
 npm run build
-npm run start:standalone -w @taniolatam/web    # http://127.0.0.1:3000 (PORT, START_HOST)
+npm run start:standalone -w @gdziepolece/web    # http://127.0.0.1:3000 (PORT, START_HOST)
 ```
 
 Skrypt kopiuje `.next/static` i `public/` do drzewa standalone (tak jak Dockerfile), więc działa
@@ -62,8 +62,8 @@ tak samo jak obraz Dockera. Szczegóły: [apps/web/README.md](apps/web/README.md
 ### Docker
 
 ```sh
-docker build -t taniolatam .
-docker run -p 3000:3000 --env-file .env -v taniolatam-cache:/app/.cache taniolatam
+docker build -t gdziepolece .
+docker run -p 3000:3000 --env-file .env -v gdziepolece-cache:/app/.cache gdziepolece
 ```
 
 Zmienne (w tym `TRAVELPAYOUTS_TOKEN` i `TRAVELPAYOUTS_MARKER`) trafiają do kontenera z `--env-file`;
@@ -74,8 +74,8 @@ w obrazie nie ma żadnych sekretów. `NEXT_PUBLIC_MAP_STYLE_URL` ustawia się pr
 
 ```sh
 npx playwright install chromium                  # raz; lub PW_CHROMIUM_PATH=/ścieżka/do/chromium
-npm run e2e -w @taniolatam/web                   # na next dev, źródło mock
-npm run build && npm run e2e:prod -w @taniolatam/web   # na buildzie produkcyjnym (standalone)
+npm run e2e -w @gdziepolece/web                   # na next dev, źródło mock
+npm run build && npm run e2e:prod -w @gdziepolece/web   # na buildzie produkcyjnym (standalone)
 ```
 
 CI (GitHub Actions, `.github/workflows/ci.yml`) uruchamia na każdym pushu i pull requeście:

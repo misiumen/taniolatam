@@ -1,0 +1,33 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Wdrożenie: Render → New → Blueprint → wybierz repozytorium; Render odczyta ten plik.
+services:
+  - type: web
+    name: gdziepolece
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /szukaj
+    autoDeploy: true
+    disk:
+      name: cache
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: SOURCE_MOCK
+        value: "0"
+      - key: SOURCE_TRAVELPAYOUTS
+        value: "1"
+      - key: TRAVELPAYOUTS_TOKEN
+        sync: false
+      - key: TRAVELPAYOUTS_MARKER
+        sync: false
+      - key: CACHE_DRIVER
+        value: sqlite
+      - key: CACHE_PATH
+        value: /data/cache.sqlite
+      - key: NEXT_PUBLIC_MAP_STYLE_URL
+        value: https://tiles.openfreemap.org/styles/liberty

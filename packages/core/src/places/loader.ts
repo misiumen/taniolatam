@@ -25,7 +25,7 @@ async function readJson(path: string, optional = false): Promise<unknown> {
       if (optional) return undefined;
       throw new PlaceDataError(
         `Reference data file not found: ${path}. Generate the files in /data ` +
-          `(airports.json, regions.json, place-groups.json) or point TANIOLATAM_DATA_DIR at them. ` +
+          `(airports.json, regions.json, place-groups.json) or point GDZIEPOLECE_DATA_DIR at them. ` +
           `Schema: packages/core/src/places/README.md`,
       );
     }
@@ -41,10 +41,10 @@ async function readJson(path: string, optional = false): Promise<unknown> {
 /**
  * Reads and validates the three reference files plus the optional `airport-cities.json`
  * (a missing overrides file means no overrides).
- * Directory precedence: `dir` argument → `TANIOLATAM_DATA_DIR` → `<repo>/data`.
+ * Directory precedence: `dir` argument → `GDZIEPOLECE_DATA_DIR` → `<repo>/data`.
  */
 export async function loadPlaceData(dir?: string): Promise<PlaceData> {
-  const base = dir ?? process.env.TANIOLATAM_DATA_DIR ?? DEFAULT_DATA_DIR;
+  const base = dir ?? process.env.GDZIEPOLECE_DATA_DIR ?? DEFAULT_DATA_DIR;
   const [airports, regions, groups, airportCities] = await Promise.all([
     readJson(join(base, PLACE_DATA_FILES.airports)),
     readJson(join(base, PLACE_DATA_FILES.regions)),

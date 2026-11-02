@@ -1,4 +1,4 @@
-import { allLinks, googleFlightsLink, type Offer } from "@taniolatam/core";
+import { allLinks, googleFlightsLink, type Offer } from "@gdziepolece/core";
 
 export interface VerifyLink {
   id: string;
@@ -10,7 +10,7 @@ export interface VerifyLink {
 
 /**
  * Outbound verification links (Google Flights, Skyscanner, Kiwi, Aviasales and the source's own
- * link) from the shared builders in `@taniolatam/core`. We never call these sites, only link.
+ * link) from the shared builders in `@gdziepolece/core`. We never call these sites, only link.
  *
  * Runs in the browser, so only public env is available: the Aviasales/Kiwi affiliate markers
  * (server-side `TRAVELPAYOUTS_MARKER`, `KIWI_AFFILIATE_ID`) are not applied here; links that
