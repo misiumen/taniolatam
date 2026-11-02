@@ -21,10 +21,10 @@ const ow = { origin: "POZ", destination: "BKK", departDate: "2027-03-12" };
 describe("googleFlightsLink", () => {
   it("builds the q= text form", () => {
     expect(googleFlightsLink(rt)).toBe(
-      "https://www.google.com/travel/flights?q=Flights%20from%20POZ%20to%20BKK%20on%202027-03-12%20returning%202027-03-26",
+      "https://www.google.com/travel/flights?q=Flights%20to%20BKK%20from%20POZ%20on%202027-03-12%20through%202027-03-26&hl=pl",
     );
     expect(googleFlightsLink(ow)).toBe(
-      "https://www.google.com/travel/flights?q=Flights%20from%20POZ%20to%20BKK%20on%202027-03-12",
+      "https://www.google.com/travel/flights?q=Flights%20to%20BKK%20from%20POZ%20on%202027-03-12%20one%20way&hl=pl",
     );
     expect(googleFlightsLink({ ...ow, origin: "poz", currency: "pln" })).toMatch(
       /from%20POZ%20.*&curr=PLN$/,
@@ -46,13 +46,13 @@ describe("skyscannerLink", () => {
 describe("kiwiLink", () => {
   it("uses ISO dates, no-return for one-way and optional affilid", () => {
     expect(kiwiLink(rt)).toBe(
-      "https://www.kiwi.com/pl/search/results/poz/bkk/2027-03-12/2027-03-26",
+      "https://www.kiwi.com/deep?from=POZ&to=BKK&departure=2027-03-12&return=2027-03-26&lang=pl&currency=pln&passengers=1",
     );
     expect(kiwiLink(ow)).toBe(
-      "https://www.kiwi.com/pl/search/results/poz/bkk/2027-03-12/no-return",
+      "https://www.kiwi.com/deep?from=POZ&to=BKK&departure=2027-03-12&lang=pl&currency=pln&passengers=1",
     );
     expect(kiwiLink({ ...rt, adults: 2 }, { affiliateId: "my id&x" })).toBe(
-      "https://www.kiwi.com/pl/search/results/poz/bkk/2027-03-12/2027-03-26?adults=2&affilid=my+id%26x",
+      "https://www.kiwi.com/deep?affilid=my+id%26x&from=POZ&to=BKK&departure=2027-03-12&return=2027-03-26&lang=pl&currency=pln&passengers=2",
     );
   });
 });
@@ -106,7 +106,7 @@ describe("allLinks", () => {
     expect(links.map((l) => l.id)).toEqual(["offer", "google", "skyscanner", "kiwi", "aviasales"]);
     expect(links[0]).toEqual({ id: "offer", label: "Zobacz ofertę", url: o.deepLink });
     expect(links.find((l) => l.id === "google")?.label).toBe("Sprawdź w Google Flights");
-    expect(links.find((l) => l.id === "kiwi")?.url).toMatch(/\?affilid=aff$/);
+    expect(links.find((l) => l.id === "kiwi")?.url).toMatch(/[?&]affilid=aff(&|$)/);
     expect(links.find((l) => l.id === "aviasales")?.url).toBe(
       "https://www.aviasales.com/search/POZ1203BKK26031?marker=12345",
     );
@@ -137,12 +137,12 @@ describe("allLinks", () => {
       {
         id: "kiwi",
         label: "Sprawdź w Kiwi.com (wylot)",
-        url: "https://www.kiwi.com/pl/search/results/waw/bkk/2027-03-01/no-return",
+        url: "https://www.kiwi.com/deep?from=WAW&to=BKK&departure=2027-03-01&lang=pl&currency=pln&passengers=1",
       },
       {
         id: "kiwi",
         label: "Sprawdź w Kiwi.com (powrót)",
-        url: "https://www.kiwi.com/pl/search/results/bkk/krk/2027-03-20/no-return",
+        url: "https://www.kiwi.com/deep?from=BKK&to=KRK&departure=2027-03-20&lang=pl&currency=pln&passengers=1",
       },
     ]);
   });

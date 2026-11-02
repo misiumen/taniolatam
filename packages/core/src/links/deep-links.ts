@@ -90,9 +90,13 @@ export function googleFlightsLink(p: FlightLinkParams): string {
   const to = iata(p.destination);
   dateParts(p.departDate);
   if (p.returnDate) dateParts(p.returnDate);
-  const q = `Flights from ${from} to ${to} on ${p.departDate}${p.returnDate ? ` returning ${p.returnDate}` : ""}`;
+  // Natural-language query form Google Flights parses: "Flights to BKK from POZ on 2027-03-12
+  // through 2027-03-26"; one-way adds "one way". Other phrasings open an empty search page.
+  const q = `Flights to ${to} from ${from} on ${p.departDate}${
+    p.returnDate ? ` through ${p.returnDate}` : " one way"
+  }`;
   const curr = p.currency ? `&curr=${encodeURIComponent(p.currency.toUpperCase())}` : "";
-  return `https://www.google.com/travel/flights?q=${encodeURIComponent(q)}${curr}`;
+  return `https://www.google.com/travel/flights?q=${encodeURIComponent(q)}&hl=pl${curr}`;
 }
 
 /**
@@ -120,25 +124,23 @@ export function skyscannerLink(p: FlightLinkParams): string {
 }
 
 /**
- * Kiwi.com (Polish locale), path form with ISO dates; one-way uses `no-return`:
- * `https://www.kiwi.com/pl/search/results/poz/bkk/2027-03-12/2027-03-26`
- * Query: `adults` only when > 1, `affilid` when an affiliate id is given.
+ * Kiwi.com partner deep link (documented `/deep` endpoint, works with or without `affilid`):
+ * `https://www.kiwi.com/deep?from=POZ&to=BKK&departure=2027-03-12&return=2027-03-26&lang=pl&currency=pln&passengers=1`
+ * One-way simply omits `return`. The older `/pl/search/results/...` path form did not resolve.
  */
 export function kiwiLink(p: FlightLinkParams, opts: { affiliateId?: string } = {}): string {
   dateParts(p.departDate);
   if (p.returnDate) dateParts(p.returnDate);
-  const segs = [
-    iata(p.origin).toLowerCase(),
-    iata(p.destination).toLowerCase(),
-    p.departDate,
-    p.returnDate ?? "no-return",
-  ].map(encodeURIComponent);
   const qs = new URLSearchParams();
-  const adults = adultsOf(p);
-  if (adults > 1) qs.set("adults", String(adults));
   if (opts.affiliateId?.trim()) qs.set("affilid", opts.affiliateId.trim());
-  const query = qs.toString() ? `?${qs}` : "";
-  return `https://www.kiwi.com/pl/search/results/${segs.join("/")}${query}`;
+  qs.set("from", iata(p.origin));
+  qs.set("to", iata(p.destination));
+  qs.set("departure", p.departDate);
+  if (p.returnDate) qs.set("return", p.returnDate);
+  qs.set("lang", "pl");
+  qs.set("currency", "pln");
+  qs.set("passengers", String(adultsOf(p)));
+  return `https://www.kiwi.com/deep?${qs}`;
 }
 
 /**
