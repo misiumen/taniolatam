@@ -39,6 +39,34 @@ describe("validateSearchQuery", () => {
     );
   });
 
+  it("passes the airline and freshness filters through, normalising codes", () => {
+    const r = validateSearchQuery({
+      ...valid,
+      filters: {
+        excludeCarriers: ["w6", "FR", "fr"],
+        maxPriceAgeHours: 168,
+        allowUnknownPriceAge: true,
+      },
+    });
+    expect(r.ok && r.value.filters).toMatchObject({
+      excludeCarriers: ["W6", "FR"],
+      maxPriceAgeHours: 168,
+      allowUnknownPriceAge: true,
+    });
+  });
+
+  it.each([
+    ["excludeCarriers not a list", { excludeCarriers: "FR" }, "kodów linii"],
+    ["excludeCarriers bad code", { excludeCarriers: ["FR", "<script>"] }, "nieprawidłowy kod"],
+    ["maxPriceAgeHours zero", { maxPriceAgeHours: 0 }, "wiek ceny"],
+    ["maxPriceAgeHours fraction", { maxPriceAgeHours: 1.5 }, "wiek ceny"],
+    ["allowUnknownPriceAge not boolean", { allowUnknownPriceAge: "yes" }, "nieznany wiek"],
+  ])("rejects %s", (_name, filters, fragment) => {
+    const r = validateSearchQuery({ ...valid, filters });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain(fragment);
+  });
+
   it("defaults currency and filters", () => {
     const r = validateSearchQuery({ ...valid, currency: undefined, filters: undefined });
     expect(r.ok && r.value.currency).toBe("PLN");

@@ -1,12 +1,5 @@
-import type {
-  CarrierType,
-  DateWindow,
-  Place,
-  SearchFilters,
-  SearchQuery,
-  TripSpec,
-  Weekday,
-} from "@gdziepolece/core";
+import type { ApiSearchFilters, SearchRequest } from "@gdziepolece/api-client";
+import type { CarrierType, DateWindow, Place, TripSpec, Weekday } from "@gdziepolece/core";
 
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -14,6 +7,8 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_PLACES = 20;
 const MAX_DEPTH = 3;
 const CARRIER_TYPES: readonly CarrierType[] = ["scheduled", "lowcost", "charter"];
+const MAX_EXCLUDED_CARRIERS = 100;
+const CARRIER_CODE = /^[A-Z0-9]{2,3}$/;
 
 class Invalid extends Error {}
 
@@ -156,7 +151,19 @@ function bool(v: unknown, what: string): boolean | undefined {
   return v;
 }
 
-function filters(v: unknown): SearchFilters {
+function carrierCodes(v: unknown, what: string): string[] | undefined {
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v) || v.length > MAX_EXCLUDED_CARRIERS) {
+    return fail(`Pole „${what}” musi być listą kodów linii lotniczych.`);
+  }
+  const codes = v.map((c) => (typeof c === "string" ? c.trim().toUpperCase() : ""));
+  if (!codes.every((c) => CARRIER_CODE.test(c))) {
+    return fail(`Pole „${what}” zawiera nieprawidłowy kod linii (oczekiwano 2–3 znaków).`);
+  }
+  return [...new Set(codes)];
+}
+
+function filters(v: unknown): ApiSearchFilters {
   if (v === undefined) return {};
   if (!isObj(v)) return fail("Nieprawidłowe filtry.");
   let carrierTypes: CarrierType[] | undefined;
@@ -187,11 +194,21 @@ function filters(v: unknown): SearchFilters {
     allowOpenJaw: bool(v.allowOpenJaw, "open-jaw"),
     excludeOriginCountries: bool(v.excludeOriginCountries, "pomiń kierunki w kraju wylotu"),
     multicity: bool(v.multicity, "multicity"),
+    maxPriceAgeHours:
+      v.maxPriceAgeHours === undefined
+        ? undefined
+        : num(v.maxPriceAgeHours, "maksymalny wiek ceny (godziny)", {
+            min: 1,
+            max: 24 * 90,
+            int: true,
+          }),
+    allowUnknownPriceAge: bool(v.allowUnknownPriceAge, "dopuść nieznany wiek ceny"),
+    excludeCarriers: carrierCodes(v.excludeCarriers, "wyklucz linie"),
   };
 }
 
 /** Hand-rolled validation of a `SearchQuery` JSON body. Messages are Polish, user-presentable. */
-export function validateSearchQuery(body: unknown): Validated<SearchQuery> {
+export function validateSearchQuery(body: unknown): Validated<SearchRequest> {
   try {
     if (!isObj(body)) return fail("Zapytanie musi być obiektem JSON.");
     const currency =

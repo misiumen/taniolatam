@@ -3,13 +3,15 @@ import { dirname, join, resolve } from "node:path";
 import {
   createDefaultRegistry,
   DEFAULT_MAX_TASKS,
+  NbpRates,
+  type AirlineIndex,
   type Cache,
   type FlightSource,
   PlaceIndex,
   type PlaceData,
   type SourceRegistry,
 } from "@gdziepolece/core";
-import { loadPlaceData, openCache } from "@gdziepolece/core/node";
+import { loadAirlineIndex, loadPlaceData, openCache } from "@gdziepolece/core/node";
 import { PlaceSuggester } from "./suggest";
 
 export interface ServerContext {
@@ -18,6 +20,10 @@ export interface ServerContext {
   places: PlaceIndex;
   suggester: PlaceSuggester;
   cache: Cache;
+  /** Airline names (`data/airlines.json`; empty when the file is missing). */
+  airlines: AirlineIndex;
+  /** NBP rates for converting offers priced in another currency than the query's. */
+  rates: NbpRates;
   registry: SourceRegistry;
   maxTasks: number;
   /** Sources enabled by the current environment flags (re-evaluated per call). */
@@ -42,18 +48,22 @@ function positiveInt(value: string | undefined, fallback: number): number {
 }
 
 async function init(): Promise<ServerContext> {
-  const data = await loadPlaceData(findDataDir());
+  const dataDir = findDataDir();
+  const data = await loadPlaceData(dataDir);
+  const airlines = await loadAirlineIndex(dataDir);
   const places = new PlaceIndex(data);
   const cache = await openCache({
     driver: process.env.CACHE_DRIVER === "memory" ? "memory" : "sqlite",
     path: process.env.CACHE_PATH || undefined,
   });
-  const registry = createDefaultRegistry({ places });
+  const registry = createDefaultRegistry({ places, airlines });
   return {
     data,
     places,
     suggester: new PlaceSuggester(data),
     cache,
+    airlines,
+    rates: new NbpRates({ cache }),
     registry,
     maxTasks: positiveInt(process.env.SEARCH_MAX_TASKS, DEFAULT_MAX_TASKS),
     enabledSources: () => registry.enabled(process.env),

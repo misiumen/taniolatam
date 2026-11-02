@@ -1,13 +1,14 @@
 "use client";
 
-import type { ApiClient } from "@gdziepolece/api-client";
-import { daysBetween, type Offer } from "@gdziepolece/core";
+import type { ApiClient, ApiOffer } from "@gdziepolece/api-client";
+import { daysBetween } from "@gdziepolece/core";
 import type { DestinationView } from "../lib/destinations";
 import {
+  carrierLabel,
+  describePrice,
   formatDateRange,
   formatDay,
   formatDuration,
-  formatPrice,
   formatStops,
   plural,
   priceAge,
@@ -45,7 +46,7 @@ function LinkRow({ links, label }: { links: VerifyLink[]; label?: string }) {
 }
 
 /** Other sources that reported the offer; `alsoFoundIn` is an optional, not yet typed field. */
-function otherSources(offer: Offer, summarySources: string[]): string[] {
+function otherSources(offer: ApiOffer, summarySources: string[]): string[] {
   const extra =
     "alsoFoundIn" in offer && Array.isArray(offer.alsoFoundIn)
       ? (offer.alsoFoundIn as unknown[]).filter((s): s is string => typeof s === "string")
@@ -55,7 +56,15 @@ function otherSources(offer: Offer, summarySources: string[]): string[] {
   );
 }
 
-function OpenJawLegs({ offer, legs }: { offer: Offer; legs: [OpenJawLeg, OpenJawLeg] }) {
+function OpenJawLegs({
+  offer,
+  legs,
+  nameOf,
+}: {
+  offer: ApiOffer;
+  legs: [OpenJawLeg, OpenJawLeg];
+  nameOf: (code: string) => string;
+}) {
   const links = verifyLinks(offer);
   const legHrefs = new Set(legs.map((l) => l.deepLink));
   const general = links.filter((l) => !l.leg && !legHrefs.has(l.href));
@@ -79,7 +88,7 @@ function OpenJawLegs({ offer, legs }: { offer: Offer; legs: [OpenJawLeg, OpenJaw
               <span className="text-muted">
                 {" "}
                 · {formatDay(leg.date)} {leg.date.slice(0, 4)}
-                {leg.carrier && ` · ${leg.carrier}`}
+                {leg.carrier && ` · ${nameOf(leg.carrier)}`}
                 {leg.source && leg.source !== offer.source && ` · ${sourceName(leg.source)}`}
               </span>
             </div>
@@ -96,6 +105,8 @@ export function DestinationCard({ view, selected, onSelect, api, stay }: Props) 
   const { summary } = view;
   const offer = summary.cheapest;
   const age = priceAge(offer);
+  const price = describePrice(offer);
+  const carriers = carrierLabel(offer);
   const duration = formatDuration(offer.durationMinutes);
   const extraSources = otherSources(offer, summary.sources);
   const legs = openJawLegs(offer);
@@ -129,9 +140,16 @@ export function DestinationCard({ view, selected, onSelect, api, stay }: Props) 
         </span>
         <span className="shrink-0 text-right">
           <span className="block text-xs text-muted">od</span>
-          <span className="block text-lg font-bold leading-tight text-accent">
-            {formatPrice(offer.price, offer.currency)}
+          <span
+            className="block text-lg font-bold leading-tight text-accent"
+            title={price.title}
+            data-testid="card-price"
+          >
+            {price.text}
           </span>
+          {price.subline && (
+            <span className="block text-[11px] leading-tight text-muted">{price.subline}</span>
+          )}
         </span>
       </button>
 
@@ -158,7 +176,14 @@ export function DestinationCard({ view, selected, onSelect, api, stay }: Props) 
         {offer.carriers.length > 0 && (
           <>
             <dt className="text-muted">Linie</dt>
-            <dd>{offer.carriers.join(", ")}</dd>
+            <dd data-testid="card-carriers">
+              {carriers.parts.map((part, i) => (
+                <span key={`${part.text}-${i}`}>
+                  {i > 0 && " + "}
+                  <span title={part.code}>{part.text}</span>
+                </span>
+              ))}
+            </dd>
           </>
         )}
       </dl>
@@ -169,7 +194,7 @@ export function DestinationCard({ view, selected, onSelect, api, stay }: Props) 
           {duration && ` · ${duration}`}
         </p>
       )}
-      {legs && <OpenJawLegs offer={offer} legs={legs} />}
+      {legs && <OpenJawLegs offer={offer} legs={legs} nameOf={carriers.nameOf} />}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
         <span className="rounded-full bg-surface-2 px-2 py-0.5">{sourceName(offer.source)}</span>
@@ -183,16 +208,36 @@ export function DestinationCard({ view, selected, onSelect, api, stay }: Props) 
           </span>
         )}
         <span
+          data-testid="price-age"
           className={`rounded-full px-2 py-0.5 ${
-            age.live ? "bg-accent-soft text-good" : "bg-warn-bg text-warn-fg"
+            age.tone === "live"
+              ? "bg-accent-soft text-good"
+              : age.tone === "recent"
+                ? "bg-surface-2"
+                : "bg-warn-bg text-warn-fg"
           }`}
         >
           {age.label}
         </span>
+        {offer.stale === true && (
+          <span
+            data-testid="stale-chip"
+            className="rounded-full bg-warn-bg px-2 py-0.5 text-warn-fg"
+            title="Cena jest starsza niż okno aktualności — sprawdź ją w serwisie"
+          >
+            może być nieaktualna
+          </span>
+        )}
         <span className="text-muted">
           {summary.offersCount} {plural(summary.offersCount, "oferta", "oferty", "ofert")}
         </span>
       </div>
+
+      {offer.note && (
+        <p className="mt-1.5 text-xs text-muted" data-testid="offer-note">
+          {offer.note}
+        </p>
+      )}
 
       {!legs && (
         <div className="mt-2 text-sm">

@@ -70,6 +70,11 @@ Bez żadnego włączonego źródła `POST /api/v1/search` zwraca 503 z komunikat
 | `GET /api/v1/places?q=[&anywhere=1]` | podpowiedzi (max 12): lotniska, miasta, kraje, regiony, kontynenty, grupy; z polskimi etykietami rodzaju. `anywhere=1` dodaje wpis „Gdziekolwiek” (dla pustego `q` i przy „gdzie”, „dowol”, „anywhere”) |
 | `GET /api/v1/calendar?from=POZ&to=BKK&month=2027-03[&currency=PLN&stayMin=7&stayMax=14]` | cena najtańszej oferty dzień po dniu (z ceną lotu bezpośredniego); 501, gdy żadne włączone źródło nie ma `capabilities.calendar` |
 
+Nowe opcjonalne pola (`filters.maxPriceAgeHours`, `allowUnknownPriceAge`, `excludeCarriers`; w
+ofertach `carrierNames`, `stale`, `converted`, `originalPrice`, `originalCurrency`, `note`; w
+odpowiedzi `carrierFacet`) przechodzą bez zmian między `@gdziepolece/core` a przeglądarką; typy
+uzupełnia lokalnie `@gdziepolece/api-client` (`ApiSearchFilters`, `ApiOffer`).
+
 `airports` w odpowiedzi wyszukiwania to dodatek do kontraktu: współrzędne i nazwy lotnisk użytych
 w wynikach (przeglądarka nie ma słownika lotnisk). Drugi dodatek, `groupAirports`, podaje kody
 wszystkich lotnisk miasta, gdy jest ich więcej niż jedno. Filtr `excludeOriginCountries` jest
@@ -86,15 +91,39 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   kontynenty, grupy). „Gdziekolwiek” jest zwykłą pierwszą podpowiedzią w „Dokąd” (widoczną też przy
   pustym, aktywnym polu; `GET /api/v1/places?q=…&anywhere=1`), zastępuje inne chipy, a wybranie
   konkretnego miejsca usuwa chip „Gdziekolwiek”. Brak chipów oznacza to samo co „Gdziekolwiek”.
+- „Kiedy (wylot)” jak w Google Flights, bez pól dat domyślnie: chipy „Najbliższy miesiąc”, „3 miesiące”,
+  „Pół roku” (domyślny), „Rok” i „Dokładne daty”, a pod nimi suwak z dwoma uchwytami po miesiącach
+  (od dziś do +12 miesięcy, krok 1 miesiąc, etykieta np. „lis 2026 … maj 2027”; dwa nałożone
+  `input type=range`, bez biblioteki, obsługa klawiaturą). Chipy i suwak są zsynchronizowane:
+  przesunięcie suwaka na zakres równy presetowi zaznacza chip, inny zakres odznacza wszystkie.
+  „Dokładne daty” zastępuje suwak dwoma polami dat. Preset zawsze oznacza „dziś … dziś + N miesięcy”.
 - Filtry: „Pomiń kierunki w kraju wylotu” (domyślnie włączone; do API trafia
   `filters.excludeOriginCountries: false` tylko po odznaczeniu), „Maks. czas lotu”
   (`filters.maxDurationMinutes`), Open-jaw (`filters.allowOpenJaw`); Multicity jest jeszcze wyłączone.
-- Sortowanie: najtańsze, najkrótsze, bez przesiadek, najświeższe ceny (na żywo, potem najmłodsza cena z cache).
+- „Linie lotnicze”: po wyszukiwaniu lista linii z `carrierFacet` (nazwa, liczba ofert, najniższa
+  cena), wszystkie zaznaczone. Odznaczenie dodaje kod do `filters.excludeCarriers` (URL: `xa=W6,FR`)
+  i od razu usuwa z bieżącej listy kierunki, których najtańsza oferta leci taką linią (po stronie
+  klienta znamy tylko najtańszą ofertę); „Szukaj” stosuje wykluczenie na serwerze i znajduje
+  zamienniki. Wykluczone linie zostają na liście (odznaczone), żeby dało się je przywrócić. Przed
+  pierwszym wyszukiwaniem widać tylko podpowiedź.
+- „Aktualność cen”: „do 48 godzin” (domyślnie; do API nie trafia nic) albo „do 7 dni (może być
+  nieaktualna)” (`filters.maxPriceAgeHours: 168` + `allowUnknownPriceAge: true`; URL: `pa=7d`).
+- Sortowanie: najtańsze, najkrótsze, bez przesiadek, najświeższe ceny (na żywo, potem najmłodsza
+  cena z cache według `cacheAgeHours`, nieznany wiek na końcu).
+- Karta oferty: linie pod pełnymi nazwami z `carrierNames` („Wizz Air + LOT Polish Airlines”, kod w
+  podpowiedzi `title`; bez nazw — same kody); wiek ceny („na żywo”, „znaleziona N h temu” poniżej
+  48 h, „znaleziona N dni temu” powyżej, „wiek nieznany”); `stale` jako bursztynowy chip „może być
+  nieaktualna”; `note` pod kartą. Cena zawsze w zł: przy `converted` z prefiksem „≈” i dopiskiem
+  „przeliczono z USD kursem NBP” (oryginał w podpowiedzi); oferta, która mimo to przychodzi w innej
+  walucie, pokazuje kod waluty (np. „300 USD”), nigdy „zł”.
 - Karta oferty open-jaw pokazuje oba odcinki w osobnych wierszach z linkami do każdego z nich; karta
   miasta z kilkoma lotniskami wymienia je w podtytule (np. „Polska · WAW, WMI”).
 - Cały stan wyszukiwania jest w parametrach URL (`o`, `d`, `from`, `to`, `min`, `max`, `ow`, `wd`,
-  `st`, `p`, `ct`, `xo=0`, `md` (godziny), `oj=1`; brak `d` = gdziekolwiek), więc wynik można udostępnić linkiem; link z parametrami uruchamia wyszukiwanie
-  od razu po otwarciu.
+  `st`, `p`, `ct`, `xo=0`, `md` (godziny), `oj=1`, `xa` (kody linii), `pa=7d`; brak `d` = gdziekolwiek), więc wynik można
+  udostępnić linkiem; link z parametrami uruchamia wyszukiwanie od razu po otwarciu. `from`/`to` to
+  kanoniczne daty (preset zamieniany jest na daty względem dnia wyszukania, więc link się nie
+  zmienia); `preset` (`month`, `3m`, `6m`, `year`, `exact`) tylko przywraca podświetlenie chipu —
+  gdy daty nie pasują już do presetu (link otwarty innego dnia), chip nie jest zaznaczony.
 - Mapa: MapLibre GL (ładowany tylko po stronie klienta). Gdy styl/kafelki nie są dostępne
   (offline), piny z cenami pokazują się na neutralnym tle z komunikatem „Mapa niedostępna offline”.
 - Kalendarz cen otwiera się po kliknięciu karty; przy 501 panel jest ukryty z krótką informacją.
@@ -104,9 +133,10 @@ Kod: `src/components/` (UI), `src/lib/` (stan formularza ↔ URL, formatowanie, 
 
 ## Testy
 
-- `npm test -w @gdziepolece/web` — testy jednostkowe (walidacja, podpowiedzi, stan formularza, kalendarz).
+- `npm test -w @gdziepolece/web` — testy jednostkowe (walidacja, podpowiedzi, stan formularza i presety dat, formatowanie cen/wieku/linii, sortowanie, kalendarz).
 - `npm run e2e -w @gdziepolece/web` — Playwright: uruchamia `next dev` z `SOURCE_MOCK=1`, wysyła
-  domyślny formularz, sprawdza kartę kierunku, kalendarz, pole „Dokąd”, nowe filtry i stan w URL.
+  domyślny formularz, sprawdza kartę kierunku, kalendarz, pole „Dokąd”, daty (chipy, suwak, dokładne daty), filtr linii
+  (na odpowiedzi z doklejonym `carrierFacet`), aktualność cen, nowe filtry i stan w URL.
   Port: `E2E_PORT` (domyślnie 3100). Testy nie sięgają do zewnętrznych hostów (kafelki mapy mają
   tło zastępcze). Własna przeglądarka: `PW_CHROMIUM_PATH=/ścieżka/do/chromium`; w przeciwnym razie
   `npx playwright install chromium`.

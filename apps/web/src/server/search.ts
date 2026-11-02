@@ -1,6 +1,5 @@
-import type { AirportInfo, SearchResponse } from "@gdziepolece/api-client";
+import type { AirportInfo, SearchRequest, SearchResponse } from "@gdziepolece/api-client";
 import { placeKey, searchDestinations } from "@gdziepolece/core";
-import type { SearchRequest } from "@gdziepolece/api-client";
 import type { ServerContext } from "./context";
 
 /** Runs one search and shapes it into the `/api/v1/search` response. */
@@ -16,6 +15,9 @@ export async function runSearch(
     sources,
     ctx: { env: process.env, now: () => new Date(), signal },
     cache: ctx.cache,
+    airlines: ctx.airlines,
+    rates: ctx.rates,
+    logger: console,
     maxTasks: ctx.maxTasks,
     groupBy: "city",
   });
@@ -36,10 +38,14 @@ export async function runSearch(
   const airports: Record<string, AirportInfo> = {};
   const addAirport = (iata: string) => {
     if (airports[iata]) return;
-    const a = ctx.places.airport(iata);
+    // City codes from the 48h price feed (LON, ROM) have no airport entry: use the city's
+    // main airport for coordinates and names, keyed by the city code.
+    const a =
+      ctx.places.airport(iata) ??
+      ctx.places.cityAirports(iata).map((c) => ctx.places.airport(c))[0];
     if (!a) return;
     airports[iata] = {
-      iata: a.iata,
+      iata,
       name: a.name,
       city: a.cityPl ?? a.city,
       countryCode: a.countryCode,
@@ -68,6 +74,7 @@ export async function runSearch(
 
   return {
     destinations: result.summaries,
+    carrierFacet: result.carrierFacet,
     groupAirports,
     airports,
     meta: {

@@ -1,9 +1,9 @@
 "use client";
 
-import { ApiError, createApiClient } from "@gdziepolece/api-client";
+import { ApiError, createApiClient, type CarrierFacetEntry } from "@gdziepolece/api-client";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { describeDestinations, type SortMode } from "../lib/destinations";
+import { describeDestinations, excludeCarriersLocally, type SortMode } from "../lib/destinations";
 import {
   defaultFormState,
   formToParams,
@@ -14,10 +14,10 @@ import {
   validateForm,
   type FormState,
 } from "../lib/form-state";
-import { formatDay, formatPrice } from "../lib/format";
+import { describePrice, formatDay } from "../lib/format";
 import { MapView, type MapPin } from "./MapView";
 import { ResultsPanel, type SearchStatus } from "./ResultsPanel";
-import { SearchForm } from "./SearchForm";
+import { SearchForm, type CarrierOption } from "./SearchForm";
 import { btnGhostCls } from "./ui";
 
 type Tab = "list" | "map";
@@ -42,7 +42,12 @@ export function SearchApp() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("list");
   const [formOpen, setFormOpen] = useState(true);
+  // Lets e2e tests wait for hydration (an early click on a controlled input would be reset).
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const abortRef = useRef<AbortController | null>(null);
+  // Airlines excluded in the search that produced the current results (server-side).
+  const [appliedExclusions, setAppliedExclusions] = useState("");
 
   const runSearch = useCallback(
     async (state: FormState) => {
@@ -51,6 +56,7 @@ export function SearchApp() {
       abortRef.current = ac;
       setStatus({ kind: "loading" });
       setSelectedKey(null);
+      setAppliedExclusions(state.excludeCarriers.join(","));
       try {
         const response = await api.search(toSearchQuery(state), { signal: ac.signal });
         if (ac.signal.aborted) return;
@@ -97,16 +103,54 @@ export function SearchApp() {
     // Run once on mount.
   }, []);
 
-  const views = useMemo(
+  // The airline list outlives a running search (no flicker) and remembers names, so an excluded
+  // airline stays listed (and re-checkable) after the server stops returning it.
+  const [facet, setFacet] = useState<CarrierFacetEntry[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [carrierNames, setCarrierNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (status.kind !== "done") return;
+    const entries = status.response.carrierFacet ?? [];
+    setFacet(entries);
+    setSearched(true);
+    const found: Record<string, string> = {};
+    for (const f of entries) if (f.name) found[f.code] = f.name;
+    if (Object.keys(found).length > 0) setCarrierNames((prev) => ({ ...prev, ...found }));
+  }, [status]);
+
+  const carriers: CarrierOption[] = useMemo(() => {
+    const listed = new Set(facet.map((f) => f.code));
+    const options: CarrierOption[] = facet.map((f) => ({
+      code: f.code,
+      name: f.name ?? carrierNames[f.code],
+      count: f.count,
+      cheapest: typeof f.cheapest === "number" ? f.cheapest : undefined,
+    }));
+    for (const code of form.excludeCarriers) {
+      if (!listed.has(code)) options.push({ code, name: carrierNames[code] });
+    }
+    return options;
+  }, [facet, form.excludeCarriers, carrierNames]);
+
+  // The list shows the response minus the airlines currently unchecked in the form.
+  const shownStatus: SearchStatus = useMemo(
     () =>
       status.kind === "done"
+        ? { ...status, response: excludeCarriersLocally(status.response, form.excludeCarriers) }
+        : status,
+    [status, form.excludeCarriers],
+  );
+
+  const views = useMemo(
+    () =>
+      shownStatus.kind === "done"
         ? describeDestinations(
-            status.response.destinations,
-            status.response.airports,
-            status.response.groupAirports,
+            shownStatus.response.destinations,
+            shownStatus.response.airports,
+            shownStatus.response.groupAirports,
           )
         : [],
-    [status],
+    [shownStatus],
   );
   const pins: MapPin[] = useMemo(
     () =>
@@ -116,7 +160,7 @@ export function SearchApp() {
           key: v.key,
           lat: v.lat!,
           lon: v.lon!,
-          label: formatPrice(v.summary.cheapest.price, v.summary.cheapest.currency),
+          label: describePrice(v.summary.cheapest).text,
           title: v.title,
         })),
     [views],
@@ -136,7 +180,7 @@ export function SearchApp() {
   const selectedView = views.find((v) => v.key === selectedKey);
 
   return (
-    <div className="flex h-dvh flex-col">
+    <div className="flex h-dvh flex-col" data-hydrated={hydrated}>
       <header className="flex items-center gap-3 border-b border-line bg-surface px-4 py-2">
         <span className="text-lg font-bold tracking-tight">
           Gdzie <span className="text-accent">Polecę</span>
@@ -167,6 +211,9 @@ export function SearchApp() {
             api={api}
             loading={status.kind === "loading"}
             error={formError}
+            carriers={carriers}
+            searched={searched}
+            exclusionsPending={searched && form.excludeCarriers.join(",") !== appliedExclusions}
           />
         </aside>
 
@@ -196,7 +243,7 @@ export function SearchApp() {
           className={`${tab === "list" ? "block" : "hidden"} min-h-0 flex-1 overflow-y-auto lg:block lg:border-r lg:border-line`}
         >
           <ResultsPanel
-            status={status}
+            status={shownStatus}
             selectedKey={selectedKey}
             onSelect={select}
             api={api}
@@ -215,11 +262,7 @@ export function SearchApp() {
               <span className="min-w-0">
                 <span className="block truncate font-semibold">{selectedView.title}</span>
                 <span className="text-sm text-accent">
-                  od{" "}
-                  {formatPrice(
-                    selectedView.summary.cheapest.price,
-                    selectedView.summary.cheapest.currency,
-                  )}
+                  od {describePrice(selectedView.summary.cheapest).text}
                 </span>
               </span>
               <button type="button" className={btnGhostCls} onClick={() => setTab("list")}>
@@ -227,7 +270,7 @@ export function SearchApp() {
               </button>
             </div>
           )}
-          {status.kind === "done" && pins.length === 0 && views.length > 0 && (
+          {shownStatus.kind === "done" && pins.length === 0 && views.length > 0 && (
             <p className="absolute left-2 top-2 rounded-md bg-warn-bg px-3 py-1.5 text-xs text-warn-fg">
               Brak współrzędnych dla wyników — piny niedostępne.
             </p>

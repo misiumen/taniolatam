@@ -1,17 +1,37 @@
-import type { Offer } from "@gdziepolece/core";
+import type { ApiOffer } from "@gdziepolece/api-client";
 
+/** "1 234 zł" for PLN, "1 234 USD" (explicit code, never "zł") for any other currency. */
 export function formatPrice(price: number, currency = "PLN"): string {
-  const rounded = Math.round(price);
-  if (currency === "PLN") return `${rounded.toLocaleString("pl-PL")} zł`;
-  try {
-    return new Intl.NumberFormat("pl-PL", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(rounded);
-  } catch {
-    return `${rounded.toLocaleString("pl-PL")} ${currency}`;
+  const rounded = Math.round(price).toLocaleString("pl-PL");
+  return currency === "PLN" ? `${rounded} zł` : `${rounded} ${currency}`;
+}
+
+export interface PriceDisplay {
+  /** Headline price, e.g. "≈ 1 234 zł" or "300 USD". */
+  text: string;
+  /** Short explanation shown under the price (converted prices only). */
+  subline?: string;
+  /** Tooltip text. */
+  title?: string;
+}
+
+/**
+ * How an offer's price is shown: always PLN when the core converted it ("≈" prefix, NBP note),
+ * and the original currency code when the offer still arrives in another currency.
+ */
+export function describePrice(
+  offer: Pick<ApiOffer, "price" | "currency" | "converted" | "originalPrice" | "originalCurrency">,
+): PriceDisplay {
+  const plain = formatPrice(offer.price, offer.currency);
+  if (offer.currency !== "PLN") {
+    return { text: plain, title: `Cena w ${offer.currency} (bez przeliczenia na złote)` };
   }
+  if (offer.converted !== true) return { text: plain };
+  const from = offer.originalCurrency ?? "USD";
+  const original =
+    offer.originalPrice !== undefined ? ` (${formatPrice(offer.originalPrice, from)})` : "";
+  const subline = `przeliczono z ${from} kursem NBP`;
+  return { text: `≈ ${plain}`, subline, title: `${subline}${original}` };
 }
 
 const MONTHS_SHORT = [
@@ -28,6 +48,12 @@ const MONTHS_SHORT = [
   "lis",
   "gru",
 ];
+
+/** "2027-03-12" → "mar 2027". */
+export function formatMonthYear(iso: string): string {
+  const [y, m] = iso.split("-").map(Number);
+  return `${MONTHS_SHORT[(m ?? 1) - 1]} ${y}`;
+}
 
 /** "2027-03-12" → "12 mar" (no Date object, so no timezone surprises). */
 export function formatDay(iso: string): string {
@@ -71,20 +97,57 @@ export function plural(n: number, one: string, few: string, many: string): strin
   return mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14) ? few : many;
 }
 
+export type AgeTone = "live" | "recent" | "old";
+
+/** Age of the price in hours: 0 for live, `cacheAgeHours` for cached, undefined when unknown. */
+export function offerAgeHours(
+  offer: Pick<ApiOffer, "freshness" | "cacheAgeHours">,
+): number | undefined {
+  if (offer.freshness === "live") return 0;
+  return offer.cacheAgeHours;
+}
+
 /** How trustworthy the price is, for the card badge. */
-export function priceAge(offer: Pick<Offer, "freshness" | "cacheAgeHours">): {
+export function priceAge(offer: Pick<ApiOffer, "freshness" | "cacheAgeHours">): {
   label: string;
-  live: boolean;
+  tone: AgeTone;
 } {
-  if (offer.freshness === "live") return { label: "na żywo", live: true };
+  if (offer.freshness === "live") return { label: "na żywo", tone: "live" };
   const hours = offer.cacheAgeHours;
-  if (hours === undefined) return { label: "cena orientacyjna", live: false };
-  if (hours < 24) {
-    const h = Math.max(1, Math.round(hours));
-    return { label: `cena sprzed ${h} godz.`, live: false };
+  if (hours === undefined || !Number.isFinite(hours)) {
+    return { label: "wiek nieznany", tone: "old" };
   }
-  const days = Math.round(hours / 24);
-  return { label: `cena sprzed ${days} ${days === 1 ? "dnia" : "dni"}`, live: false };
+  if (hours < 48) {
+    const h = Math.max(1, Math.round(hours));
+    return { label: `znaleziona ${h} h temu`, tone: "recent" };
+  }
+  return { label: `znaleziona ${Math.round(hours / 24)} dni temu`, tone: "old" };
+}
+
+export interface CarrierLabel {
+  /** One entry per carrier: the full name when known (code goes to a tooltip), else the code. */
+  parts: { text: string; code?: string }[];
+  /** Plain text of all carriers joined with " + ". */
+  text: string;
+  /** Name for a carrier code, when known. */
+  nameOf(code: string): string;
+}
+
+export function carrierLabel(offer: Pick<ApiOffer, "carriers" | "carrierNames">): CarrierLabel {
+  const codes = offer.carriers;
+  const names = (offer.carrierNames ?? []).filter((n) => n.trim() !== "");
+  const aligned = names.length === codes.length;
+  const byCode = new Map<string, string>();
+  if (aligned) codes.forEach((c, i) => byCode.set(c, names[i]!));
+  const nameOf = (code: string) => byCode.get(code) ?? code;
+  const parts =
+    names.length === 0
+      ? codes.map((c) => ({ text: c }))
+      : names.map((n, i) => ({
+          text: n,
+          code: aligned ? codes[i] : codes.join(", ") || undefined,
+        }));
+  return { parts, text: parts.map((p) => p.text).join(" + "), nameOf };
 }
 
 const SOURCE_NAMES: Record<string, string> = {

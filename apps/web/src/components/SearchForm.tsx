@@ -6,9 +6,11 @@ import {
   ALL_CARRIER_TYPES,
   MAX_DURATION_HOURS,
   type FormState,
+  type PriceAgeWindow,
   type StopsMode,
 } from "../lib/form-state";
-import { carrierTypeName } from "../lib/format";
+import { carrierTypeName, formatPrice, plural } from "../lib/format";
+import { DateRangeField } from "./DateRangeField";
 import { PlaceInput } from "./PlaceInput";
 import { btnPrimaryCls, inputCls, labelCls } from "./ui";
 
@@ -19,7 +21,25 @@ interface Props {
   api: ApiClient;
   loading: boolean;
   error?: string;
+  /** Airlines of the latest results (`carrierFacet`), for the "Linie lotnicze" block. */
+  carriers: CarrierOption[];
+  /** Has a search finished at least once? Before that the airline list is only a hint. */
+  searched: boolean;
+  /** Unchecked airlines were applied to the list locally but not yet to a new search. */
+  exclusionsPending: boolean;
 }
+
+export interface CarrierOption {
+  code: string;
+  name?: string;
+  count?: number;
+  cheapest?: number;
+}
+
+const PRICE_AGE_OPTIONS: { value: PriceAgeWindow; label: string }[] = [
+  { value: "48h", label: "do 48 godzin" },
+  { value: "7d", label: "do 7 dni (może być nieaktualna)" },
+];
 
 const WEEKDAYS: { value: Weekday; label: string; full: string }[] = [
   { value: 1, label: "Pn", full: "poniedziałek" },
@@ -69,7 +89,17 @@ function SoonToggle({ label }: { label: string }) {
   );
 }
 
-export function SearchForm({ state, onChange, onSubmit, api, loading, error }: Props) {
+export function SearchForm({
+  state,
+  onChange,
+  onSubmit,
+  api,
+  loading,
+  error,
+  carriers,
+  searched,
+  exclusionsPending,
+}: Props) {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     onChange({ ...state, [key]: value });
 
@@ -87,6 +117,14 @@ export function SearchForm({ state, onChange, onSubmit, api, loading, error }: P
       state.carrierTypes.includes(t)
         ? state.carrierTypes.filter((x) => x !== t)
         : [...state.carrierTypes, t],
+    );
+
+  const toggleExcluded = (code: string) =>
+    set(
+      "excludeCarriers",
+      state.excludeCarriers.includes(code)
+        ? state.excludeCarriers.filter((c) => c !== code)
+        : [...state.excludeCarriers, code].sort(),
     );
 
   return (
@@ -119,27 +157,7 @@ export function SearchForm({ state, onChange, onSubmit, api, loading, error }: P
         />
       </Field>
 
-      <fieldset>
-        <legend className={labelCls}>Kiedy (wylot)</legend>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            suppressHydrationWarning
-            aria-label="Wylot od"
-            className={inputCls}
-            value={state.departFrom}
-            onChange={(e) => set("departFrom", e.target.value)}
-          />
-          <input
-            type="date"
-            suppressHydrationWarning
-            aria-label="Wylot do"
-            className={inputCls}
-            value={state.departTo}
-            onChange={(e) => set("departTo", e.target.value)}
-          />
-        </div>
-      </fieldset>
+      <DateRangeField state={state} onChange={onChange} />
 
       <fieldset>
         <legend className={labelCls}>Długość pobytu</legend>
@@ -276,6 +294,64 @@ export function SearchForm({ state, onChange, onSubmit, api, loading, error }: P
           ))}
         </select>
       </Field>
+
+      <fieldset>
+        <legend className={labelCls}>Linie lotnicze</legend>
+        {carriers.length === 0 ? (
+          <p className="text-xs text-muted" data-testid="carriers-hint">
+            {searched
+              ? "Brak danych o liniach w tych wynikach."
+              : "Po wyszukiwaniu pojawi się lista linii — odznacz te, których nie chcesz."}
+          </p>
+        ) : (
+          <div className="flex max-h-56 flex-col gap-1 overflow-y-auto" data-testid="carrier-list">
+            {carriers.map((c) => {
+              const excluded = state.excludeCarriers.includes(c.code);
+              return (
+                <label key={c.code} className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={!excluded}
+                    onChange={() => toggleExcluded(c.code)}
+                  />
+                  <span className="min-w-0">
+                    <span title={c.name ? c.code : undefined}>{c.name ?? c.code}</span>
+                    {c.count !== undefined && c.cheapest !== undefined && (
+                      <span className="block text-xs text-muted">
+                        {c.count} {plural(c.count, "oferta", "oferty", "ofert")} · od{" "}
+                        {formatPrice(c.cheapest)}
+                      </span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+        {exclusionsPending && (
+          <p className="mt-1 text-xs text-muted">
+            Lista została odfiltrowana od razu; kliknij „Szukaj”, aby znaleźć zamienniki.
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset>
+        <legend className={labelCls}>Aktualność cen</legend>
+        <div className="flex flex-col gap-1">
+          {PRICE_AGE_OPTIONS.map((o) => (
+            <label key={o.value} className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="price-age"
+                checked={state.priceAge === o.value}
+                onChange={() => set("priceAge", o.value)}
+              />
+              {o.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <div className="flex flex-col gap-1.5">
         <label className="flex items-center gap-2 text-sm">

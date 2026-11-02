@@ -2,16 +2,65 @@ import type {
   DestinationSummary,
   IsoDate,
   IsoMonth,
+  Offer,
   Place,
   PlaceKind,
+  SearchFilters,
   SearchQuery,
 } from "@gdziepolece/core";
 
 /**
- * `POST /api/v1/search` body: exactly the core `SearchQuery`, as JSON. `filters.excludeOriginCountries`
+ * Optional filter fields added to core in wave 4. Declared locally as an intersection so this
+ * package typechecks whether or not core already declares them (identical optional types merge).
+ * TODO: drop once `@gdziepolece/core` exports them on `SearchFilters`.
+ */
+export interface FilterExtensions {
+  /** Drop cached prices older than this many hours (default: the core default, 48 h). */
+  maxPriceAgeHours?: number;
+  /** Keep offers whose age is unknown even when `maxPriceAgeHours` is set. */
+  allowUnknownPriceAge?: boolean;
+  /** Marketing carrier codes (IATA/ICAO) whose offers are dropped. */
+  excludeCarriers?: string[];
+}
+
+export type ApiSearchFilters = SearchFilters & FilterExtensions;
+
+/**
+ * `POST /api/v1/search` body: the core `SearchQuery`, as JSON. `filters.excludeOriginCountries`
  * is optional (the server treats a missing value as "on"), so clients send only `false`.
  */
-export type SearchRequest = SearchQuery;
+export type SearchRequest = Omit<SearchQuery, "filters"> & { filters: ApiSearchFilters };
+
+/**
+ * Optional `Offer` fields added to core in wave 4 (same intersection trick as `FilterExtensions`).
+ * TODO: drop once `@gdziepolece/core` declares them on `Offer`.
+ */
+export interface OfferExtensions {
+  /** Full airline names, parallel to `carriers` where possible ("Wizz Air"). */
+  carrierNames?: string[];
+  /** The price is older than the freshness window but kept (e.g. unknown age allowed). */
+  stale?: boolean;
+  /** `price` was converted to the requested currency (NBP rate). */
+  converted?: boolean;
+  originalPrice?: number;
+  originalCurrency?: string;
+  /** Short Polish note for the user. */
+  note?: string;
+}
+
+export type ApiOffer = Offer & OfferExtensions;
+
+export type ApiDestinationSummary = Omit<DestinationSummary, "cheapest"> & { cheapest: ApiOffer };
+
+/** One airline in `SearchResponse.carrierFacet`. */
+export interface CarrierFacetEntry {
+  code: string;
+  name?: string;
+  /** Number of offers (after filtering) that include the carrier. */
+  count: number;
+  /** Cheapest price among those offers, in the requested currency. */
+  cheapest: number;
+}
 
 export interface SearchMeta {
   /** Ids of the sources that were queried. */
@@ -41,7 +90,12 @@ export interface AirportInfo {
 
 export interface SearchResponse {
   /** One row per destination city, cheapest first. */
-  destinations: DestinationSummary[];
+  destinations: ApiDestinationSummary[];
+  /**
+   * Airlines present in the results (before `excludeCarriers` is applied by the next search),
+   * for the "Linie lotnicze" filter. Absent when the engine reports none.
+   */
+  carrierFacet?: CarrierFacetEntry[];
   /**
    * Additive and optional: IATA codes of every airport behind a destination group, keyed by
    * `placeKey(destination)`. Lets the UI show "WAW, WMI" for a multi-airport city.

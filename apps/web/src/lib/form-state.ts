@@ -1,11 +1,5 @@
-import {
-  addDays,
-  placeKey,
-  type CarrierType,
-  type Place,
-  type SearchQuery,
-  type Weekday,
-} from "@gdziepolece/core";
+import type { ApiSearchFilters, SearchRequest } from "@gdziepolece/api-client";
+import { placeKey, type CarrierType, type Place, type Weekday } from "@gdziepolece/core";
 
 export interface PlaceChip {
   place: Place;
@@ -19,12 +13,35 @@ export const ALL_CARRIER_TYPES: CarrierType[] = ["scheduled", "lowcost", "charte
 /** Options of the "Maks. czas lotu" select, in hours; `""` in the form state = no limit. */
 export const MAX_DURATION_HOURS = [4, 8, 12, 16, 24] as const;
 
+/** Date chips of the "Kiedy" block; `""` = a custom range picked with the slider. */
+export type DatePreset = "month" | "3m" | "6m" | "year" | "exact" | "";
+
+export const DATE_PRESETS: { id: Exclude<DatePreset, "">; label: string; months?: number }[] = [
+  { id: "month", label: "Najbliższy miesiąc", months: 1 },
+  { id: "3m", label: "3 miesiące", months: 3 },
+  { id: "6m", label: "Pół roku", months: 6 },
+  { id: "year", label: "Rok", months: 12 },
+  { id: "exact", label: "Dokładne daty" },
+];
+
+export const DEFAULT_DATE_PRESET: DatePreset = "6m";
+
+/** The slider spans "now" … now + 12 months in one-month steps. */
+export const SLIDER_MONTHS = 12;
+
+/** "Aktualność cen": up to 48 h (core default, nothing sent) or up to 7 days incl. unknown age. */
+export type PriceAgeWindow = "48h" | "7d";
+
+export const WEEK_PRICE_AGE_HOURS = 168;
+
 export interface FormState {
   origins: PlaceChip[];
   /** Empty, or only the `ANYWHERE_CHIP`, means "gdziekolwiek". */
   destinations: PlaceChip[];
   departFrom: string;
   departTo: string;
+  /** Which "Kiedy" chip is active; the dates stay the canonical value. */
+  datePreset: DatePreset;
   oneWay: boolean;
   minDays: number;
   maxDays: number;
@@ -39,6 +56,9 @@ export interface FormState {
   maxDurationHours: string;
   /** Allow returning to a different airport than the departure one. */
   allowOpenJaw: boolean;
+  /** Uppercase carrier codes removed from the results ("Linie lotnicze"). */
+  excludeCarriers: string[];
+  priceAge: PriceAgeWindow;
 }
 
 /** The "Gdziekolwiek" chip of the destination combobox (never serialised into the URL). */
@@ -58,7 +78,11 @@ function isoLocal(d: Date): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function addMonthsIso(iso: string, months: number): string {
+/** Today in the browser's local calendar, "YYYY-MM-DD". */
+export const todayIso = (): string => isoLocal(new Date());
+
+/** Adds calendar months, clamping the day to the target month's length (31 Jan + 1 mo = 28 Feb). */
+export function addMonthsIso(iso: string, months: number): string {
   const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
   const target = new Date(Date.UTC(y, m - 1 + months, 1));
   const lastDay = new Date(
@@ -68,13 +92,62 @@ function addMonthsIso(iso: string, months: number): string {
   return target.toISOString().slice(0, 10);
 }
 
-/** Defaults: from Poland, to anywhere (no destination chips), today+14 d … +8 months, 7–21 days, any stops. */
-export function defaultFormState(today = isoLocal(new Date())): FormState {
+/** Departure window of a chip, relative to `today`; `undefined` for "exact" and "". */
+export function presetRange(
+  preset: DatePreset,
+  today: string,
+): { departFrom: string; departTo: string } | undefined {
+  const months = DATE_PRESETS.find((p) => p.id === preset)?.months;
+  return months === undefined
+    ? undefined
+    : { departFrom: today, departTo: addMonthsIso(today, months) };
+}
+
+/** The chip whose range equals the given dates (today … today + N months), or `""`. */
+export function matchPreset(departFrom: string, departTo: string, today: string): DatePreset {
+  const hit = DATE_PRESETS.find(
+    (p) => p.months !== undefined && presetRange(p.id, today)?.departTo === departTo,
+  );
+  return hit && departFrom === today ? hit.id : "";
+}
+
+/** Dates for slider positions: position `n` = today + `n` months. */
+export function sliderDates(
+  lo: number,
+  hi: number,
+  today: string,
+): { departFrom: string; departTo: string } {
+  return { departFrom: addMonthsIso(today, lo), departTo: addMonthsIso(today, hi) };
+}
+
+/** Slider positions closest to the given dates; always `0 ≤ lo < hi ≤ SLIDER_MONTHS`. */
+export function sliderPositions(
+  departFrom: string,
+  departTo: string,
+  today: string,
+): [number, number] {
+  const monthsFromToday = (iso: string) => {
+    const days = (Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000;
+    return Math.min(SLIDER_MONTHS, Math.max(0, Math.round(days / 30.4375)));
+  };
+  let lo = monthsFromToday(departFrom);
+  const hi = Math.max(monthsFromToday(departTo), 1);
+  if (lo >= hi) lo = hi - 1;
+  return [lo, hi];
+}
+
+/** Applies a chip: sets the preset and, except for "Dokładne daty", the dates it stands for. */
+export function applyDatePreset(s: FormState, preset: DatePreset, today = todayIso()): FormState {
+  return { ...s, ...presetRange(preset, today), datePreset: preset };
+}
+
+/** Defaults: from Poland, to anywhere (no destination chips), today … +6 months ("Pół roku"), 7–21 days, any stops. */
+export function defaultFormState(today = todayIso()): FormState {
   return {
     origins: [DEFAULT_ORIGIN],
     destinations: [],
-    departFrom: addDays(today, 14),
-    departTo: addMonthsIso(today, 8),
+    ...presetRange(DEFAULT_DATE_PRESET, today)!,
+    datePreset: DEFAULT_DATE_PRESET,
     oneWay: false,
     minDays: 7,
     maxDays: 21,
@@ -85,6 +158,8 @@ export function defaultFormState(today = isoLocal(new Date())): FormState {
     excludeOriginCountries: true,
     maxDurationHours: "",
     allowOpenJaw: false,
+    excludeCarriers: [],
+    priceAge: "48h",
   };
 }
 
@@ -110,8 +185,8 @@ export function validateForm(s: FormState): string | undefined {
 const isDurationOption = (v: string | null): v is string =>
   v !== null && (MAX_DURATION_HOURS as readonly number[]).includes(Number(v));
 
-export function toSearchQuery(s: FormState): SearchQuery {
-  const filters: SearchQuery["filters"] = {};
+export function toSearchQuery(s: FormState): SearchRequest {
+  const filters: ApiSearchFilters = {};
   if (s.stops === "direct") {
     filters.directOnly = true;
     filters.maxStops = 0;
@@ -125,6 +200,12 @@ export function toSearchQuery(s: FormState): SearchQuery {
   if (isDurationOption(s.maxDurationHours))
     filters.maxDurationMinutes = Number(s.maxDurationHours) * 60;
   if (s.allowOpenJaw) filters.allowOpenJaw = true;
+  if (s.excludeCarriers.length > 0) filters.excludeCarriers = [...s.excludeCarriers];
+  // The 48 h window is the engine default, so only the relaxed window is sent.
+  if (s.priceAge === "7d") {
+    filters.maxPriceAgeHours = WEEK_PRICE_AGE_HOURS;
+    filters.allowUnknownPriceAge = true;
+  }
   return {
     origins: s.origins.map((c) => c.place),
     destinations: isAnywhere(s.destinations)
@@ -199,8 +280,10 @@ export function formToParams(s: FormState): URLSearchParams {
   s.origins.forEach((c) => p.append("o", chipToken(c)));
   // Empty destinations = anywhere, so the anywhere chip needs no parameter.
   if (!isAnywhere(s.destinations)) s.destinations.forEach((c) => p.append("d", chipToken(c)));
+  // Dates are canonical (a shared link keeps its exact range); `preset` only restores the chip.
   p.set("from", s.departFrom);
   p.set("to", s.departTo);
+  if (s.datePreset) p.set("preset", s.datePreset);
   if (s.oneWay) p.set("ow", "1");
   else {
     p.set("min", String(s.minDays));
@@ -213,6 +296,8 @@ export function formToParams(s: FormState): URLSearchParams {
   if (!s.excludeOriginCountries) p.set("xo", "0");
   if (s.maxDurationHours !== "") p.set("md", s.maxDurationHours);
   if (s.allowOpenJaw) p.set("oj", "1");
+  if (s.excludeCarriers.length > 0) p.set("xa", s.excludeCarriers.join(","));
+  if (s.priceAge === "7d") p.set("pa", "7d");
   return p;
 }
 
@@ -225,6 +310,17 @@ const toInt = (v: string | null, fallback: number) => {
 /** Does the URL carry a search (as opposed to a bare `/szukaj`)? */
 export function hasSearchParams(p: URLSearchParams): boolean {
   return p.has("o");
+}
+
+const CARRIER_CODE = /^[A-Z0-9]{2,3}$/;
+
+/** `xa=W6,FR` → ["FR", "W6"]; invalid codes are dropped. */
+function parseCarrierCodes(v: string | null): string[] {
+  const codes = (v ?? "")
+    .split(",")
+    .map((c) => c.trim().toUpperCase())
+    .filter((c) => CARRIER_CODE.test(c));
+  return [...new Set(codes)].sort();
 }
 
 export function paramsToForm(p: URLSearchParams, today?: string): FormState {
@@ -249,11 +345,26 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     .filter((n): n is Weekday => Number.isInteger(n) && n >= 1 && n <= 7);
   const maxPrice = p.get("p");
   const maxDuration = p.get("md");
+  const now = base.departFrom; // presets start today
+  const presetParam = p.get("preset");
+  const presetFromParam = DATE_PRESETS.find((d) => d.id === presetParam)?.id;
+  // Only "from"/"to" are canonical; a bare `preset` (no dates) is resolved against today.
+  const range =
+    !isDate(p.get("from")) && !isDate(p.get("to")) && presetFromParam
+      ? presetRange(presetFromParam, now)
+      : undefined;
+  const departFrom = isDate(p.get("from"))
+    ? p.get("from")!
+    : (range?.departFrom ?? base.departFrom);
+  const departTo = isDate(p.get("to")) ? p.get("to")! : (range?.departTo ?? base.departTo);
+  const datePreset: DatePreset =
+    presetParam === "exact" ? "exact" : matchPreset(departFrom, departTo, now);
   return {
     origins: origins.length > 0 || p.has("o") ? origins : base.origins,
     destinations,
-    departFrom: isDate(p.get("from")) ? p.get("from")! : base.departFrom,
-    departTo: isDate(p.get("to")) ? p.get("to")! : base.departTo,
+    departFrom,
+    departTo,
+    datePreset,
     oneWay: p.get("ow") === "1",
     minDays: toInt(p.get("min"), base.minDays),
     maxDays: toInt(p.get("max"), base.maxDays),
@@ -264,5 +375,7 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     excludeOriginCountries: p.get("xo") !== "0",
     maxDurationHours: isDurationOption(maxDuration) ? String(Number(maxDuration)) : "",
     allowOpenJaw: p.get("oj") === "1",
+    excludeCarriers: parseCarrierCodes(p.get("xa")),
+    priceAge: p.get("pa") === "7d" ? "7d" : "48h",
   };
 }
