@@ -20,7 +20,8 @@ Odrzucone: Clerk/Auth0 (płatne progi, dane użytkowników u strony trzeciej), F
 
 ### Etap A. Historia i zapisane wyszukiwania bez konta (1 fala agentów)
 
-- Pasek "Ostatnie wyszukiwania" w formularzu: 10 ostatnich zapytań z localStorage, kliknięcie przywraca formularz i uruchamia wyszukiwanie.
+- **Start minimalny (decyzja właściciela): 3 ostatnie wyszukiwania** zapamiętane w przeglądarce, pokazane jako chipy nad formularzem; kliknięcie przywraca formularz i uruchamia wyszukiwanie. Przechowywanie w localStorage, nie w ciasteczku: ciasteczko leci z każdym żądaniem na serwer i ma limit 4 KB, a localStorage zostaje w przeglądarce i mieści całe zapytanie. Oba są czysto funkcjonalne, więc nie wymagają banera zgody.
+- Rozszerzenie do 10 ostatnich zapytań, gdy pojawi się panel "Zapisane".
 - "Ostatnio oglądane kierunki": 20 ostatnich kart, w które użytkownik kliknął, z ceną z chwili oglądania.
 - "Zapisz wyszukiwanie": nazwa + zapytanie, lista w sekcji "Zapisane" na telefonie i w panelu na desktopie. Przechowywane lokalnie; eksport i import jako plik JSON, żeby przenieść między urządzeniami zanim będą konta.
 - Zero zmian w API. Wszystko w `apps/web`.
