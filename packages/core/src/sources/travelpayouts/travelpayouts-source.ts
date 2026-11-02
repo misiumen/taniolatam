@@ -7,6 +7,7 @@ import {
   type TripSpec,
 } from "../../domain/dates.ts";
 import { offerKey, type Leg, type Offer } from "../../domain/offer.ts";
+import { legTimes } from "../../domain/times.ts";
 import { isStrictPriceAge } from "../../aggregate/filters.ts";
 import { TokenBucket } from "../../aggregate/rate-limit.ts";
 import type { AirlineIndex } from "../../airlines/airline-index.ts";
@@ -206,11 +207,32 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
 
   const cacheAgeHours = hoursSince(e.found_at, o.fetchedAt);
 
+  // Clock times: `departure_at` / `return_at` carry the departure airport's offset (documented;
+  // without one the wall time is read in the origin airport's zone), arrival = departure +
+  // `duration_to` / `duration_back`, shown in the arrival airport's zone (see README ⚠️).
+  const zone = (code: string) => o.places?.timezoneOf(code);
+  const timesOf = (departAt: string, from: string, to: string, minutes: number | undefined) => {
+    const t = legTimes({
+      departAt,
+      durationMinutes: minutes,
+      originZone: zone(from),
+      destinationZone: zone(to),
+    });
+    return {
+      ...(t.arriveAtLocal ? { arriveAt: t.arriveAtLocal } : {}),
+      ...(t.departTimeLocal ? { departTimeLocal: t.departTimeLocal } : {}),
+      ...(t.arriveTimeLocal ? { arriveTimeLocal: t.arriveTimeLocal } : {}),
+      ...(t.departAtUtc ? { departAtUtc: t.departAtUtc } : {}),
+      ...(t.arriveAtUtc ? { arriveAtUtc: t.arriveAtUtc } : {}),
+    };
+  };
+  const outTimes = timesOf(e.departure_at!, origin, destination, durationMinutes);
   const legs: Leg[] = [
     {
       origin,
       destination,
       departAt: e.departure_at!,
+      ...outTimes,
       carrier: airline,
       flightNumber: e.flight_number === undefined ? undefined : String(e.flight_number),
     },
@@ -220,6 +242,7 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
       origin: destination,
       destination: origin,
       departAt: e.return_at!,
+      ...timesOf(e.return_at!, destination, origin, positive(e.duration_back)),
       carrier: airline,
     });
   }
@@ -231,6 +254,8 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
     currency: o.currency,
     stops,
     durationMinutes: durationMinutes === undefined ? undefined : Math.round(durationMinutes),
+    ...(outTimes.departTimeLocal ? { departTimeLocal: outTimes.departTimeLocal } : {}),
+    ...(outTimes.arriveTimeLocal ? { arriveTimeLocal: outTimes.arriveTimeLocal } : {}),
     carrierType: o.airlines ? o.airlines.type(airline) : classifyCarrier(airline),
     ...(o.airlines ? { carrierNames: o.airlines.names(carriers) } : {}),
     source: TRAVELPAYOUTS_SOURCE_ID,

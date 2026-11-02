@@ -179,7 +179,30 @@ z wypełnionym `destination_airport`. Jeśli API odrzuci kod kraju, wystarczy us
 | `currency` | `currency` z odpowiedzi, wielkimi literami (zapasowo waluta zadania) |
 | `freshness` / `cacheAgeHours` | `cached`; wiek nieznany (`undefined`) — v3 nie zwraca daty znalezienia ceny. Jeśli odpowiedź zawiera `found_at` (było w starszych wersjach API), wiek liczymy z niego ⚠️ |
 | `deepLink` | `AVIASALES_BASE_URL + link`, potem `marker` doklejany przez `&` (link z API ma już `?`) albo `?`. Gdy brak `link`, budujemy `aviasalesLink()` |
-| `legs` | wylot (pełny `departure_at`, przewoźnik, `flight_number` jako string) i ewentualny powrót |
+| `legs` | wylot (pełny `departure_at`, przewoźnik, `flight_number` jako string) i ewentualny powrót, z godzinami (sekcja "Godziny wylotu i przylotu") |
+| `departTimeLocal` / `arriveTimeLocal` | godziny lokalne wylotu / przylotu odcinka tam (= `legs[0]`) |
+
+### Godziny wylotu i przylotu (`prices_for_dates`, `grouped_prices`)
+
+Dla każdego odcinka (`departure_at` + `duration_to`, `return_at` + `duration_back`) `legTimes()`
+z `domain/times.ts` liczy:
+
+- `departTimeLocal` ("HH:MM") — godzina zapisana w `departure_at` / `return_at`, traktowana jako
+  **czas lokalny lotniska wylotu** odcinka ⚠️;
+- `departAtUtc` — z offsetu w napisie (`+01:00`, `Z`); **bez offsetu** godzinę czytamy w strefie
+  lotniska wylotu (`PlaceIndex.timezoneOf`, offline przez `tz-lookup`, potem
+  `zonedWallTimeToUtc`; godzina z luki DST przesuwa się do przodu, z nakładki — wcześniejsza);
+  nieznana strefa → tylko godzina lokalna, bez chwili UTC i bez przylotu;
+- `arriveAtUtc` = wylot + `duration_to` (powrót: `duration_back`) minut ⚠️;
+- `arriveTimeLocal` i `arriveAt` (`YYYY-MM-DDTHH:MM`, data pokazuje przylot następnego dnia) —
+  ta chwila w strefie lotniska przylotu.
+
+Brak czasu trwania (lub 0) → przylot nieznany; `duration` dla lotów powrotnych **nie** jest
+dzielony na kierunki. `/v2/prices/latest` podaje tylko daty, więc jego oferty nie mają godzin.
+Pipeline ustawia `timesUnknown: true`, gdy któremukolwiek odcinkowi brakuje godziny wylotu lub
+przylotu, a filtry `departTime` / `arriveTime` przepuszczają odcinki o nieznanej godzinie (liczba
+pominiętych: `SearchResult.timeWindows.dropped`, ostrzeżenie w `plan.warnings`). Oferta `latest`
+połączona z tańszą lub równą ceną `prices_for_dates` dostaje godziny z tej drugiej.
 
 Host linków: **`https://www.aviasales.com`** (stała `AVIASALES_BASE_URL` w `links/`). Wybrany,
 bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walutę). Polska domena
@@ -254,6 +277,17 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
     w USD, mapowanie przyjmie PLN — wtedy trzeba porównać ceny z Aviasales ręcznie.
 24. `show_to_affiliates=true`: czy ogranicza wyniki do cen, które wolno pokazywać partnerom
     (zakładamy, że tak; wpisy z `false` i tak odrzucamy).
+25. `departure_at` / `return_at`: czy zawsze mają offset (`+01:00`) i czy jest to offset **lotniska
+    wylotu** danego odcinka (dla `return_at` — lotniska celu), a godzina w napisie to czas lokalny
+    tego lotniska. Kontrola: offset z napisu = `zoneOffsetMinutes(PlaceIndex.timezoneOf(lotnisko),
+    chwila)`. Bez offsetu adapter przyjmuje czas lokalny lotniska wylotu.
+26. `duration_to` / `duration_back`: czy to minuty "od drzwi do drzwi" odcinka (wylot → przylot,
+    z przesiadkami), tak że przylot = wylot + `duration_to`; porównać z godziną przylotu na
+    Aviasales dla kilku lotów (także przez zmianę daty i strefy, np. POZ → BKK).
+27. Czy `duration_back` jest wypełniane dla lotów powrotnych (bez niego przylot powrotu jest
+    nieznany) i czy dla lotów w jedną stronę `duration` = `duration_to`.
+28. Czy godziny w `prices_for_dates` dotyczą pierwszego segmentu (wylot z lotniska `origin_airport`)
+    i ostatniego (przylot do `destination_airport`), także przy przesiadkach na innych lotniskach.
 
 ## Uwagi prawne
 

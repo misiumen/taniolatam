@@ -1,6 +1,7 @@
 import { matchesWindow, type DateWindow } from "../domain/dates.ts";
 import type { Offer } from "../domain/offer.ts";
 import type { SearchFilters } from "../domain/query.ts";
+import { activeTimeWindow, inTimeWindow, parseClock, type TimeWindow } from "../domain/times.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 
 /**
@@ -99,6 +100,58 @@ export function hasExcludedCarrier(o: Offer, excluded: ReadonlySet<string>): boo
 export const carrierSet = (codes: readonly string[] | undefined): Set<string> =>
   new Set((codes ?? []).map((c) => c.trim().toUpperCase()).filter(Boolean));
 
+/** Local clock times of one leg ("HH:MM"; undefined = unknown). */
+export interface LegClock {
+  depart?: string;
+  arrive?: string;
+}
+
+/**
+ * Clock times of every leg of an offer: `legs[]` when present; otherwise the outbound from
+ * `Offer.departTimeLocal` / `arriveTimeLocal`, plus an unknown return leg for round trips.
+ */
+export function offerLegClocks(o: Offer): LegClock[] {
+  if (o.legs?.length) {
+    return o.legs.map((l) => ({ depart: l.departTimeLocal, arrive: l.arriveTimeLocal }));
+  }
+  const legs: LegClock[] = [{ depart: o.departTimeLocal, arrive: o.arriveTimeLocal }];
+  if (o.returnDate !== undefined) legs.push({});
+  return legs;
+}
+
+/** Some leg's departure or arrival time is unknown (→ `Offer.timesUnknown`). */
+export function offerTimesUnknown(o: Offer): boolean {
+  return offerLegClocks(o).some(
+    (l) => parseClock(l.depart) === undefined || parseClock(l.arrive) === undefined,
+  );
+}
+
+/** `filters.departTime` or `filters.arriveTime` restricts anything. */
+export function hasTimeWindows(f: Pick<SearchFilters, "departTime" | "arriveTime">): boolean {
+  return (
+    activeTimeWindow(f.departTime) !== undefined || activeTimeWindow(f.arriveTime) !== undefined
+  );
+}
+
+/**
+ * `filters.departTime` / `arriveTime` check on EVERY leg: a leg passes when its local departure
+ * (arrival) time is inside the window, or unknown. No window set → true.
+ */
+export function timeWindowsAllowed(
+  o: Offer,
+  f: Pick<SearchFilters, "departTime" | "arriveTime">,
+): boolean {
+  const dep = activeTimeWindow(f.departTime);
+  const arr = activeTimeWindow(f.arriveTime);
+  if (!dep && !arr) return true;
+  const ok = (t: string | undefined, w: TimeWindow | undefined) => {
+    if (!w) return true;
+    const m = parseClock(t);
+    return m === undefined || inTimeWindow(m, w);
+  };
+  return offerLegClocks(o).every((l) => ok(l.depart, dep) && ok(l.arrive, arr));
+}
+
 export interface FilterContext {
   /** Re-check dates and weekdays (sources usually return whole months). */
   window?: DateWindow;
@@ -168,6 +221,7 @@ export function matchesFilters(o: Offer, f: SearchFilters, ctx: FilterContext = 
     return false;
   }
   if (!priceAgeAllowed(o, f, ctx.now ?? new Date())) return false;
+  if (!timeWindowsAllowed(o, f)) return false;
   if (o.returnTo !== undefined && o.returnTo !== o.origin && !f.allowOpenJaw) return false;
   if (ctx.window && !matchesWindow(ctx.window, o.departDate, o.returnDate)) return false;
   return true;

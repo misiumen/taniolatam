@@ -1,6 +1,7 @@
 import type { DateWindow } from "./dates.ts";
 import type { CarrierType } from "./offer.ts";
 import type { Place } from "./place.ts";
+import type { TimeWindow } from "./times.ts";
 
 export interface SearchFilters {
   maxPrice?: number;
@@ -43,6 +44,14 @@ export interface SearchFilters {
    * dropped. Offers with unknown carriers pass.
    */
   excludeCarriers?: string[];
+  /**
+   * Departure time window (local clock at each leg's origin airport), minutes from midnight
+   * 0–1440, inclusive; `from > to` wraps past midnight. Applied to EVERY leg (outbound and
+   * return); legs with an unknown time pass. Undefined or the whole day = any time.
+   */
+  departTime?: TimeWindow;
+  /** Arrival time window (local clock at each leg's destination airport); as `departTime`. */
+  arriveTime?: TimeWindow;
   /** Reserved for true multi-city itineraries (not implemented yet). */
   multicity?: boolean;
 }

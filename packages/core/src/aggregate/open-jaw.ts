@@ -1,5 +1,5 @@
 import { daysBetween, type TripSpec } from "../domain/dates.ts";
-import { offerKey, type Offer } from "../domain/offer.ts";
+import { offerKey, type Leg, type Offer } from "../domain/offer.ts";
 
 export interface OpenJawOptions {
   /** Airports the traveller may return to (typically the resolved origins). */
@@ -83,6 +83,7 @@ function combine(out: Offer, back: Offer): Offer {
     currency: out.currency,
     stops: Math.max(out.stops, back.stops),
     durationMinutes: out.durationMinutes,
+    ...outboundTimes(out),
     // One field on the offer: the pricier leg's type; per-leg types are on `legs`.
     carrierType: (back.price > out.price ? back : out).carrierType,
     source: out.source,
@@ -110,25 +111,43 @@ function combine(out: Offer, back: Offer): Offer {
     converted: out.converted || back.converted ? true : undefined,
     // No single booking link: legs are booked separately (`allLinks` builds per-leg links).
     deepLink: "",
-    legs: [
-      {
-        origin: out.origin,
-        destination: out.destination,
-        departAt: out.departDate,
-        carrier: out.carriers[0],
-        source: out.source,
-        deepLink: out.deepLink || undefined,
-        carrierType: out.carrierType,
-      },
-      {
-        origin: back.origin,
-        destination: back.destination,
-        departAt: back.departDate,
-        carrier: back.carriers[0],
-        source: back.source,
-        deepLink: back.deepLink || undefined,
-        carrierType: back.carrierType,
-      },
-    ],
+    legs: [legOf(out), legOf(back)],
+  };
+}
+
+/**
+ * The single leg of a one-way offer, for a combined offer: its own leg's departure and clock
+ * times when it has one (`legs[0]`), else the offer's date and top-level times.
+ */
+function legOf(o: Offer): Leg {
+  const own = o.legs?.[0];
+  const leg: Leg = {
+    origin: o.origin,
+    destination: o.destination,
+    departAt: own?.departAt ?? o.departDate,
+    arriveAt: own?.arriveAt,
+    departTimeLocal: own ? own.departTimeLocal : o.departTimeLocal,
+    arriveTimeLocal: own ? own.arriveTimeLocal : o.arriveTimeLocal,
+    departAtUtc: own?.departAtUtc,
+    arriveAtUtc: own?.arriveAtUtc,
+    carrier: o.carriers[0],
+    flightNumber: own?.flightNumber,
+    source: o.source,
+    deepLink: o.deepLink || undefined,
+    carrierType: o.carrierType,
+  };
+  // Keep legs free of explicit `undefined` keys (stable shapes in tests and JSON).
+  for (const k of Object.keys(leg) as (keyof Leg)[]) if (leg[k] === undefined) delete leg[k];
+  return leg;
+}
+
+/** Top-level outbound clock times of a combined offer, from its outbound leg. */
+function outboundTimes(out: Offer): Pick<Offer, "departTimeLocal" | "arriveTimeLocal"> {
+  const leg = out.legs?.[0];
+  const departTimeLocal = leg ? leg.departTimeLocal : out.departTimeLocal;
+  const arriveTimeLocal = leg ? leg.arriveTimeLocal : out.arriveTimeLocal;
+  return {
+    ...(departTimeLocal ? { departTimeLocal } : {}),
+    ...(arriveTimeLocal ? { arriveTimeLocal } : {}),
   };
 }

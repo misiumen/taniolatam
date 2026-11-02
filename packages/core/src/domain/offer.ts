@@ -7,9 +7,21 @@ export type Freshness = "live" | "cached";
 export interface Leg {
   origin: string;
   destination: string;
-  /** ISO date or date-time (local to departure airport when known). */
+  /**
+   * ISO date or date-time as the source sent it (local to the departure airport, with or without
+   * an offset; a plain date when the time is unknown).
+   */
   departAt: string;
+  /** Local arrival date-time at the destination ("YYYY-MM-DDTHH:MM") when known. */
   arriveAt?: string;
+  /** "HH:MM", local clock time at the origin airport; undefined = unknown. */
+  departTimeLocal?: string;
+  /** "HH:MM", local clock time at the destination airport; undefined = unknown. */
+  arriveTimeLocal?: string;
+  /** Departure instant, ISO in UTC ("…Z"). */
+  departAtUtc?: string;
+  /** Arrival instant (departure + block time), ISO in UTC. */
+  arriveAtUtc?: string;
   carrier?: string;
   flightNumber?: string;
   /** Source that priced this leg (differs per leg for combined open-jaw offers). */
@@ -38,6 +50,19 @@ export interface Offer {
   stops: number;
   /** Outbound travel time. */
   durationMinutes?: number;
+  /**
+   * Outbound departure / arrival clock times ("HH:MM", local at the respective airport), the
+   * same as `legs[0]` when legs are present. Offers without legs (mock, simple sources) carry
+   * their outbound times here; `departTime` / `arriveTime` filters read legs first.
+   */
+  departTimeLocal?: string;
+  arriveTimeLocal?: string;
+  /**
+   * Some leg's departure or arrival time is unknown (dates-only prices such as Travelpayouts
+   * `/v2/prices/latest`, or no duration). Set by `searchDestinations`; such legs pass the
+   * `departTime` / `arriveTime` filters.
+   */
+  timesUnknown?: boolean;
   /** IATA/ICAO marketing carrier codes, outbound first. */
   carriers: string[];
   carrierType: CarrierType;

@@ -1,5 +1,6 @@
 import type { Place } from "../domain/place.ts";
 import { haversineKm, type LatLon } from "./geo.ts";
+import { zoneOf } from "./timezone.ts";
 import {
   airportCityEn,
   airportCityPl,
@@ -45,6 +46,7 @@ export class PlaceIndex {
   private readonly countries = new Map<string, Country>();
   private readonly subregions = new Map<string, Subregion>();
   private readonly continents = new Map<string, Continent>();
+  private readonly zones = new Map<string, string | undefined>();
 
   constructor(data: PlaceData) {
     this.airports = data.airports.map((a) =>
@@ -125,6 +127,20 @@ export class PlaceIndex {
     }
     const a = this.airport(c);
     return a ? [a.iata] : [];
+  }
+
+  /**
+   * IANA time zone of an airport (WAW → "Europe/Warsaw"), from its coordinates via `zoneOf`
+   * (offline). City codes without an airport of that code (LON) use the first airport of
+   * `cityAirports`. Unknown codes → undefined. Memoised per code.
+   */
+  timezoneOf(iata: string): string | undefined {
+    const code = iata.trim().toUpperCase();
+    if (this.zones.has(code)) return this.zones.get(code);
+    const a = this.airport(code) ?? this.airport(this.cityAirports(code)[0] ?? "");
+    const zone = a ? zoneOf(a.lat, a.lon) : undefined;
+    this.zones.set(code, zone);
+    return zone;
   }
 
   /** ISO country codes covered by a country/subregion/continent place. */

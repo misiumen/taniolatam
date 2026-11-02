@@ -166,16 +166,34 @@ describe("TravelpayoutsSource.search", () => {
     expect(o.deepLink).toBe(
       "https://www.aviasales.com/search/POZ1203BKK26031?t=LO17000000001700000000000820POZWAWBKK_abc123_2489&search_date=01112026&expected_price_uuid=00000000-0000-0000-0000-000000000000&expected_price_currency=pln&marker=12345",
     );
+    // Local clock times: offsets from `departure_at` / `return_at`, arrival = + duration_to /
+    // duration_back in the arrival airport's zone (BKK +7; POZ still CET on 27 March 2027).
     expect(o.legs).toEqual([
       {
         origin: "POZ",
         destination: "BKK",
         departAt: "2027-03-12T06:15:00+01:00",
+        arriveAt: "2027-03-13T01:55",
+        departTimeLocal: "06:15",
+        arriveTimeLocal: "01:55",
+        departAtUtc: "2027-03-12T05:15:00.000Z",
+        arriveAtUtc: "2027-03-12T18:55:00.000Z",
         carrier: "LO",
         flightNumber: "385",
       },
-      { origin: "BKK", destination: "POZ", departAt: "2027-03-26T23:40:00+07:00", carrier: "LO" },
+      {
+        origin: "BKK",
+        destination: "POZ",
+        departAt: "2027-03-26T23:40:00+07:00",
+        arriveAt: "2027-03-27T08:50",
+        departTimeLocal: "23:40",
+        arriveTimeLocal: "08:50",
+        departAtUtc: "2027-03-26T16:40:00.000Z",
+        arriveAtUtc: "2027-03-27T07:50:00.000Z",
+        carrier: "LO",
+      },
     ]);
+    expect(o).toMatchObject({ departTimeLocal: "06:15", arriveTimeLocal: "01:55" });
   });
 
   it("sends a country bucket as the destination code, keeping every date (unique=false)", async () => {

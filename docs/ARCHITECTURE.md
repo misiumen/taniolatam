@@ -82,7 +82,7 @@ jednozdaniową podpowiedzią (zwinięta sekcja pokazuje podsumowanie swoich wart
 2. **Termin** — zakres dat wylotu (presety „Najbliższy miesiąc” … „Rok” zsynchronizowane z suwakiem
    miesięcy albo dokładne daty), długość pobytu lub lot w jedną stronę, dni tygodnia wylotu.
 3. **Lot** — przesiadki (bez / max 1 / dowolnie), maks. czas lotu, typ linii, linie lotnicze z
-   wyników (odznaczenie wyklucza linię).
+   wyników (odznaczenie wyklucza linię), godziny wylotu i przylotu (czas lokalny, każdy odcinek).
 4. **Cena i aktualność** — cena maksymalna w zł, dopuszczalny wiek ceny (domyślnie do 7 dni, opcjonalnie tylko do 48 h).
 5. **Zaawansowane** — open-jaw, multicity (wkrótce), pomijanie kierunków w kraju wylotu.
 

@@ -1,5 +1,6 @@
 {
   "name": "@gdziepolece/core",
+  "sideEffects": false,
   "version": "0.1.0",
   "private": true,
   "description": "Gdzie Polecę domain core: places, flight sources, aggregation, cache (framework-free TypeScript).",
@@ -17,6 +18,10 @@
     "better-sqlite3": "^13.0.3"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^9.6.0"
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/tz-lookup": "^6.1.2"
+  },
+  "dependencies": {
+    "tz-lookup": "^6.1.25"
   }
 }

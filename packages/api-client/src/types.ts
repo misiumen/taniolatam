@@ -2,6 +2,7 @@ import type {
   DestinationSummary,
   IsoDate,
   IsoMonth,
+  Leg,
   Offer,
   Place,
   PlaceKind,
@@ -24,6 +25,14 @@ export interface FilterExtensions {
   allowUnknownPriceAge?: boolean;
   /** Marketing carrier codes (IATA/ICAO) whose offers are dropped. */
   excludeCarriers?: string[];
+  /**
+   * Departure time window, local clock at each leg's origin, in minutes from midnight (0–1440,
+   * inclusive; `from > to` wraps past midnight). Applies to every leg; unknown times pass.
+   * Omit (or send the whole day) for any time.
+   */
+  departTime?: { from: number; to: number };
+  /** Arrival time window, local clock at each leg's destination; as `departTime`. */
+  arriveTime?: { from: number; to: number };
 }
 
 export type ApiSearchFilters = SearchFilters & FilterExtensions;
@@ -51,7 +60,30 @@ export interface OfferExtensions {
   note?: string;
 }
 
-export type ApiOffer = Offer & OfferExtensions;
+/** Optional `Leg` clock-time fields (same intersection trick; core declares them too). */
+export interface LegExtensions {
+  /** "HH:MM", local at the leg's origin airport. */
+  departTimeLocal?: string;
+  /** "HH:MM", local at the leg's destination airport. */
+  arriveTimeLocal?: string;
+  /** ISO instants in UTC ("…Z"). */
+  departAtUtc?: string;
+  arriveAtUtc?: string;
+  /** Local arrival date-time at the destination, "YYYY-MM-DDTHH:MM". */
+  arriveAt?: string;
+}
+
+export type ApiLeg = Leg & LegExtensions;
+
+export type ApiOffer = Offer &
+  OfferExtensions & {
+    /** Outbound departure / arrival, "HH:MM" local (same as `legs[0]` when legs are present). */
+    departTimeLocal?: string;
+    arriveTimeLocal?: string;
+    /** Some leg's departure or arrival time is unknown (label it in the UI). */
+    timesUnknown?: boolean;
+    legs?: ApiLeg[];
+  };
 
 export type ApiDestinationSummary = Omit<DestinationSummary, "cheapest"> & { cheapest: ApiOffer };
 

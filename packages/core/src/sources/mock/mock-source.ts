@@ -6,7 +6,8 @@ import {
   type IsoMonth,
   type TripSpec,
 } from "../../domain/dates.ts";
-import { offerKey, type CarrierType, type Offer } from "../../domain/offer.ts";
+import { offerKey, type CarrierType, type Leg, type Offer } from "../../domain/offer.ts";
+import { formatClock, legTimes } from "../../domain/times.ts";
 import { isHubAirport, type PlaceIndex } from "../../places/place-index.ts";
 import {
   envFlag,
@@ -248,6 +249,7 @@ export class MockSource implements FlightSource {
     const durationMinutes = Math.round((km / 780) * 60 + 35 + stops * (60 + rng() * 180));
 
     const fields = { origin, destination: dest, departDate, returnDate, carriers: unique };
+    const legs = this.legs(origin, dest, departDate, returnDate, durationMinutes, unique[0]!);
     return {
       id: offerKey(fields),
       ...fields,
@@ -255,6 +257,8 @@ export class MockSource implements FlightSource {
       currency,
       stops,
       durationMinutes,
+      ...(legs[0]!.departTimeLocal ? { departTimeLocal: legs[0]!.departTimeLocal } : {}),
+      ...(legs[0]!.arriveTimeLocal ? { arriveTimeLocal: legs[0]!.arriveTimeLocal } : {}),
       carrierType,
       source: this.id,
       fetchedAt,
@@ -262,6 +266,46 @@ export class MockSource implements FlightSource {
       // Under 48 h, like Travelpayouts latest prices, so the strict mode keeps them too.
       cacheAgeHours: Math.floor(rng() * 48),
       deepLink: googleFlightsLink(origin, dest, departDate, returnDate, currency),
+      legs,
     };
+  }
+
+  /**
+   * Outbound (and return) legs with clock times: departures 05:00–23:00 local in 5-minute steps,
+   * arrival = departure + block time in the destination's zone (`PlaceIndex.timezoneOf`). Its own
+   * RNG stream, so prices stay what they were before times existed.
+   */
+  private legs(
+    origin: string,
+    dest: string,
+    departDate: IsoDate,
+    returnDate: IsoDate | undefined,
+    durationMinutes: number,
+    carrier: string,
+  ): Leg[] {
+    const rng = seededRandom(this.seed, "times", origin, dest, departDate, returnDate ?? "");
+    const leg = (from: string, to: string, date: IsoDate, minutes: number): Leg => {
+      const departAt = `${date}T${formatClock(5 * 60 + 5 * intBetween(rng, 0, 216))}`;
+      const t = legTimes({
+        departAt,
+        durationMinutes: minutes,
+        originZone: this.places.timezoneOf(from),
+        destinationZone: this.places.timezoneOf(to),
+      });
+      const out: Leg = { origin: from, destination: to, departAt, carrier, source: this.id };
+      if (t.arriveAtLocal) out.arriveAt = t.arriveAtLocal;
+      if (t.departTimeLocal) out.departTimeLocal = t.departTimeLocal;
+      if (t.arriveTimeLocal) out.arriveTimeLocal = t.arriveTimeLocal;
+      if (t.departAtUtc) out.departAtUtc = t.departAtUtc;
+      if (t.arriveAtUtc) out.arriveAtUtc = t.arriveAtUtc;
+      return out;
+    };
+    const legs = [leg(origin, dest, departDate, durationMinutes)];
+    if (returnDate) {
+      // Return block time within ±10 % of the outbound (winds, routing).
+      const back = Math.round(durationMinutes * (0.9 + rng() * 0.2));
+      legs.push(leg(dest, origin, returnDate, back));
+    }
+    return legs;
   }
 }
