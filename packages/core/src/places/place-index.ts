@@ -1,6 +1,15 @@
 import type { Place } from "../domain/place.ts";
 import { haversineKm, type LatLon } from "./geo.ts";
-import type { Airport, Continent, Country, PlaceData, PlaceGroups, Subregion } from "./types.ts";
+import {
+  airportCityEn,
+  airportCityPl,
+  type Airport,
+  type Continent,
+  type Country,
+  type PlaceData,
+  type PlaceGroups,
+  type Subregion,
+} from "./types.ts";
 
 export interface AirportLocation {
   airport: Airport;
@@ -29,6 +38,8 @@ export const isHubAirport = (a: Airport) =>
 export class PlaceIndex {
   readonly airports: readonly Airport[];
   readonly groups: PlaceGroups;
+  /** Non-fatal data problems carried over from parsing. */
+  readonly warnings: readonly string[];
   private readonly byIata = new Map<string, Airport>();
   private readonly byCountry = new Map<string, Airport[]>();
   private readonly countries = new Map<string, Country>();
@@ -36,9 +47,14 @@ export class PlaceIndex {
   private readonly continents = new Map<string, Continent>();
 
   constructor(data: PlaceData) {
-    this.airports = data.airports;
+    this.airports = data.airports.map((a) =>
+      a.cityPl !== undefined && a.cityEn !== undefined
+        ? a
+        : { ...a, cityPl: airportCityPl(a), cityEn: airportCityEn(a) },
+    );
     this.groups = data.groups;
-    for (const a of data.airports) {
+    this.warnings = data.warnings ?? [];
+    for (const a of this.airports) {
       this.byIata.set(a.iata, a);
       const list = this.byCountry.get(a.countryCode) ?? [];
       list.push(a);
@@ -84,10 +100,10 @@ export class PlaceIndex {
     return this.subregions.get(country.subregion)?.continent ?? country.continent;
   }
 
-  /** The city place an airport belongs to (WMI → Warsaw, PL). */
+  /** The city place an airport serves (WMI → Warsaw, PL), using the served-city override if any. */
   cityOf(iata: string): Extract<Place, { kind: "city" }> | undefined {
     const a = this.airport(iata);
-    return a && { kind: "city", name: a.city, countryCode: a.countryCode };
+    return a && { kind: "city", name: airportCityEn(a), countryCode: a.countryCode };
   }
 
   /** ISO country codes covered by a country/subregion/continent place. */
@@ -140,7 +156,11 @@ export class PlaceIndex {
         const name = normalize(place.name);
         const country = place.countryCode.toUpperCase();
         for (const a of this.byCountry.get(country) ?? []) {
-          if (a.scheduledService && normalize(a.city) === name) out.add(a.iata);
+          if (!a.scheduledService) continue;
+          // Raw OurAirports city or the served-city overrides (Kraków/Cracow, Warszawa/Warsaw).
+          if ([a.city, a.cityPl, a.cityEn].some((n) => n !== undefined && normalize(n) === name)) {
+            out.add(a.iata);
+          }
         }
         // Curated "<CODE>-city" groups add airports whose `city` differs (WMI is in Nowy Dwór).
         for (const [id, g] of Object.entries(this.groups)) {

@@ -10,6 +10,9 @@
  */
 export * from "./aggregate/index.ts";
 export * from "./cache/index.ts";
+export * from "./calendar/index.ts";
+export * from "./currency/index.ts";
 export * from "./domain/index.ts";
+export * from "./links/index.ts";
 export * from "./places/index.ts";
 export * from "./sources/index.ts";

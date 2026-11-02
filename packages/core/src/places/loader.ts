@@ -12,14 +12,17 @@ export const PLACE_DATA_FILES = {
   airports: "airports.json",
   regions: "regions.json",
   groups: "place-groups.json",
+  /** Optional: served-city overrides. */
+  airportCities: "airport-cities.json",
 } as const;
 
-async function readJson(path: string): Promise<unknown> {
+async function readJson(path: string, optional = false): Promise<unknown> {
   let text: string;
   try {
     text = await readFile(path, "utf8");
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      if (optional) return undefined;
       throw new PlaceDataError(
         `Reference data file not found: ${path}. Generate the files in /data ` +
           `(airports.json, regions.json, place-groups.json) or point TANIOLATAM_DATA_DIR at them. ` +
@@ -36,17 +39,19 @@ async function readJson(path: string): Promise<unknown> {
 }
 
 /**
- * Reads and validates the three reference files.
+ * Reads and validates the three reference files plus the optional `airport-cities.json`
+ * (a missing overrides file means no overrides).
  * Directory precedence: `dir` argument → `TANIOLATAM_DATA_DIR` → `<repo>/data`.
  */
 export async function loadPlaceData(dir?: string): Promise<PlaceData> {
   const base = dir ?? process.env.TANIOLATAM_DATA_DIR ?? DEFAULT_DATA_DIR;
-  const [airports, regions, groups] = await Promise.all([
+  const [airports, regions, groups, airportCities] = await Promise.all([
     readJson(join(base, PLACE_DATA_FILES.airports)),
     readJson(join(base, PLACE_DATA_FILES.regions)),
     readJson(join(base, PLACE_DATA_FILES.groups)),
+    readJson(join(base, PLACE_DATA_FILES.airportCities), true),
   ]);
-  return parsePlaceData({ airports, regions, groups });
+  return parsePlaceData({ airports, regions, groups, airportCities });
 }
 
 export async function loadPlaceIndex(dir?: string): Promise<PlaceIndex> {

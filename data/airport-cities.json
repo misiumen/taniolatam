@@ -1,0 +1,934 @@
+{
+  "ABJ": {
+    "cityPl": "Abidżan",
+    "cityEn": "Abidjan"
+  },
+  "ABV": {
+    "cityPl": "Abudża",
+    "cityEn": "Abuja"
+  },
+  "ACC": {
+    "cityPl": "Akra",
+    "cityEn": "Accra"
+  },
+  "ACE": {
+    "cityPl": "Lanzarote",
+    "cityEn": "Lanzarote"
+  },
+  "ADB": {
+    "cityPl": "Izmir",
+    "cityEn": "Izmir"
+  },
+  "ADD": {
+    "cityPl": "Addis Abeba",
+    "cityEn": "Addis Ababa"
+  },
+  "AGA": {
+    "cityPl": "Agadir",
+    "cityEn": "Agadir"
+  },
+  "AGP": {
+    "cityPl": "Malaga",
+    "cityEn": "Malaga"
+  },
+  "ALA": {
+    "cityPl": "Ałmaty",
+    "cityEn": "Almaty"
+  },
+  "ALG": {
+    "cityPl": "Algier",
+    "cityEn": "Algiers"
+  },
+  "ANR": {
+    "cityPl": "Antwerpia",
+    "cityEn": "Antwerp"
+  },
+  "AQJ": {
+    "cityPl": "Akaba",
+    "cityEn": "Aqaba"
+  },
+  "ARN": {
+    "cityPl": "Sztokholm",
+    "cityEn": "Stockholm"
+  },
+  "ASW": {
+    "cityPl": "Asuan",
+    "cityEn": "Aswan"
+  },
+  "ATH": {
+    "cityPl": "Ateny",
+    "cityEn": "Athens"
+  },
+  "AUH": {
+    "cityPl": "Abu Zabi",
+    "cityEn": "Abu Dhabi"
+  },
+  "BAH": {
+    "cityPl": "Bahrajn",
+    "cityEn": "Bahrain"
+  },
+  "BEG": {
+    "cityPl": "Belgrad",
+    "cityEn": "Belgrade"
+  },
+  "BEY": {
+    "cityPl": "Bejrut",
+    "cityEn": "Beirut"
+  },
+  "BGW": {
+    "cityPl": "Bagdad",
+    "cityEn": "Baghdad"
+  },
+  "BGY": {
+    "cityPl": "Mediolan",
+    "cityEn": "Milan"
+  },
+  "BHX": {
+    "cityPl": "Birmingham",
+    "cityEn": "Birmingham"
+  },
+  "BLQ": {
+    "cityPl": "Bolonia",
+    "cityEn": "Bologna"
+  },
+  "BLR": {
+    "cityPl": "Bangalore",
+    "cityEn": "Bengaluru"
+  },
+  "BMA": {
+    "cityPl": "Sztokholm",
+    "cityEn": "Stockholm"
+  },
+  "BOM": {
+    "cityPl": "Bombaj",
+    "cityEn": "Mumbai"
+  },
+  "BRE": {
+    "cityPl": "Brema",
+    "cityEn": "Bremen"
+  },
+  "BRN": {
+    "cityPl": "Berno",
+    "cityEn": "Bern"
+  },
+  "BRU": {
+    "cityPl": "Bruksela",
+    "cityEn": "Brussels"
+  },
+  "BSL": {
+    "cityPl": "Bazylea",
+    "cityEn": "Basel"
+  },
+  "BTS": {
+    "cityPl": "Bratysława",
+    "cityEn": "Bratislava"
+  },
+  "BUD": {
+    "cityPl": "Budapeszt",
+    "cityEn": "Budapest"
+  },
+  "BVA": {
+    "cityPl": "Paryż",
+    "cityEn": "Paris"
+  },
+  "BZE": {
+    "cityPl": "Belize",
+    "cityEn": "Belize City"
+  },
+  "CAI": {
+    "cityPl": "Kair",
+    "cityEn": "Cairo"
+  },
+  "CAN": {
+    "cityPl": "Kanton",
+    "cityEn": "Guangzhou"
+  },
+  "CCS": {
+    "cityPl": "Caracas",
+    "cityEn": "Caracas"
+  },
+  "CCU": {
+    "cityPl": "Kalkuta",
+    "cityEn": "Kolkata"
+  },
+  "CDG": {
+    "cityPl": "Paryż",
+    "cityEn": "Paris"
+  },
+  "CEB": {
+    "cityPl": "Cebu",
+    "cityEn": "Cebu"
+  },
+  "CFU": {
+    "cityPl": "Korfu",
+    "cityEn": "Corfu"
+  },
+  "CGK": {
+    "cityPl": "Dżakarta",
+    "cityEn": "Jakarta"
+  },
+  "CGN": {
+    "cityPl": "Kolonia",
+    "cityEn": "Cologne"
+  },
+  "CHQ": {
+    "cityPl": "Chania",
+    "cityEn": "Chania"
+  },
+  "CIA": {
+    "cityPl": "Rzym",
+    "cityEn": "Rome"
+  },
+  "CLJ": {
+    "cityPl": "Kluż-Napoka",
+    "cityEn": "Cluj-Napoca"
+  },
+  "CMB": {
+    "cityPl": "Kolombo",
+    "cityEn": "Colombo"
+  },
+  "CPH": {
+    "cityPl": "Kopenhaga",
+    "cityEn": "Copenhagen"
+  },
+  "CPT": {
+    "cityPl": "Kapsztad",
+    "cityEn": "Cape Town"
+  },
+  "CRL": {
+    "cityPl": "Bruksela",
+    "cityEn": "Brussels"
+  },
+  "CTA": {
+    "cityPl": "Katania",
+    "cityEn": "Catania"
+  },
+  "CUZ": {
+    "cityPl": "Cuzco",
+    "cityEn": "Cusco"
+  },
+  "DAM": {
+    "cityPl": "Damaszek",
+    "cityEn": "Damascus"
+  },
+  "DBV": {
+    "cityPl": "Dubrownik",
+    "cityEn": "Dubrovnik"
+  },
+  "DCA": {
+    "cityPl": "Waszyngton",
+    "cityEn": "Washington"
+  },
+  "DEB": {
+    "cityPl": "Debreczyn",
+    "cityEn": "Debrecen"
+  },
+  "DEL": {
+    "cityPl": "Delhi",
+    "cityEn": "Delhi"
+  },
+  "DFW": {
+    "cityPl": "Dallas",
+    "cityEn": "Dallas"
+  },
+  "DJE": {
+    "cityPl": "Dżerba",
+    "cityEn": "Djerba"
+  },
+  "DME": {
+    "cityPl": "Moskwa",
+    "cityEn": "Moscow"
+  },
+  "DPS": {
+    "cityPl": "Denpasar",
+    "cityEn": "Denpasar"
+  },
+  "DRS": {
+    "cityPl": "Drezno",
+    "cityEn": "Dresden"
+  },
+  "DWC": {
+    "cityPl": "Dubaj",
+    "cityEn": "Dubai"
+  },
+  "DXB": {
+    "cityPl": "Dubaj",
+    "cityEn": "Dubai"
+  },
+  "EBB": {
+    "cityPl": "Kampala",
+    "cityEn": "Kampala"
+  },
+  "EDI": {
+    "cityPl": "Edynburg",
+    "cityEn": "Edinburgh"
+  },
+  "EVN": {
+    "cityPl": "Erywań",
+    "cityEn": "Yerevan"
+  },
+  "EWR": {
+    "cityPl": "Nowy Jork",
+    "cityEn": "New York"
+  },
+  "EZE": {
+    "cityPl": "Buenos Aires",
+    "cityEn": "Buenos Aires"
+  },
+  "FCO": {
+    "cityPl": "Rzym",
+    "cityEn": "Rome"
+  },
+  "FEZ": {
+    "cityPl": "Fez",
+    "cityEn": "Fez"
+  },
+  "FKB": {
+    "cityPl": "Karlsruhe/Baden-Baden",
+    "cityEn": "Karlsruhe/Baden-Baden"
+  },
+  "FLR": {
+    "cityPl": "Florencja",
+    "cityEn": "Florence"
+  },
+  "FRA": {
+    "cityPl": "Frankfurt nad Menem",
+    "cityEn": "Frankfurt"
+  },
+  "FUE": {
+    "cityPl": "Fuerteventura",
+    "cityEn": "Fuerteventura"
+  },
+  "GDN": {
+    "cityPl": "Gdańsk",
+    "cityEn": "Gdansk"
+  },
+  "GIG": {
+    "cityPl": "Rio de Janeiro",
+    "cityEn": "Rio de Janeiro"
+  },
+  "GMP": {
+    "cityPl": "Seul",
+    "cityEn": "Seoul"
+  },
+  "GOA": {
+    "cityPl": "Genua",
+    "cityEn": "Genoa"
+  },
+  "GOI": {
+    "cityPl": "Goa",
+    "cityEn": "Goa"
+  },
+  "GOT": {
+    "cityPl": "Göteborg",
+    "cityEn": "Gothenburg"
+  },
+  "GRZ": {
+    "cityPl": "Graz",
+    "cityEn": "Graz"
+  },
+  "GUA": {
+    "cityPl": "Gwatemala",
+    "cityEn": "Guatemala City"
+  },
+  "GVA": {
+    "cityPl": "Genewa",
+    "cityEn": "Geneva"
+  },
+  "HAJ": {
+    "cityPl": "Hanower",
+    "cityEn": "Hanover"
+  },
+  "HAN": {
+    "cityPl": "Hanoi",
+    "cityEn": "Hanoi"
+  },
+  "HAV": {
+    "cityPl": "Hawana",
+    "cityEn": "Havana"
+  },
+  "HEL": {
+    "cityPl": "Helsinki",
+    "cityEn": "Helsinki"
+  },
+  "HKG": {
+    "cityPl": "Hongkong",
+    "cityEn": "Hong Kong"
+  },
+  "HND": {
+    "cityPl": "Tokio",
+    "cityEn": "Tokyo"
+  },
+  "HNL": {
+    "cityPl": "Honolulu",
+    "cityEn": "Honolulu"
+  },
+  "IAD": {
+    "cityPl": "Waszyngton",
+    "cityEn": "Washington"
+  },
+  "IBZ": {
+    "cityPl": "Ibiza",
+    "cityEn": "Ibiza"
+  },
+  "ICN": {
+    "cityPl": "Seul",
+    "cityEn": "Seoul"
+  },
+  "IEG": {
+    "cityPl": "Zielona Góra",
+    "cityEn": "Zielona Gora"
+  },
+  "IKA": {
+    "cityPl": "Teheran",
+    "cityEn": "Tehran"
+  },
+  "ISB": {
+    "cityPl": "Islamabad",
+    "cityEn": "Islamabad"
+  },
+  "IST": {
+    "cityPl": "Stambuł",
+    "cityEn": "Istanbul"
+  },
+  "JED": {
+    "cityPl": "Dżudda",
+    "cityEn": "Jeddah"
+  },
+  "JFK": {
+    "cityPl": "Nowy Jork",
+    "cityEn": "New York"
+  },
+  "JRO": {
+    "cityPl": "Kilimandżaro",
+    "cityEn": "Kilimanjaro"
+  },
+  "JTR": {
+    "cityPl": "Santorini",
+    "cityEn": "Santorini"
+  },
+  "KEF": {
+    "cityPl": "Reykjavík",
+    "cityEn": "Reykjavik"
+  },
+  "KGS": {
+    "cityPl": "Kos",
+    "cityEn": "Kos"
+  },
+  "KHI": {
+    "cityPl": "Karaczi",
+    "cityEn": "Karachi"
+  },
+  "KRK": {
+    "cityPl": "Kraków",
+    "cityEn": "Krakow"
+  },
+  "KSC": {
+    "cityPl": "Koszyce",
+    "cityEn": "Kosice"
+  },
+  "KTM": {
+    "cityPl": "Katmandu",
+    "cityEn": "Kathmandu"
+  },
+  "KUL": {
+    "cityPl": "Kuala Lumpur",
+    "cityEn": "Kuala Lumpur"
+  },
+  "KUN": {
+    "cityPl": "Kowno",
+    "cityEn": "Kaunas"
+  },
+  "KUT": {
+    "cityPl": "Kutaisi",
+    "cityEn": "Kutaisi"
+  },
+  "KWI": {
+    "cityPl": "Kuwejt",
+    "cityEn": "Kuwait"
+  },
+  "LCA": {
+    "cityPl": "Larnaka",
+    "cityEn": "Larnaca"
+  },
+  "LCJ": {
+    "cityPl": "Łódź",
+    "cityEn": "Lodz"
+  },
+  "LCY": {
+    "cityPl": "Londyn",
+    "cityEn": "London"
+  },
+  "LED": {
+    "cityPl": "Petersburg",
+    "cityEn": "Saint Petersburg"
+  },
+  "LEJ": {
+    "cityPl": "Lipsk",
+    "cityEn": "Leipzig"
+  },
+  "LGA": {
+    "cityPl": "Nowy Jork",
+    "cityEn": "New York"
+  },
+  "LGG": {
+    "cityPl": "Liège",
+    "cityEn": "Liege"
+  },
+  "LGW": {
+    "cityPl": "Londyn",
+    "cityEn": "London"
+  },
+  "LHE": {
+    "cityPl": "Lahaur",
+    "cityEn": "Lahore"
+  },
+  "LHR": {
+    "cityPl": "Londyn",
+    "cityEn": "London"
+  },
+  "LIL": {
+    "cityPl": "Lille",
+    "cityEn": "Lille"
+  },
+  "LIN": {
+    "cityPl": "Mediolan",
+    "cityEn": "Milan"
+  },
+  "LIS": {
+    "cityPl": "Lizbona",
+    "cityEn": "Lisbon"
+  },
+  "LJU": {
+    "cityPl": "Lublana",
+    "cityEn": "Ljubljana"
+  },
+  "LPA": {
+    "cityPl": "Gran Canaria",
+    "cityEn": "Gran Canaria"
+  },
+  "LPB": {
+    "cityPl": "La Paz",
+    "cityEn": "La Paz"
+  },
+  "LTN": {
+    "cityPl": "Londyn",
+    "cityEn": "London"
+  },
+  "LUG": {
+    "cityPl": "Lugano",
+    "cityEn": "Lugano"
+  },
+  "LUX": {
+    "cityPl": "Luksemburg",
+    "cityEn": "Luxembourg"
+  },
+  "LXR": {
+    "cityPl": "Luksor",
+    "cityEn": "Luxor"
+  },
+  "LYS": {
+    "cityPl": "Lyon",
+    "cityEn": "Lyon"
+  },
+  "MAA": {
+    "cityPl": "Ćennaj",
+    "cityEn": "Chennai"
+  },
+  "MAD": {
+    "cityPl": "Madryt",
+    "cityEn": "Madrid"
+  },
+  "MAH": {
+    "cityPl": "Minorka",
+    "cityEn": "Menorca"
+  },
+  "MAN": {
+    "cityPl": "Manchester",
+    "cityEn": "Manchester"
+  },
+  "MCT": {
+    "cityPl": "Maskat",
+    "cityEn": "Muscat"
+  },
+  "MED": {
+    "cityPl": "Medyna",
+    "cityEn": "Medina"
+  },
+  "MEX": {
+    "cityPl": "Meksyk",
+    "cityEn": "Mexico City"
+  },
+  "MIR": {
+    "cityPl": "Monastyr",
+    "cityEn": "Monastir"
+  },
+  "MLE": {
+    "cityPl": "Male",
+    "cityEn": "Malé"
+  },
+  "MMX": {
+    "cityPl": "Malmö",
+    "cityEn": "Malmo"
+  },
+  "MNL": {
+    "cityPl": "Manila",
+    "cityEn": "Manila"
+  },
+  "MPL": {
+    "cityPl": "Montpellier",
+    "cityEn": "Montpellier"
+  },
+  "MRS": {
+    "cityPl": "Marsylia",
+    "cityEn": "Marseille"
+  },
+  "MRU": {
+    "cityPl": "Mauritius",
+    "cityEn": "Mauritius"
+  },
+  "MSQ": {
+    "cityPl": "Mińsk",
+    "cityEn": "Minsk"
+  },
+  "MUC": {
+    "cityPl": "Monachium",
+    "cityEn": "Munich"
+  },
+  "MVD": {
+    "cityPl": "Montevideo",
+    "cityEn": "Montevideo"
+  },
+  "MXP": {
+    "cityPl": "Mediolan",
+    "cityEn": "Milan"
+  },
+  "NAP": {
+    "cityPl": "Neapol",
+    "cityEn": "Naples"
+  },
+  "NBE": {
+    "cityPl": "Hammamet",
+    "cityEn": "Hammamet"
+  },
+  "NCE": {
+    "cityPl": "Nicea",
+    "cityEn": "Nice"
+  },
+  "NCL": {
+    "cityPl": "Newcastle",
+    "cityEn": "Newcastle"
+  },
+  "NRT": {
+    "cityPl": "Tokio",
+    "cityEn": "Tokyo"
+  },
+  "NUE": {
+    "cityPl": "Norymberga",
+    "cityEn": "Nuremberg"
+  },
+  "NYO": {
+    "cityPl": "Sztokholm",
+    "cityEn": "Stockholm"
+  },
+  "OLB": {
+    "cityPl": "Olbia",
+    "cityEn": "Olbia"
+  },
+  "ORY": {
+    "cityPl": "Paryż",
+    "cityEn": "Paris"
+  },
+  "OSI": {
+    "cityPl": "Osijek",
+    "cityEn": "Osijek"
+  },
+  "OSL": {
+    "cityPl": "Oslo",
+    "cityEn": "Oslo"
+  },
+  "OSR": {
+    "cityPl": "Ostrawa",
+    "cityEn": "Ostrava"
+  },
+  "OST": {
+    "cityPl": "Ostenda",
+    "cityEn": "Ostend"
+  },
+  "OTP": {
+    "cityPl": "Bukareszt",
+    "cityEn": "Bucharest"
+  },
+  "OVD": {
+    "cityPl": "Oviedo",
+    "cityEn": "Oviedo"
+  },
+  "PEK": {
+    "cityPl": "Pekin",
+    "cityEn": "Beijing"
+  },
+  "PFO": {
+    "cityPl": "Pafos",
+    "cityEn": "Paphos"
+  },
+  "PHL": {
+    "cityPl": "Filadelfia",
+    "cityEn": "Philadelphia"
+  },
+  "PKX": {
+    "cityPl": "Pekin",
+    "cityEn": "Beijing"
+  },
+  "PLQ": {
+    "cityPl": "Połąga",
+    "cityEn": "Palanga"
+  },
+  "POZ": {
+    "cityPl": "Poznań",
+    "cityEn": "Poznan"
+  },
+  "PRG": {
+    "cityPl": "Praga",
+    "cityEn": "Prague"
+  },
+  "PSA": {
+    "cityPl": "Piza",
+    "cityEn": "Pisa"
+  },
+  "PTY": {
+    "cityPl": "Panama",
+    "cityEn": "Panama City"
+  },
+  "PVG": {
+    "cityPl": "Szanghaj",
+    "cityEn": "Shanghai"
+  },
+  "RAK": {
+    "cityPl": "Marrakesz",
+    "cityEn": "Marrakesh"
+  },
+  "RHO": {
+    "cityPl": "Rodos",
+    "cityEn": "Rhodes"
+  },
+  "RIX": {
+    "cityPl": "Ryga",
+    "cityEn": "Riga"
+  },
+  "RJK": {
+    "cityPl": "Rijeka",
+    "cityEn": "Rijeka"
+  },
+  "RNS": {
+    "cityPl": "Rennes",
+    "cityEn": "Rennes"
+  },
+  "RUH": {
+    "cityPl": "Rijad",
+    "cityEn": "Riyadh"
+  },
+  "RUN": {
+    "cityPl": "Reunion",
+    "cityEn": "Réunion"
+  },
+  "RZE": {
+    "cityPl": "Rzeszów",
+    "cityEn": "Rzeszow"
+  },
+  "SAH": {
+    "cityPl": "Sana",
+    "cityEn": "Sanaa"
+  },
+  "SAL": {
+    "cityPl": "San Salvador",
+    "cityEn": "San Salvador"
+  },
+  "SAW": {
+    "cityPl": "Stambuł",
+    "cityEn": "Istanbul"
+  },
+  "SEN": {
+    "cityPl": "Londyn",
+    "cityEn": "London"
+  },
+  "SEZ": {
+    "cityPl": "Mahé",
+    "cityEn": "Mahe"
+  },
+  "SGN": {
+    "cityPl": "Ho Chi Minh",
+    "cityEn": "Ho Chi Minh City"
+  },
+  "SHJ": {
+    "cityPl": "Szardża",
+    "cityEn": "Sharjah"
+  },
+  "SIN": {
+    "cityPl": "Singapur",
+    "cityEn": "Singapore"
+  },
+  "SJD": {
+    "cityPl": "Los Cabos",
+    "cityEn": "Los Cabos"
+  },
+  "SJO": {
+    "cityPl": "San José",
+    "cityEn": "San José"
+  },
+  "SKG": {
+    "cityPl": "Saloniki",
+    "cityEn": "Thessaloniki"
+  },
+  "SKP": {
+    "cityPl": "Skopje",
+    "cityEn": "Skopje"
+  },
+  "SSH": {
+    "cityPl": "Szarm el-Szejk",
+    "cityEn": "Sharm El Sheikh"
+  },
+  "STN": {
+    "cityPl": "Londyn",
+    "cityEn": "London"
+  },
+  "SVO": {
+    "cityPl": "Moskwa",
+    "cityEn": "Moscow"
+  },
+  "SVQ": {
+    "cityPl": "Sewilla",
+    "cityEn": "Seville"
+  },
+  "SXB": {
+    "cityPl": "Strasburg",
+    "cityEn": "Strasbourg"
+  },
+  "SYD": {
+    "cityPl": "Sydney",
+    "cityEn": "Sydney"
+  },
+  "SZY": {
+    "cityPl": "Olsztyn",
+    "cityEn": "Olsztyn"
+  },
+  "SZZ": {
+    "cityPl": "Szczecin",
+    "cityEn": "Szczecin"
+  },
+  "TAS": {
+    "cityPl": "Taszkent",
+    "cityEn": "Tashkent"
+  },
+  "TFS": {
+    "cityPl": "Teneryfa",
+    "cityEn": "Tenerife"
+  },
+  "TIA": {
+    "cityPl": "Tirana",
+    "cityEn": "Tirana"
+  },
+  "TLS": {
+    "cityPl": "Tuluza",
+    "cityEn": "Toulouse"
+  },
+  "TLV": {
+    "cityPl": "Tel Awiw",
+    "cityEn": "Tel Aviv"
+  },
+  "TMP": {
+    "cityPl": "Tampere",
+    "cityEn": "Tampere"
+  },
+  "TNG": {
+    "cityPl": "Tanger",
+    "cityEn": "Tangier"
+  },
+  "TNR": {
+    "cityPl": "Antananarywa",
+    "cityEn": "Antananarivo"
+  },
+  "TPE": {
+    "cityPl": "Tajpej",
+    "cityEn": "Taipei"
+  },
+  "TRN": {
+    "cityPl": "Turyn",
+    "cityEn": "Turin"
+  },
+  "TSF": {
+    "cityPl": "Wenecja",
+    "cityEn": "Venice"
+  },
+  "UBN": {
+    "cityPl": "Ułan Bator",
+    "cityEn": "Ulaanbaatar"
+  },
+  "USM": {
+    "cityPl": "Ko Samui",
+    "cityEn": "Koh Samui"
+  },
+  "VAR": {
+    "cityPl": "Warna",
+    "cityEn": "Varna"
+  },
+  "VCE": {
+    "cityPl": "Wenecja",
+    "cityEn": "Venice"
+  },
+  "VIE": {
+    "cityPl": "Wiedeń",
+    "cityEn": "Vienna"
+  },
+  "VKO": {
+    "cityPl": "Moskwa",
+    "cityEn": "Moscow"
+  },
+  "VLC": {
+    "cityPl": "Walencja",
+    "cityEn": "Valencia"
+  },
+  "VNO": {
+    "cityPl": "Wilno",
+    "cityEn": "Vilnius"
+  },
+  "VRA": {
+    "cityPl": "Varadero",
+    "cityEn": "Varadero"
+  },
+  "VRN": {
+    "cityPl": "Werona",
+    "cityEn": "Verona"
+  },
+  "WAW": {
+    "cityPl": "Warszawa",
+    "cityEn": "Warsaw"
+  },
+  "WDH": {
+    "cityPl": "Windhuk",
+    "cityEn": "Windhoek"
+  },
+  "WMI": {
+    "cityPl": "Warszawa",
+    "cityEn": "Warsaw"
+  },
+  "WRO": {
+    "cityPl": "Wrocław",
+    "cityEn": "Wroclaw"
+  },
+  "YUL": {
+    "cityPl": "Montreal",
+    "cityEn": "Montreal"
+  },
+  "ZAG": {
+    "cityPl": "Zagrzeb",
+    "cityEn": "Zagreb"
+  },
+  "ZRH": {
+    "cityPl": "Zurych",
+    "cityEn": "Zurich"
+  },
+  "ZTH": {
+    "cityPl": "Zakintos",
+    "cityEn": "Zakynthos"
+  }
+}

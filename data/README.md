@@ -65,6 +65,27 @@ Obiekt: id grupy → `{ namePl, nameEn, airports: [kody IATA] }`.
 
 Kody spoza `airports.json` są pomijane i wypisywane w logu skryptu.
 
+### `airport-cities.json`
+
+Nazwy miast, które lotnisko obsługuje, po polsku i po angielsku (do podpowiedzi i wyświetlania). Pole `city` w `airports.json` to gmina z OurAirports, np. KRK → "Balice", RZE → "Jasionka", WMI → "Nowy Dwór Mazowiecki", a nie miasto znane podróżnym.
+
+Schemat: obiekt, klucz to kod IATA (3 wielkie litery), wartość to `{ "cityPl": "...", "cityEn": "..." }`:
+
+```json
+{
+  "KRK": { "cityPl": "Kraków", "cityEn": "Krakow" },
+  "WMI": { "cityPl": "Warszawa", "cityEn": "Warsaw" }
+}
+```
+
+- Klucze są posortowane. Obie nazwy są niepuste.
+- Mapowanie jest ręczne (stała `CITIES` w `scripts/data/build-airport-cities.mjs`), nie pochodzi z OurAirports. Poprawki robimy w skrypcie, nie w pliku wynikowym.
+- **Brak klucza nie jest błędem.** Oznacza, że `city` z `airports.json` jest już poprawne po polsku i po angielsku (np. BZG, KTW, LUZ, RDO, BER, BKK, DMK). Aplikacja ma wtedy użyć `city`.
+- Nazwa to miasto, które lotnisko obsługuje w ofercie, a nie gmina: TSF → Wenecja, CRL → Bruksela, BVA → Paryż, NYO i BMA → Sztokholm.
+- Polskie nazwy są exonimami tam, gdzie istnieją (Monachium, Wiedeń, Mediolan). Pozostałe to transliteracje lub zapisy oryginalne.
+- Kody z tabeli, których nie ma w `airports.json`, są pomijane i wypisywane przez skrypt (aktualnie: KBP, IEV, LWO, KIV, FRU, LAD, PNH, REP). Wymagany kod spoza danych kończy skrypt kodem 1.
+- Skrypt sprawdza pokrycie: każde polskie lotnisko i każdy kod z `place-groups.json` (grupy miejsc i PL-near) ma wpis albo jest zbędny.
+
 ## Liczby (ostatnie generowanie)
 
 - Lotniska w `airports.json`: 4 008 (large 1 151, medium 2 092, small 765).
