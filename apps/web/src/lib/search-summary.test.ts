@@ -58,3 +58,26 @@ describe("EXAMPLE_SEARCHES", () => {
     },
   );
 });
+
+describe("time window fragments", () => {
+  it("describes departure and arrival windows", () => {
+    const base = defaultFormState(TODAY);
+    expect(
+      describeSearch({
+        ...base,
+        departTime: { from: 360, to: 720 },
+        arriveTime: { from: 0, to: 1380 },
+      }),
+    ).toEqual([
+      "Polska → gdziekolwiek",
+      "pół roku",
+      "7–21 dni",
+      "wylot 06:00–12:00",
+      "przylot do 23:00",
+      "ceny do 7 dni",
+    ]);
+    expect(describeSearch({ ...base, departTime: { from: 1080, to: 1440 } })).toContain(
+      "wylot od 18:00",
+    );
+  });
+});

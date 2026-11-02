@@ -3,11 +3,15 @@ import { formatDateRange, formatPrice } from "./format";
 import {
   ALL_CARRIER_TYPES,
   applyDatePreset,
+  DAY_MINUTES,
   defaultFormState,
+  formatClock,
+  isAnyTime,
   isAnywhere,
   type DatePreset,
   type FormState,
 } from "./form-state";
+import type { TimeWindow } from "./api-extensions";
 
 const PRESET_TEXT: Partial<Record<DatePreset, string>> = {
   month: "najbliższy miesiąc",
@@ -51,6 +55,21 @@ export function weekdaysText(s: FormState): string | undefined {
     : undefined;
 }
 
+/** "06:00–12:00", "do 23:00" (from midnight), "od 06:00" (to midnight). */
+function timeRangeText(w: TimeWindow): string {
+  if (w.from <= 0) return `do ${formatClock(w.to)}`;
+  if (w.to >= DAY_MINUTES) return `od ${formatClock(w.from)}`;
+  return `${formatClock(w.from)}–${formatClock(w.to)}`;
+}
+
+/** Summary fragments of the time windows: ["wylot 06:00–12:00", "przylot do 23:00"]. */
+export function timeWindowsText(s: FormState): string[] {
+  const out: string[] = [];
+  if (!isAnyTime(s.departTime)) out.push(`wylot ${timeRangeText(s.departTime)}`);
+  if (!isAnyTime(s.arriveTime)) out.push(`przylot ${timeRangeText(s.arriveTime)}`);
+  return out;
+}
+
 export function stopsText(s: FormState): string {
   return s.stops === "direct"
     ? "bez przesiadek"
@@ -72,6 +91,7 @@ export function describeSearch(s: FormState): string[] {
   const parts = [routeText(s), datesText(s), stayText(s)];
   const wd = weekdaysText(s);
   if (wd) parts.push(wd);
+  parts.push(...timeWindowsText(s));
   if (s.stops !== "any") parts.push(stopsText(s));
   if (s.maxDurationHours !== "") parts.push(`lot do ${s.maxDurationHours} h`);
   if (s.maxPrice !== "") parts.push(`do ${formatPrice(Number(s.maxPrice))}`);

@@ -77,6 +77,13 @@ ofertach `carrierNames`, `stale`, `converted`, `originalPrice`, `originalCurrenc
 odpowiedzi `carrierFacet`) przechodzą bez zmian między `@gdziepolece/core` a przeglądarką; typy
 uzupełnia lokalnie `@gdziepolece/api-client` (`ApiSearchFilters`, `ApiOffer`).
 
+Okna godzin: `filters.departTime` i `filters.arriveTime` = `{ from, to }` w minutach od północy
+czasu lokalnego lotniska (0–1440, oba końce włącznie, `from > to` = okno przez północ, np.
+22:00–02:00). `validate.ts` przyjmuje tylko liczby całkowite 0–1440 (400 z polskim komunikatem w
+przeciwnym razie). Oferty niosą `departTimeLocal` / `arriveTimeLocal` („HH:MM”, także w `legs[]`) i
+`timesUnknown`, odpowiedź opcjonalnie `timeWindows: { dropped }`. Typy tych pól, dopóki pakiety ich
+nie eksportują, uzupełnia `src/lib/api-extensions.ts` (TODO: usunąć po aktualizacji pakietów).
+
 `airports` w odpowiedzi wyszukiwania to dodatek do kontraktu: współrzędne i nazwy lotnisk użytych
 w wynikach (przeglądarka nie ma słownika lotnisk). Drugi dodatek, `groupAirports`, podaje kody
 wszystkich lotnisk miasta, gdy jest ich więcej niż jedno. Filtr `excludeOriginCountries` jest
@@ -97,7 +104,7 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   Breakpoint `mid` (900 px) zdefiniowany w `@theme`.
 - Formularz w zwijanych sekcjach (nagłówek + krótka podpowiedź; zwinięta sekcja pokazuje
   podsumowanie wartości): **Trasa** (Skąd, Dokąd), **Termin** (presety + suwak, długość pobytu, dni
-  wylotu), **Lot** (przesiadki, maks. czas lotu, typ linii, linie lotnicze), **Cena i aktualność**,
+  wylotu, godziny wylotu i przylotu), **Lot** (przesiadki, maks. czas lotu, typ linii, linie lotnicze), **Cena i aktualność**,
   **Zaawansowane** (open-jaw, multicity, pomiń kraj wylotu). Na start otwarte są Trasa i Termin.
   Przycisk „Szukaj” jest przyklejony do dołu kolumny formularza.
 - „Skąd” i „Dokąd” to to samo pole: chipy + podpowiedzi (lotniska, miasta, kraje, regiony,
@@ -111,6 +118,11 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   `input type=range`, bez biblioteki, obsługa klawiaturą). Chipy i suwak są zsynchronizowane:
   przesunięcie suwaka na zakres równy presetowi zaznacza chip, inny zakres odznacza wszystkie.
   „Dokładne daty” zastępuje suwak dwoma polami dat. Preset zawsze oznacza „dziś … dziś + N miesięcy”.
+- „Godzina wylotu” i „Godzina przylotu” (w sekcji Termin): dwa suwaki z dwoma uchwytami jak suwak
+  miesięcy (`DualRange`), 00:00–24:00 co 30 min, etykieta „06:00 – 22:30”, pełna doba = „dowolnie”
+  i wtedy do API nie trafia nic. Inaczej `filters.departTime` / `filters.arriveTime` w minutach, w
+  URL `dt=360-1350` / `at=0-1380` (brak parametru = pełna doba; niepoprawny = pełna doba). Podpowiedź:
+  „Dotyczy każdego odcinka. Oferty bez znanej godziny są pokazywane i oznaczone.”
 - Filtry: „Pomiń kierunki w kraju wylotu” (domyślnie włączone; do API trafia
   `filters.excludeOriginCountries: false` tylko po odznaczeniu), „Maks. czas lotu”
   (`filters.maxDurationMinutes`), Open-jaw (`filters.allowOpenJaw`); Multicity jest jeszcze wyłączone.
@@ -123,8 +135,9 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
 - „Aktualność cen”: „do 7 dni” (domyślnie; do API nie trafia nic) albo „tylko do 48 h”
   (`filters.maxPriceAgeHours: 48` + `allowUnknownPriceAge: false`; URL: `pa=48h`).
 - Nad wynikami linia podsumowania wykonanego wyszukiwania (`src/lib/search-summary.ts`), np.
-  „Polska → gdziekolwiek · pół roku · 7–21 dni · max 1 przesiadka · ceny do 7 dni” — filtry z wartością
-  domyślną są pomijane. Pod nią liczba kierunków i sortowanie: najtańsze, najkrótsze, bez
+  „Polska → gdziekolwiek · pół roku · 7–21 dni · wylot 06:00–12:00 · przylot do 23:00 · max 1
+  przesiadka · ceny do 7 dni” — filtry z wartością domyślną są pomijane (okno od północy: „do 23:00”,
+  do północy: „od 18:00”). Pod nią liczba kierunków i sortowanie: najtańsze, najkrótsze, bez
   przesiadek, najświeższe ceny (na żywo, potem najmłodsza cena z cache według `cacheAgeHours`,
   nieznany wiek na końcu). Lista pokazuje 40 kierunków, dalej „Pokaż więcej”.
 - Pusty stan: krótkie wyjaśnienie i przykładowe wyszukiwania jako chipy („Polska → Azja, pół roku”,
@@ -132,8 +145,11 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   przesiadek”); kliknięcie wypełnia formularz i od razu szuka.
 - Wiersz wyniku: miasto, po prawej kolumna ceny („od 1 234 zł”, cyfry tabelaryczne, bez zawijania);
   pod nazwą kraj i trasa (np. „Niemcy · SZZ → BRE”; miasto z kilkoma lotniskami: „Włochy · lotniska
-  CIA, FCO”); jeden wiersz meta „daty · N dni · przesiadki · czas lotu · linie” (zawija się między
-  elementami, separator na początku linii jest ukryty); chip wieku ceny i źródło; wiersz linków
+  CIA, FCO”); jeden wiersz meta „daty · N dni · przesiadki · czas lotu · wylot 06:45 · przylot 14:10 ·
+  powrót: wylot 18:00 · przylot 20:10 · linie” (godziny tylko znane: z `legs[0]`/`legs[1]` albo
+  `departTimeLocal`/`arriveTimeLocal` oferty; open-jaw pokazuje je przy odcinkach; zawija się między
+  elementami, separator na początku linii jest ukryty); przy `timesUnknown` szary chip „godziny
+  nieznane”; chip wieku ceny i źródło; wiersz linków
   „Sprawdź cenę”. Linie pod pełnymi nazwami z `carrierNames` („Wizz Air + LOT Polish Airlines”,
   kod w podpowiedzi `title`; bez nazw — same kody); wiek ceny („na żywo” — zielony, „znaleziona N h
   temu” poniżej 48 h — neutralny, „znaleziona N dni temu” / „wiek nieznany” — bursztynowy); `stale`
@@ -143,7 +159,8 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
 - Oferta open-jaw pokazuje oba odcinki w osobnych wierszach z linkami do każdego z nich (każdy URL
   raz).
 - Cały stan wyszukiwania jest w parametrach URL (`o`, `d`, `from`, `to`, `min`, `max`, `ow`, `wd`,
-  `st`, `p`, `ct`, `xo=0`, `md` (godziny), `oj=1`, `xa` (kody linii), `pa=7d`; brak `d` = gdziekolwiek), więc wynik można
+  `st`, `p`, `ct`, `xo=0`, `md` (godziny), `oj=1`, `xa` (kody linii), `pa=48h`, `dt`/`at` (okna
+  godzin w minutach); brak `d` = gdziekolwiek), więc wynik można
   udostępnić linkiem; link z parametrami uruchamia wyszukiwanie od razu po otwarciu. `from`/`to` to
   kanoniczne daty (preset zamieniany jest na daty względem dnia wyszukania, więc link się nie
   zmienia); `preset` (`month`, `3m`, `6m`, `year`, `exact`) tylko przywraca podświetlenie chipu —
@@ -165,11 +182,35 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   na mapie) rysujemy łuk po kole wielkim (64 odcinki, `src/lib/geo.ts`, bez turf) od lotniska wylotu
   najtańszej oferty do celu — w MapLibre jako warstwa liniowa `gp-arcs` (cienka, półprzezroczysta)
   i `gp-arcs-active` (najechany/zaznaczony kierunek, grubsza; pozostałe przygasają). Lotniska
-  wylotu mają małe ciemne znaczniki z kodem. W uproszczonym planie te same łuki i siatka
-  południków/równoleżników są rysowane w SVG.
-- Piny z cenami (HTML nad mapą) są odśmiecane według zoomu: pierwszeństwo ma zaznaczony,
-  najechany, potem kierunki z listy (pełne piny), potem reszta po cenie (cichsze piny). Kliknięcie
-  pinu zaznacza i przewija wiersz listy; najechanie wiersza wzmacnia jego łuk.
+  wylotu to warstwa `gp-origins` (małe ciemne kółka) + `gp-origin-labels` (kod IATA). W
+  uproszczonym planie te same łuki, kropki i siatka południków/równoleżników są rysowane w SVG.
+- Ceny („wariant B: miasto i cena”) są rysowane na płótnie mapy, nie jako elementy DOM (nic nie
+  „pływa” przy przesuwaniu): źródło GeoJSON `destinations` (jedna cecha na kierunek z bieżącej
+  strony listy: `key`, `cityPl`, `country`, `price`, `priceLabel`, `cheapestOverall`,
+  `withinBudget`, `airports`; `src/lib/map-pins.ts`) z `cluster: true`, `clusterRadius` 50,
+  `clusterMaxZoom` 6 i `clusterProperties` `minPrice` / `count` / `country` (wspólny kraj albo pusty)
+  oraz jedna warstwa symboli `gp-destinations`. Drabina zoomu: nisko klastry „Hiszpania · 5
+  kierunków” / „od 399 zł” (różne kraje: „5 kierunków” / „od 399 zł”), wyżej „Miasto” / „cena”, od
+  zoomu 8 miasto z kilkoma lotniskami pokazuje lotnisko, którego dotyczy cena („Ciampino · CIA” /
+  „cena”; cen innych lotnisk nie znamy, więc ich nie wymyślamy). Tło pigułki to obrazy rysowane w
+  przeglądarce na canvasie (`src/lib/pill-images.ts`, `map.addImage` ze `stretchX`/`stretchY`/
+  `content`, `icon-text-fit: both`): zwykła, akcentowa (najtańszy kierunek — tło w kolorze akcentu,
+  biały tekst), klaster (ciemna ramka), aktywna i aktywna akcentowa. Tekst w dwóch liniach przez
+  `format` (miasto 11 px, cena 15 px pogrubiona), `symbol-sort-key` = cena (tańsza wygrywa kolizję),
+  `text-allow-overlap`/`icon-allow-overlap: false`. Fonty z samego stylu (regularny i pogrubiony
+  krój jego warstw, z jego serwera glifów); styl bez `glyphs` — MapLibre rysuje glify lokalnie
+  krojem strony (IBM Plex Sans); żadnego dodatkowego hosta fontów.
+- Najechany/zaznaczony kierunek: `feature-state` `{ selected, hovered }` ukrywa zwykłą pigułkę, a
+  ta sama pigułka jest rysowana wyżej z warstwy `gp-destinations-active` (źródło
+  `destinations-active`, bez klastrów, zawsze widoczna, ramka w kolorze akcentu, o 1 px większy
+  tekst) — także gdy kierunek siedzi w klastrze. Kliknięcie pigułki zaznacza i przewija kartę,
+  kliknięcie klastra przybliża do `getClusterExpansionZoom`; najechanie karty zaznacza pigułkę i
+  wzmacnia łuk (aktualizacje stanu najwyżej raz na klatkę). Zmiana listy to tylko `setData`, warstwy
+  nie są dodawane ponownie. Kolory pigułek pochodzą ze zmiennych CSS; przy zmianie trybu
+  jasny/ciemny obrazy i kolory tekstu są tworzone na nowo.
+- Uproszczony plan rysuje te same dwuliniowe pigułki w SVG (te same kolory, akcent dla
+  najtańszego), odśmiecane po cenie (aktywny kierunek zawsze), z dopiskiem „Na planie: N z M cen”,
+  gdy część się nie mieści; pigułki są przyciskami (klik, Enter).
 - Dwie pułapki naprawione w `MapPanel`: MapLibre 6 wylicza adres swojego workera z
   `import.meta.url`, który webpack zamienia na `file://` — worker nie startował i mapa nigdy się nie
   wczytywała (stąd „Mapa niedostępna offline” w produkcji). Plik workera jest więc emitowany jako
@@ -178,21 +219,29 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   kontenerowi `position: relative`, co nadpisywało klasę `absolute` i dawało mapę o wysokości 0 —
   kontener ma więc pozycję w stylu inline.
 - Atrybuty do testów: `data-map-mode` (`loading`/`map`/`fallback`), `data-map-style` (użyty styl),
-  `data-map-verified`, `data-arcs` (liczba narysowanych łuków).
+  `data-map-verified`, `data-arcs` (liczba narysowanych łuków), `data-pins` (kierunki przekazane
+  mapie albo pigułki na planie), `data-origins`; element `data-testid="map"` ma właściwość `gpMap`
+  (instancja MapLibre) — testy czytają przez nią wyrenderowane pigułki (`e2e/map-helpers.ts`).
 
 Kod: `src/components/` (UI), `src/lib/` (stan formularza ↔ URL, formatowanie, linki),
 `src/server/` (singleton: dane miejsc, cache, rejestr źródeł; walidacja; podpowiedzi).
 
 ## Testy
 
-- `npm test -w @gdziepolece/web` — testy jednostkowe (walidacja, podpowiedzi, stan formularza i presety dat, formatowanie cen/wieku/linii, sortowanie, kalendarz, łuki po kole wielkim, podsumowanie wyszukiwania i przykłady, konfiguracja stylu mapy).
+- `npm test -w @gdziepolece/web` — testy jednostkowe (walidacja, podpowiedzi, stan formularza i presety dat, formatowanie cen/wieku/linii, sortowanie, kalendarz, łuki po kole wielkim, podsumowanie wyszukiwania i przykłady, konfiguracja stylu mapy, pigułki mapy — cechy, wyrażenia, fonty, układ planu — oraz okna godzin w formularzu, URL i walidacji).
 - `npm run e2e -w @gdziepolece/web` — Playwright: uruchamia `next dev` z `SOURCE_MOCK=1`, wysyła
   domyślny formularz, sprawdza kartę kierunku, kalendarz, pole „Dokąd”, daty (chipy, suwak, dokładne daty), filtr linii
   (na odpowiedzi z doklejonym `carrierFacet`), aktualność cen, nowe filtry i stan w URL;
+  okna godzin (suwaki z klawiatury → `filters.departTime`/`arriveTime`, `dt`/`at` w URL, powrót do
+  „dowolnie”), godziny i chip „godziny nieznane” na kartach;
   `e2e/layout.spec.ts` — sekcje formularza i przyklejony „Szukaj”, przykładowe wyszukiwania, łuki
   na mapie (warstwa lub SVG), proporcje kolumn i brak ucinania tekstu przy 1280/1440/1920 px, zakładki
   na tablecie, arkusz na telefonie oraz prawdziwy tryb MapLibre na lokalnym stylu z przechwyconych
-  żądań (zepsuty pierwszy styl, część kafelków 404, worker serwowany jako JS).
+  żądań (zepsuty pierwszy styl, część kafelków 404, worker serwowany jako JS; pigułki jako jedna
+  warstwa symboli bez znaczników DOM, klastry przy małym zoomie i przybliżanie kliknięciem, pigułki
+  miast przy średnim, klik zaznacza kartę, zaznaczenie/najechanie w źródle aktywnym).
+  Zrzuty do przeglądu (poza zestawem): `E2E_SCREENS=1 npm run e2e -w @gdziepolece/web -- screens`
+  → `test-results/screens/` (1440 px: klastry, miasta, najechanie, plan, tryb ciemny; telefon 390 px).
   Port: `E2E_PORT` (domyślnie 3100). Testy nie sięgają do zewnętrznych hostów (bez dostępu do
   kafelków mapa przechodzi na uproszczony plan; test trybu MapLibre podstawia własny styl). Własna przeglądarka: `PW_CHROMIUM_PATH=/ścieżka/do/chromium`; w przeciwnym razie
   `npx playwright install chromium`.

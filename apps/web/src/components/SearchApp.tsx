@@ -183,16 +183,27 @@ export function SearchApp() {
   const limit = Math.max(shown, selectedIndex + 1);
   const listed = useMemo(() => sorted.slice(0, limit), [sorted, limit]);
 
+  // One pill per destination of the current list page; the cheapest of the whole result is the
+  // accent pill.
+  const cheapestKey = useMemo(() => sortDestinations(views, "price")[0]?.key, [views]);
+  const budget = applied?.maxPrice ? Number(applied.maxPrice) : Infinity;
   const pins: MapPin[] = useMemo(
     () =>
-      sortDestinations(views.filter(hasCoords), "price").map((v) => ({
+      listed.filter(hasCoords).map((v) => ({
         key: v.key,
         lat: v.lat!,
         lon: v.lon!,
-        label: describePrice(v.summary.cheapest).text,
-        title: v.title,
+        city: v.title,
+        country: v.country,
+        price: v.summary.cheapest.price,
+        priceLabel: describePrice(v.summary.cheapest).text,
+        cheapestOverall: v.key === cheapestKey,
+        withinBudget: v.summary.cheapest.price <= budget,
+        airports: v.groupAirports,
+        airportCode: v.summary.cheapest.destination,
+        airportName: v.airportName,
       })),
-    [views],
+    [listed, cheapestKey, budget],
   );
 
   // Flight directions for the destinations on the list (plus one hovered on the map).
@@ -396,7 +407,7 @@ export function SearchApp() {
                 </button>
               </div>
             )}
-            {shownStatus.kind === "done" && pins.length === 0 && views.length > 0 && (
+            {shownStatus.kind === "done" && pins.length === 0 && listed.length > 0 && (
               <p className="absolute left-2 top-2 rounded-md bg-warn-bg px-3 py-1.5 text-xs text-warn-fg">
                 Brak współrzędnych dla wyników — piny niedostępne.
               </p>

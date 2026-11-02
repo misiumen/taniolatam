@@ -1,4 +1,4 @@
-import type { ApiSearchFilters, SearchRequest } from "@gdziepolece/api-client";
+import type { TimeWindow, WebSearchFilters, WebSearchRequest } from "./api-extensions";
 import {
   placeKey,
   STRICT_PRICE_AGE_HOURS,
@@ -43,6 +43,44 @@ export type PriceAgeWindow = "7d" | "48h";
 
 export const DEFAULT_PRICE_AGE: PriceAgeWindow = "7d";
 
+/** Minutes in a day: the upper end of a time slider ("24:00"). */
+export const DAY_MINUTES = 1440;
+
+/** Step of the "Godzina wylotu" / "Godzina przylotu" sliders, in minutes. */
+export const TIME_STEP = 30;
+
+/** Full day = "dowolnie": nothing is sent and no URL parameter is written. */
+export const ANY_TIME: TimeWindow = { from: 0, to: DAY_MINUTES };
+
+export const isAnyTime = (w: TimeWindow): boolean => w.from <= 0 && w.to >= DAY_MINUTES;
+
+/** 390 → "06:30", 1440 → "24:00". */
+export function formatClock(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Slider label: "dowolnie" for the full day, otherwise "06:00 – 22:30". */
+export function timeWindowLabel(w: TimeWindow): string {
+  return isAnyTime(w) ? "dowolnie" : `${formatClock(w.from)} – ${formatClock(w.to)}`;
+}
+
+/**
+ * `dt=360-1350` → { from: 360, to: 1350 }. Only slider positions are accepted (multiples of
+ * `TIME_STEP`, `from < to`); anything else, and the full day, mean "dowolnie".
+ */
+function parseTimeWindow(v: string | null): TimeWindow {
+  const m = /^(\d{1,4})-(\d{1,4})$/.exec(v ?? "");
+  if (!m) return { ...ANY_TIME };
+  const from = Number(m[1]);
+  const to = Number(m[2]);
+  const ok = (n: number) => n >= 0 && n <= DAY_MINUTES && n % TIME_STEP === 0;
+  return ok(from) && ok(to) && from < to ? { from, to } : { ...ANY_TIME };
+}
+
+const timeParam = (w: TimeWindow) => `${w.from}-${w.to}`;
+
 export interface FormState {
   origins: PlaceChip[];
   /** Empty, or only the `ANYWHERE_CHIP`, means "gdziekolwiek". */
@@ -68,6 +106,10 @@ export interface FormState {
   /** Uppercase carrier codes removed from the results ("Linie lotnicze"). */
   excludeCarriers: string[];
   priceAge: PriceAgeWindow;
+  /** "Godzina wylotu" (every leg, local time); `ANY_TIME` = no window. */
+  departTime: TimeWindow;
+  /** "Godzina przylotu" (every leg, local time); `ANY_TIME` = no window. */
+  arriveTime: TimeWindow;
 }
 
 /** The "Gdziekolwiek" chip of the destination combobox (never serialised into the URL). */
@@ -169,6 +211,8 @@ export function defaultFormState(today = todayIso()): FormState {
     allowOpenJaw: false,
     excludeCarriers: [],
     priceAge: DEFAULT_PRICE_AGE,
+    departTime: { ...ANY_TIME },
+    arriveTime: { ...ANY_TIME },
   };
 }
 
@@ -194,8 +238,8 @@ export function validateForm(s: FormState): string | undefined {
 const isDurationOption = (v: string | null): v is string =>
   v !== null && (MAX_DURATION_HOURS as readonly number[]).includes(Number(v));
 
-export function toSearchQuery(s: FormState): SearchRequest {
-  const filters: ApiSearchFilters = {};
+export function toSearchQuery(s: FormState): WebSearchRequest {
+  const filters: WebSearchFilters = {};
   if (s.stops === "direct") {
     filters.directOnly = true;
     filters.maxStops = 0;
@@ -215,6 +259,9 @@ export function toSearchQuery(s: FormState): SearchRequest {
     filters.maxPriceAgeHours = STRICT_PRICE_AGE_HOURS;
     filters.allowUnknownPriceAge = false;
   }
+  // The full day is "dowolnie": nothing is sent.
+  if (!isAnyTime(s.departTime)) filters.departTime = { ...s.departTime };
+  if (!isAnyTime(s.arriveTime)) filters.arriveTime = { ...s.arriveTime };
   return {
     origins: s.origins.map((c) => c.place),
     destinations: isAnywhere(s.destinations)
@@ -307,6 +354,8 @@ export function formToParams(s: FormState): URLSearchParams {
   if (s.allowOpenJaw) p.set("oj", "1");
   if (s.excludeCarriers.length > 0) p.set("xa", s.excludeCarriers.join(","));
   if (s.priceAge === "48h") p.set("pa", "48h");
+  if (!isAnyTime(s.departTime)) p.set("dt", timeParam(s.departTime));
+  if (!isAnyTime(s.arriveTime)) p.set("at", timeParam(s.arriveTime));
   return p;
 }
 
@@ -387,5 +436,7 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     excludeCarriers: parseCarrierCodes(p.get("xa")),
     // Old links carry `pa=7d`: that is the default now, read like any other value.
     priceAge: p.get("pa") === "48h" ? "48h" : DEFAULT_PRICE_AGE,
+    departTime: parseTimeWindow(p.get("dt")),
+    arriveTime: parseTimeWindow(p.get("at")),
   };
 }

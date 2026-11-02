@@ -1,5 +1,7 @@
-import type { ApiSearchFilters, SearchRequest } from "@gdziepolece/api-client";
 import type { CarrierType, DateWindow, Place, TripSpec, Weekday } from "@gdziepolece/core";
+import type { TimeWindow, WebSearchFilters, WebSearchRequest } from "../lib/api-extensions";
+
+const DAY_MINUTES = 1440;
 
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -163,7 +165,18 @@ function carrierCodes(v: unknown, what: string): string[] | undefined {
   return [...new Set(codes)];
 }
 
-function filters(v: unknown): ApiSearchFilters {
+/**
+ * `{ from, to }` in minutes from local midnight, integers 0–1440, both inclusive. `from > to`
+ * is a window across midnight (e.g. 22:00–02:00) and is allowed.
+ */
+function timeWindow(v: unknown, what: string): TimeWindow | undefined {
+  if (v === undefined) return undefined;
+  if (!isObj(v)) return fail(`Pole „${what}” musi mieć postać { from, to } (minuty od północy).`);
+  const opts = { min: 0, max: DAY_MINUTES, int: true };
+  return { from: num(v.from, `${what} od`, opts), to: num(v.to, `${what} do`, opts) };
+}
+
+function filters(v: unknown): WebSearchFilters {
   if (v === undefined) return {};
   if (!isObj(v)) return fail("Nieprawidłowe filtry.");
   let carrierTypes: CarrierType[] | undefined;
@@ -206,11 +219,13 @@ function filters(v: unknown): ApiSearchFilters {
           }),
     allowUnknownPriceAge: bool(v.allowUnknownPriceAge, "dopuść nieznany wiek ceny"),
     excludeCarriers: carrierCodes(v.excludeCarriers, "wyklucz linie"),
+    departTime: timeWindow(v.departTime, "godzina wylotu"),
+    arriveTime: timeWindow(v.arriveTime, "godzina przylotu"),
   };
 }
 
 /** Hand-rolled validation of a `SearchQuery` JSON body. Messages are Polish, user-presentable. */
-export function validateSearchQuery(body: unknown): Validated<SearchRequest> {
+export function validateSearchQuery(body: unknown): Validated<WebSearchRequest> {
   try {
     if (!isObj(body)) return fail("Zapytanie musi być obiektem JSON.");
     const currency =

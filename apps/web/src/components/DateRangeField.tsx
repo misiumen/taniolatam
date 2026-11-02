@@ -13,6 +13,7 @@ import {
   type FormState,
 } from "../lib/form-state";
 import { formatMonthYear } from "../lib/format";
+import { DualRange } from "./DualRange";
 import { chipCls, chipOffCls, chipOnCls, inputCls, labelCls } from "./ui";
 
 interface Props {
@@ -35,10 +36,6 @@ export function DateRangeField({ state, onChange }: Props) {
       datePreset: matchPreset(dates.departFrom, dates.departTo, today),
     });
   };
-
-  const pct = (n: number) => n / SLIDER_MONTHS;
-  // Keep the fill under the thumb centres (native thumbs are inset by half their width).
-  const edge = (n: number) => `calc(0.5rem + (100% - 1rem) * ${pct(n)})`;
 
   return (
     <fieldset>
@@ -81,35 +78,17 @@ export function DateRangeField({ state, onChange }: Props) {
         </div>
       ) : (
         <div className="mt-3" data-testid="month-slider">
-          <div className="relative h-6">
-            <div className="absolute inset-x-2 top-1/2 h-1 -translate-y-1/2 rounded-full bg-line" />
-            <div
-              className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-accent"
-              style={{ left: edge(lo), right: `calc(100% - ${edge(hi)})` }}
-            />
-            <input
-              type="range"
-              className="dual-range"
-              min={0}
-              max={SLIDER_MONTHS}
-              step={1}
-              value={lo}
-              aria-label="Początek zakresu dat (miesiące od dziś)"
-              aria-valuetext={monthAt(lo)}
-              onChange={(e) => moveSlider(Math.min(e.target.valueAsNumber, hi - 1), hi)}
-            />
-            <input
-              type="range"
-              className="dual-range"
-              min={0}
-              max={SLIDER_MONTHS}
-              step={1}
-              value={hi}
-              aria-label="Koniec zakresu dat (miesiące od dziś)"
-              aria-valuetext={monthAt(hi)}
-              onChange={(e) => moveSlider(lo, Math.max(e.target.valueAsNumber, lo + 1))}
-            />
-          </div>
+          <DualRange
+            min={0}
+            max={SLIDER_MONTHS}
+            step={1}
+            lo={lo}
+            hi={hi}
+            onChange={moveSlider}
+            loLabel="Początek zakresu dat (miesiące od dziś)"
+            hiLabel="Koniec zakresu dat (miesiące od dziś)"
+            valueText={monthAt}
+          />
           <p
             className="mt-1 text-center text-sm text-muted"
             data-testid="month-slider-label"

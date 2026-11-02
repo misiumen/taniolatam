@@ -1,4 +1,5 @@
 import type { ApiOffer } from "@gdziepolece/api-client";
+import type { WebOffer } from "./api-extensions";
 
 /** "1 234 zł" for PLN, "1 234 USD" (explicit code, never "zł") for any other currency. */
 export function formatPrice(price: number, currency = "PLN"): string {
@@ -168,4 +169,40 @@ const CARRIER_TYPE_NAMES = {
 
 export function carrierTypeName(type: keyof typeof CARRIER_TYPE_NAMES): string {
   return CARRIER_TYPE_NAMES[type];
+}
+
+const CLOCK = /^\d{2}:\d{2}$/;
+const clock = (v: unknown): string | undefined =>
+  typeof v === "string" && CLOCK.test(v) ? v : undefined;
+
+/** Known local clock times of one direction ("HH:MM"); either may be missing. */
+export interface FlightTimes {
+  depart?: string;
+  arrive?: string;
+}
+
+/** Times of the outbound and, for round trips with legs, the return direction. */
+export function offerTimes(
+  offer: Pick<WebOffer, "departTimeLocal" | "arriveTimeLocal" | "legs" | "returnDate">,
+): { out?: FlightTimes; back?: FlightTimes } {
+  const [first, second] = offer.legs ?? [];
+  const pick = (depart: unknown, arrive: unknown): FlightTimes | undefined => {
+    const t = { depart: clock(depart), arrive: clock(arrive) };
+    return t.depart || t.arrive ? t : undefined;
+  };
+  return {
+    out: pick(
+      first?.departTimeLocal ?? offer.departTimeLocal,
+      first?.arriveTimeLocal ?? offer.arriveTimeLocal,
+    ),
+    back:
+      second && offer.returnDate ? pick(second.departTimeLocal, second.arriveTimeLocal) : undefined,
+  };
+}
+
+/** "wylot 06:45 · przylot 14:10" (or just the known half); undefined when nothing is known. */
+export function timesText(t: FlightTimes | undefined): string | undefined {
+  if (!t) return undefined;
+  const parts = [t.depart && `wylot ${t.depart}`, t.arrive && `przylot ${t.arrive}`];
+  return parts.filter(Boolean).join(" · ") || undefined;
 }

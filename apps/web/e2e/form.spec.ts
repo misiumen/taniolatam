@@ -227,10 +227,15 @@ test("airline filter, names, age and currency on cards", async ({ page }) => {
     const res = await route.fetch();
     const json = await res.json();
     const [first, second, ...rest] = json.destinations as {
-      cheapest: Record<string, unknown>;
+      cheapest: Record<string, unknown> & { legs?: Record<string, unknown>[] };
     }[];
+    // Legs carry carriers too (the local exclusion reads both): keep them consistent.
+    const fly = (o: { legs?: Record<string, unknown>[] }, codes: string[]) => ({
+      carriers: codes,
+      ...(o.legs ? { legs: o.legs.map((l, i) => ({ ...l, carrier: codes[i] ?? codes[0] })) } : {}),
+    });
     Object.assign(first!.cheapest, {
-      carriers: ["W6"],
+      ...fly(first!.cheapest, ["W6"]),
       carrierNames: ["Wizz Air"],
       freshness: "cached",
       cacheAgeHours: 5,
@@ -239,14 +244,14 @@ test("airline filter, names, age and currency on cards", async ({ page }) => {
       originalCurrency: "USD",
     });
     Object.assign(second!.cheapest, {
-      carriers: ["LO", "FR"],
+      ...fly(second!.cheapest, ["LO", "FR"]),
       carrierNames: ["LOT Polish Airlines", "Ryanair"],
       freshness: "cached",
       cacheAgeHours: 100,
       stale: true,
       note: "Cena z pamięci podręcznej.",
     });
-    for (const d of rest) Object.assign(d.cheapest, { carriers: ["LO"] });
+    for (const d of rest) Object.assign(d.cheapest, fly(d.cheapest, ["LO"]));
     json.carrierFacet = [
       { code: "W6", name: "Wizz Air", count: 4, cheapest: 199 },
       { code: "LO", name: "LOT Polish Airlines", count: 9, cheapest: 349 },
@@ -296,4 +301,114 @@ test("airline filter, names, age and currency on cards", async ({ page }) => {
   expect(new URL(page.url()).searchParams.get("xa")).toBe("FR,W6");
   // Excluded airlines stay listed (unchecked) so they can be brought back.
   await expect(page.getByRole("checkbox", { name: /Wizz Air/ })).not.toBeChecked();
+});
+
+test("time windows: keyboard sliders go to the API and the URL", async ({ page }) => {
+  await open(page);
+  const departLabel = page.getByTestId("depart-time-label");
+  const arriveLabel = page.getByTestId("arrive-time-label");
+  await expect(departLabel).toHaveText("dowolnie");
+  await expect(arriveLabel).toHaveText("dowolnie");
+  await expect(page.getByTestId("time-windows")).toContainText(
+    "Dotyczy każdego odcinka. Oferty bez znanej godziny są pokazywane i oznaczone.",
+  );
+
+  // Departure 06:00 – 22:30: 12 steps of 30 min up, 3 down from 24:00.
+  const departFrom = page.getByRole("slider", { name: "Najwcześniejsza godzina wylotu" });
+  await departFrom.focus();
+  for (let i = 0; i < 12; i++) await departFrom.press("ArrowRight");
+  const departTo = page.getByRole("slider", { name: "Najpóźniejsza godzina wylotu" });
+  await departTo.focus();
+  for (let i = 0; i < 3; i++) await departTo.press("ArrowLeft");
+  await expect(departLabel).toHaveText("06:00 – 22:30");
+  // Arrival up to 23:00.
+  const arriveTo = page.getByRole("slider", { name: "Najpóźniejsza godzina przylotu" });
+  await arriveTo.focus();
+  await arriveTo.press("ArrowLeft");
+  await arriveTo.press("ArrowLeft");
+  await expect(arriveLabel).toHaveText("00:00 – 23:00");
+
+  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters.departTime).toEqual({ from: 360, to: 1350 });
+  expect(body.filters.arriveTime).toEqual({ from: 0, to: 1380 });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  const params = new URL(page.url()).searchParams;
+  expect([params.get("dt"), params.get("at")]).toEqual(["360-1350", "0-1380"]);
+  await expect(page.getByTestId("search-summary")).toContainText(
+    "wylot 06:00–22:30 · przylot do 23:00",
+  );
+
+  // The shared link restores both windows; back to the full day sends nothing.
+  await page.reload();
+  await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  await openSection(page, "Termin");
+  await expect(departLabel).toHaveText("06:00 – 22:30");
+  await departFrom.focus();
+  await departFrom.press("Home");
+  await departTo.focus();
+  await departTo.press("End");
+  await arriveTo.focus();
+  await arriveTo.press("End");
+  await expect(departLabel).toHaveText("dowolnie");
+  await expect(arriveLabel).toHaveText("dowolnie");
+  const request2 = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const body2 = (await request2).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body2.filters).not.toHaveProperty("departTime");
+  expect(body2.filters).not.toHaveProperty("arriveTime");
+  await expect.poll(() => new URL(page.url()).searchParams.has("dt")).toBe(false);
+});
+
+test("cards show flight times, or a chip when they are unknown", async ({ page }) => {
+  await page.route("**/api/v1/search", async (route) => {
+    const res = await route.fetch();
+    const json = await res.json();
+    const [first, second, ...rest] = json.destinations as {
+      cheapest: Record<string, unknown> & { origin: string; destination: string };
+    }[];
+    const o = first!.cheapest;
+    Object.assign(o, {
+      departTimeLocal: "06:45",
+      arriveTimeLocal: "14:10",
+      timesUnknown: false,
+      legs: [
+        {
+          origin: o.origin,
+          destination: o.destination,
+          departAt: `${o.departDate}T06:45`,
+          departTimeLocal: "06:45",
+          arriveTimeLocal: "14:10",
+        },
+        {
+          origin: o.destination,
+          destination: o.origin,
+          departAt: `${o.returnDate}T18:00`,
+          departTimeLocal: "18:00",
+          arriveTimeLocal: "20:10",
+        },
+      ],
+    });
+    Object.assign(second!.cheapest, {
+      departTimeLocal: undefined,
+      arriveTimeLocal: undefined,
+      legs: undefined,
+      timesUnknown: true,
+    });
+    for (const d of rest) Object.assign(d.cheapest, { timesUnknown: false });
+    await route.fulfill({ response: res, json });
+  });
+  await open(page);
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const cards = page.getByTestId("destination-card");
+  await expect(cards.first()).toBeVisible({ timeout: 30_000 });
+  await expect(cards.nth(0).getByTestId("card-times")).toHaveText("wylot 06:45 · przylot 14:10");
+  await expect(cards.nth(0).getByTestId("card-times-back")).toHaveText(
+    "powrót: wylot 18:00 · przylot 20:10",
+  );
+  await expect(cards.nth(0).getByTestId("times-unknown-chip")).toHaveCount(0);
+  await expect(cards.nth(1).getByTestId("times-unknown-chip")).toHaveText("godziny nieznane");
+  await expect(cards.nth(1).getByTestId("card-times")).toHaveCount(0);
 });

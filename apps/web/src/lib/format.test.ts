@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { carrierLabel, describePrice, formatMonthYear, formatPrice, priceAge } from "./format";
+import {
+  carrierLabel,
+  describePrice,
+  formatMonthYear,
+  formatPrice,
+  offerTimes,
+  priceAge,
+  timesText,
+} from "./format";
 
 describe("formatPrice", () => {
   it("uses zł for PLN and the explicit code for any other currency", () => {
@@ -74,5 +82,30 @@ describe("formatMonthYear", () => {
   it("formats the slider labels", () => {
     expect(formatMonthYear("2026-11-02")).toBe("lis 2026");
     expect(formatMonthYear("2027-05-02")).toBe("maj 2027");
+  });
+});
+
+describe("flight times", () => {
+  it("reads the outbound from the first leg or the offer, the return from the second leg", () => {
+    const t = offerTimes({
+      departTimeLocal: "06:45",
+      arriveTimeLocal: "14:10",
+      returnDate: "2027-03-20",
+      legs: [
+        { origin: "WAW", destination: "BCN", departAt: "2027-03-10T06:45" },
+        {
+          origin: "BCN",
+          destination: "WAW",
+          departAt: "2027-03-20T18:00",
+          departTimeLocal: "18:00",
+          arriveTimeLocal: "20:10",
+        },
+      ],
+    });
+    expect(timesText(t.out)).toBe("wylot 06:45 · przylot 14:10");
+    expect(timesText(t.back)).toBe("wylot 18:00 · przylot 20:10");
+    expect(timesText(offerTimes({ departTimeLocal: "07:05" }).out)).toBe("wylot 07:05");
+    expect(offerTimes({}).out).toBeUndefined();
+    expect(timesText(undefined)).toBeUndefined();
   });
 });

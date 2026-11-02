@@ -10,10 +10,13 @@ import {
   formatDay,
   formatDuration,
   formatStops,
+  offerTimes,
   plural,
   priceAge,
   sourceName,
+  timesText,
 } from "../lib/format";
+import type { WebOffer } from "../lib/api-extensions";
 import { openJawLegs, verifyLinks, type OpenJawLeg, type VerifyLink } from "../lib/links";
 import { useAffiliateEnv } from "../lib/use-public-config";
 import { CalendarPanel } from "./CalendarPanel";
@@ -72,6 +75,7 @@ function OpenJawLegs({
   const affiliateEnv = useAffiliateEnv();
   const links = verifyLinks(offer, affiliateEnv);
   const legHrefs = new Set(legs.map((l) => l.deepLink));
+  const times = offerTimes(offer as WebOffer);
   const general = links.filter((l) => !l.leg && !legHrefs.has(l.href));
   return (
     <div className="mt-2 flex flex-col gap-1.5 text-sm" data-testid="open-jaw-legs">
@@ -94,6 +98,8 @@ function OpenJawLegs({
               <span className="text-muted">
                 {" "}
                 · {formatDay(leg.date)} {leg.date.slice(0, 4)}
+                {timesText(leg.kind === "out" ? times.out : times.back) &&
+                  ` · ${timesText(leg.kind === "out" ? times.out : times.back)}`}
                 {leg.carrier && ` · ${nameOf(leg.carrier)}`}
                 {leg.source && leg.source !== offer.source && ` · ${sourceName(leg.source)}`}
               </span>
@@ -125,6 +131,9 @@ export function DestinationCard({
   const duration = formatDuration(offer.durationMinutes);
   const extraSources = otherSources(offer, summary.sources);
   const legs = openJawLegs(offer);
+  const webOffer = offer as WebOffer;
+  // Open-jaw offers show each leg's times in their own rows below.
+  const times = legs ? {} : offerTimes(webOffer);
 
   // One meta row: dates · stay · stops · duration · airline (wraps between items, never clips).
   const meta: { key: string; node: React.ReactNode }[] = [
@@ -135,6 +144,17 @@ export function DestinationCard({
   }
   meta.push({ key: "stops", node: formatStops(offer.stops) });
   if (duration) meta.push({ key: "duration", node: duration });
+  const outTimes = timesText(times.out);
+  const backTimes = timesText(times.back);
+  if (outTimes) {
+    meta.push({ key: "times", node: <span data-testid="card-times">{outTimes}</span> });
+  }
+  if (backTimes) {
+    meta.push({
+      key: "times-back",
+      node: <span data-testid="card-times-back">powrót: {backTimes}</span>,
+    });
+  }
   if (offer.carriers.length > 0) {
     meta.push({
       key: "carriers",
@@ -238,6 +258,15 @@ export function DestinationCard({
         >
           {age.label}
         </span>
+        {webOffer.timesUnknown === true && (
+          <span
+            data-testid="times-unknown-chip"
+            className="rounded-full bg-surface-2 px-2 py-0.5 font-medium text-muted"
+            title="Źródło nie podaje godzin lotu, więc okno godzin nie mogło być sprawdzone"
+          >
+            godziny nieznane
+          </span>
+        )}
         {offer.stale === true && (
           <span
             data-testid="stale-chip"

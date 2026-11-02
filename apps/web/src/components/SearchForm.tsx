@@ -17,10 +17,12 @@ import {
   routeText,
   stayText,
   stopsText,
+  timeWindowsText,
   weekdaysText,
 } from "../lib/search-summary";
 import { DateRangeField } from "./DateRangeField";
 import { PlaceInput } from "./PlaceInput";
+import { TimeRangeField } from "./TimeRangeField";
 import { btnPrimaryCls, inputCls, labelCls } from "./ui";
 
 interface Props {
@@ -247,10 +249,13 @@ export function SearchForm({
 
         <Section
           title="Termin"
-          hint="Kiedy możesz wylecieć i na jak długo."
-          summary={[datesText(state), stayText(state), weekdaysText(state) ?? "dowolny dzień"].join(
-            " · ",
-          )}
+          hint="Kiedy możesz wylecieć, na jak długo i o jakich godzinach."
+          summary={[
+            datesText(state),
+            stayText(state),
+            weekdaysText(state) ?? "dowolny dzień",
+            ...timeWindowsText(state),
+          ].join(" · ")}
           open={open.dates}
           onToggle={() => toggle("dates")}
         >
@@ -313,6 +318,27 @@ export function SearchForm({
             </div>
             <p className="mt-1.5 text-xs text-muted">
               {state.weekdays.length === 0 ? "Dowolny dzień tygodnia." : "Tylko zaznaczone dni."}
+            </p>
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-3" data-testid="time-windows">
+            <legend className="sr-only">Godziny lotu</legend>
+            <TimeRangeField
+              label="Godzina wylotu"
+              noun="wylotu"
+              value={state.departTime}
+              onChange={(w) => set("departTime", w)}
+              testId="depart-time"
+            />
+            <TimeRangeField
+              label="Godzina przylotu"
+              noun="przylotu"
+              value={state.arriveTime}
+              onChange={(w) => set("arriveTime", w)}
+              testId="arrive-time"
+            />
+            <p className="text-xs text-muted">
+              Dotyczy każdego odcinka. Oferty bez znanej godziny są pokazywane i oznaczone.
             </p>
           </fieldset>
         </Section>

@@ -1,5 +1,6 @@
-import type { AirportInfo, SearchRequest, SearchResponse } from "@gdziepolece/api-client";
+import type { AirportInfo, SearchRequest } from "@gdziepolece/api-client";
 import { placeKey, searchDestinations } from "@gdziepolece/core";
+import type { WebSearchResponse } from "../lib/api-extensions";
 import type { ServerContext } from "./context";
 
 /** Runs one search and shapes it into the `/api/v1/search` response. */
@@ -7,7 +8,7 @@ export async function runSearch(
   ctx: ServerContext,
   query: SearchRequest,
   signal?: AbortSignal,
-): Promise<SearchResponse> {
+): Promise<WebSearchResponse> {
   const started = Date.now();
   const sources = ctx.enabledSources();
   const result = await searchDestinations(query, {
@@ -72,8 +73,12 @@ export async function runSearch(
     }
   }
 
+  // Offers dropped by the time windows (optional in core; passed through when reported).
+  const timeWindows = (result as { timeWindows?: { dropped: number } }).timeWindows;
+
   return {
     destinations: result.summaries,
+    ...(timeWindows ? { timeWindows } : {}),
     carrierFacet: result.carrierFacet,
     groupAirports,
     airports,

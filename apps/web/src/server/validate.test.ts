@@ -109,4 +109,27 @@ describe("validateSearchQuery", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain(fragment);
   });
+
+  it("validates time windows: integers 0–1440, wrapping past midnight allowed", () => {
+    const ok = validateSearchQuery({
+      ...valid,
+      filters: { departTime: { from: 360, to: 1350 }, arriveTime: { from: 1320, to: 120 } },
+    });
+    expect(ok.ok).toBe(true);
+    if (ok.ok) {
+      expect(ok.value.filters.departTime).toEqual({ from: 360, to: 1350 });
+      expect(ok.value.filters.arriveTime).toEqual({ from: 1320, to: 120 });
+    }
+    for (const bad of [
+      { from: -1, to: 10 },
+      { from: 0, to: 1441 },
+      { from: 1.5, to: 10 },
+      { from: 0 },
+      "6-22",
+    ]) {
+      const r = validateSearchQuery({ ...valid, filters: { departTime: bad } });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toMatch(/godzina wylotu/);
+    }
+  });
 });

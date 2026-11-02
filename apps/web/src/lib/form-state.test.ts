@@ -11,6 +11,8 @@ import {
   sliderDates,
   sliderPositions,
   toSearchQuery,
+  formatClock,
+  timeWindowLabel,
   validateForm,
 } from "./form-state";
 
@@ -244,5 +246,39 @@ describe("form state", () => {
       expect(formToParams(old).has("pa")).toBe(false);
       expect(toSearchQuery(old).filters).toEqual({});
     });
+  });
+
+  it("sends and serialises time windows only when narrower than the full day", () => {
+    const base = defaultFormState(TODAY);
+    expect(base.departTime).toEqual({ from: 0, to: 1440 });
+    expect(toSearchQuery(base).filters).not.toHaveProperty("departTime");
+    expect(formToParams(base).has("dt")).toBe(false);
+
+    const s = { ...base, departTime: { from: 360, to: 1350 }, arriveTime: { from: 0, to: 1380 } };
+    expect(toSearchQuery(s).filters).toMatchObject({
+      departTime: { from: 360, to: 1350 },
+      arriveTime: { from: 0, to: 1380 },
+    });
+    const p = formToParams(s);
+    expect([p.get("dt"), p.get("at")]).toEqual(["360-1350", "0-1380"]);
+    const back = paramsToForm(p, TODAY);
+    expect([back.departTime, back.arriveTime]).toEqual([s.departTime, s.arriveTime]);
+  });
+
+  it("ignores malformed time window parameters", () => {
+    for (const v of ["1350-360", "0-1500", "10-20", "abc", "360"]) {
+      expect(
+        paramsToForm(new URLSearchParams(`o=country:PL:Polska&dt=${v}`), TODAY).departTime,
+      ).toEqual({
+        from: 0,
+        to: 1440,
+      });
+    }
+  });
+
+  it("labels time windows", () => {
+    expect(timeWindowLabel({ from: 0, to: 1440 })).toBe("dowolnie");
+    expect(timeWindowLabel({ from: 360, to: 1350 })).toBe("06:00 – 22:30");
+    expect(formatClock(1440)).toBe("24:00");
   });
 });

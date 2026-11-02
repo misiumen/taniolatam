@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { expectPins } from "./map-helpers";
 
 test("default form returns destination cards (mock source)", async ({ page }) => {
   await page.goto("/szukaj");
@@ -22,8 +23,8 @@ test("default form returns destination cards (mock source)", async ({ page }) =>
   await cards.first().getByRole("button").first().click();
   await expect(page.getByTestId("calendar-panel")).toBeVisible();
 
-  // Map: pins render over real tiles or, offline, over the plain fallback background.
-  await expect(page.getByTestId("map-pin").first()).toBeVisible({ timeout: 30_000 });
+  // Map: price pills render on the map canvas or, offline, on the flat SVG plan.
+  await expectPins(page);
 });
 
 test("shared link runs its search on load", async ({ page }) => {

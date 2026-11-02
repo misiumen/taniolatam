@@ -20,6 +20,8 @@ export interface DestinationView {
   route: string;
   /** All airports behind a multi-airport city group (empty for a single airport). */
   groupAirports: string[];
+  /** Name of the destination airport of the cheapest offer ("Rome Ciampino Airport"). */
+  airportName?: string;
   lat?: number;
   lon?: number;
   /** Departure airport of the cheapest offer, with coordinates when known (for the map arc). */
@@ -43,6 +45,7 @@ export function describeDestinations(
       country: dest?.countryName,
       route: `${summary.cheapest.origin} → ${summary.cheapest.destination}`,
       groupAirports: groupAirports[placeKey(d)] ?? [],
+      airportName: dest?.name,
       lat: dest?.lat,
       lon: dest?.lon,
       origin: { code: summary.cheapest.origin, city: from?.city, lat: from?.lat, lon: from?.lon },
