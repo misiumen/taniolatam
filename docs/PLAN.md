@@ -1,6 +1,9 @@
-# TanioLatam — plan projektu
+# Gdzie Polecę — plan projektu
 
 Stan na: 2026-11-02. Dokument żyje: aktualizujemy go, gdy zmienią się decyzje.
+
+**Nazwa produktu: Gdzie Polecę** (domena gdziepolece.pl, decyzja z 2026-11-02). Nazwa robocza repozytorium
+"taniolatam" pozostaje tylko w adresie repozytorium; nazwy pakietów, UI i dokumentacja używają "Gdzie Polecę".
 
 ## 1. Cel
 
