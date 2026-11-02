@@ -98,6 +98,348 @@
       "SAW"
     ]
   },
+  "ROM-city": {
+    "namePl": "Rzym",
+    "nameEn": "Rome",
+    "airports": [
+      "FCO",
+      "CIA"
+    ]
+  },
+  "VCE-city": {
+    "namePl": "Wenecja",
+    "nameEn": "Venice",
+    "airports": [
+      "VCE",
+      "TSF"
+    ]
+  },
+  "BRU-city": {
+    "namePl": "Bruksela",
+    "nameEn": "Brussels",
+    "airports": [
+      "BRU",
+      "CRL"
+    ]
+  },
+  "STO-city": {
+    "namePl": "Sztokholm",
+    "nameEn": "Stockholm",
+    "airports": [
+      "ARN",
+      "NYO",
+      "BMA",
+      "VST"
+    ]
+  },
+  "OSL-city": {
+    "namePl": "Oslo",
+    "nameEn": "Oslo",
+    "airports": [
+      "OSL",
+      "TRF"
+    ]
+  },
+  "GOT-city": {
+    "namePl": "Göteborg",
+    "nameEn": "Gothenburg",
+    "airports": [
+      "GOT"
+    ]
+  },
+  "BUH-city": {
+    "namePl": "Bukareszt",
+    "nameEn": "Bucharest",
+    "airports": [
+      "OTP",
+      "BBU"
+    ]
+  },
+  "MOW-city": {
+    "namePl": "Moskwa",
+    "nameEn": "Moscow",
+    "airports": [
+      "SVO",
+      "DME",
+      "VKO",
+      "ZIA"
+    ]
+  },
+  "BCN-city": {
+    "namePl": "Barcelona",
+    "nameEn": "Barcelona",
+    "airports": [
+      "BCN",
+      "GRO",
+      "REU"
+    ]
+  },
+  "MAD-city": {
+    "namePl": "Madryt",
+    "nameEn": "Madrid",
+    "airports": [
+      "MAD"
+    ]
+  },
+  "TCI-city": {
+    "namePl": "Teneryfa",
+    "nameEn": "Tenerife",
+    "airports": [
+      "TFS",
+      "TFN"
+    ]
+  },
+  "DUS-city": {
+    "namePl": "Düsseldorf",
+    "nameEn": "Dusseldorf",
+    "airports": [
+      "DUS",
+      "NRN"
+    ]
+  },
+  "FRA-city": {
+    "namePl": "Frankfurt",
+    "nameEn": "Frankfurt",
+    "airports": [
+      "FRA",
+      "HHN"
+    ]
+  },
+  "MAN-city": {
+    "namePl": "Manchester",
+    "nameEn": "Manchester",
+    "airports": [
+      "MAN"
+    ]
+  },
+  "GLA-city": {
+    "namePl": "Glasgow",
+    "nameEn": "Glasgow",
+    "airports": [
+      "GLA",
+      "PIK"
+    ]
+  },
+  "REK-city": {
+    "namePl": "Reykjavík",
+    "nameEn": "Reykjavik",
+    "airports": [
+      "KEF",
+      "RKV"
+    ]
+  },
+  "TLV-city": {
+    "namePl": "Tel Awiw",
+    "nameEn": "Tel Aviv",
+    "airports": [
+      "TLV"
+    ]
+  },
+  "DXB-city": {
+    "namePl": "Dubaj",
+    "nameEn": "Dubai",
+    "airports": [
+      "DXB",
+      "DWC"
+    ]
+  },
+  "THR-city": {
+    "namePl": "Teheran",
+    "nameEn": "Tehran",
+    "airports": [
+      "IKA",
+      "THR"
+    ]
+  },
+  "DEL-city": {
+    "namePl": "Delhi",
+    "nameEn": "Delhi",
+    "airports": [
+      "DEL"
+    ]
+  },
+  "OSA-city": {
+    "namePl": "Osaka",
+    "nameEn": "Osaka",
+    "airports": [
+      "KIX",
+      "ITM",
+      "UKB"
+    ]
+  },
+  "SEL-city": {
+    "namePl": "Seul",
+    "nameEn": "Seoul",
+    "airports": [
+      "ICN",
+      "GMP"
+    ]
+  },
+  "BJS-city": {
+    "namePl": "Pekin",
+    "nameEn": "Beijing",
+    "airports": [
+      "PEK",
+      "PKX"
+    ]
+  },
+  "SHA-city": {
+    "namePl": "Szanghaj",
+    "nameEn": "Shanghai",
+    "airports": [
+      "PVG",
+      "SHA"
+    ]
+  },
+  "JKT-city": {
+    "namePl": "Dżakarta",
+    "nameEn": "Jakarta",
+    "airports": [
+      "CGK",
+      "HLP"
+    ]
+  },
+  "KUL-city": {
+    "namePl": "Kuala Lumpur",
+    "nameEn": "Kuala Lumpur",
+    "airports": [
+      "KUL",
+      "SZB"
+    ]
+  },
+  "SGN-city": {
+    "namePl": "Ho Chi Minh",
+    "nameEn": "Ho Chi Minh City",
+    "airports": [
+      "SGN"
+    ]
+  },
+  "TPE-city": {
+    "namePl": "Tajpej",
+    "nameEn": "Taipei",
+    "airports": [
+      "TPE",
+      "TSA"
+    ]
+  },
+  "CHI-city": {
+    "namePl": "Chicago",
+    "nameEn": "Chicago",
+    "airports": [
+      "ORD",
+      "MDW"
+    ]
+  },
+  "WAS-city": {
+    "namePl": "Waszyngton",
+    "nameEn": "Washington",
+    "airports": [
+      "IAD",
+      "DCA",
+      "BWI"
+    ]
+  },
+  "YTO-city": {
+    "namePl": "Toronto",
+    "nameEn": "Toronto",
+    "airports": [
+      "YYZ",
+      "YTZ",
+      "YHM"
+    ]
+  },
+  "YMQ-city": {
+    "namePl": "Montreal",
+    "nameEn": "Montreal",
+    "airports": [
+      "YUL"
+    ]
+  },
+  "QLA-city": {
+    "namePl": "Los Angeles",
+    "nameEn": "Los Angeles",
+    "airports": [
+      "LAX",
+      "BUR",
+      "LGB",
+      "SNA",
+      "ONT"
+    ]
+  },
+  "QSF-city": {
+    "namePl": "San Francisco",
+    "nameEn": "San Francisco",
+    "airports": [
+      "SFO",
+      "OAK",
+      "SJC"
+    ]
+  },
+  "QMI-city": {
+    "namePl": "Miami",
+    "nameEn": "Miami",
+    "airports": [
+      "MIA",
+      "FLL"
+    ]
+  },
+  "QHO-city": {
+    "namePl": "Houston",
+    "nameEn": "Houston",
+    "airports": [
+      "IAH",
+      "HOU"
+    ]
+  },
+  "QDF-city": {
+    "namePl": "Dallas",
+    "nameEn": "Dallas",
+    "airports": [
+      "DFW",
+      "DAL"
+    ]
+  },
+  "SAO-city": {
+    "namePl": "São Paulo",
+    "nameEn": "Sao Paulo",
+    "airports": [
+      "GRU",
+      "CGH",
+      "VCP"
+    ]
+  },
+  "RIO-city": {
+    "namePl": "Rio de Janeiro",
+    "nameEn": "Rio de Janeiro",
+    "airports": [
+      "GIG",
+      "SDU"
+    ]
+  },
+  "BUE-city": {
+    "namePl": "Buenos Aires",
+    "nameEn": "Buenos Aires",
+    "airports": [
+      "EZE",
+      "AEP"
+    ]
+  },
+  "MEX-city": {
+    "namePl": "Meksyk",
+    "nameEn": "Mexico City",
+    "airports": [
+      "MEX",
+      "NLU"
+    ]
+  },
+  "JNB-city": {
+    "namePl": "Johannesburg",
+    "nameEn": "Johannesburg",
+    "airports": [
+      "JNB",
+      "HLA"
+    ]
+  },
   "PL-near": {
     "namePl": "Polska i lotniska przygraniczne",
     "nameEn": "Poland and nearby airports",
