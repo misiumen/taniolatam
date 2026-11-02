@@ -1,0 +1,2090 @@
+{
+  "continents": [
+    {
+      "code": "AF",
+      "namePl": "Afryka",
+      "nameEn": "Africa"
+    },
+    {
+      "code": "AN",
+      "namePl": "Antarktyda",
+      "nameEn": "Antarctica"
+    },
+    {
+      "code": "AS",
+      "namePl": "Azja",
+      "nameEn": "Asia"
+    },
+    {
+      "code": "EU",
+      "namePl": "Europa",
+      "nameEn": "Europe"
+    },
+    {
+      "code": "NA",
+      "namePl": "Ameryka Północna i Środkowa",
+      "nameEn": "North and Central America (incl. Caribbean)"
+    },
+    {
+      "code": "OC",
+      "namePl": "Australia i Oceania",
+      "nameEn": "Oceania"
+    },
+    {
+      "code": "SA",
+      "namePl": "Ameryka Południowa",
+      "nameEn": "South America"
+    }
+  ],
+  "subregions": [
+    {
+      "code": "EU-N",
+      "namePl": "Europa Północna",
+      "nameEn": "Northern Europe",
+      "continent": "EU",
+      "countries": [
+        "DK",
+        "EE",
+        "FI",
+        "FO",
+        "IS",
+        "LT",
+        "LV",
+        "NO",
+        "SE"
+      ]
+    },
+    {
+      "code": "EU-W",
+      "namePl": "Europa Zachodnia",
+      "nameEn": "Western Europe",
+      "continent": "EU",
+      "countries": [
+        "BE",
+        "FR",
+        "GB",
+        "GG",
+        "IE",
+        "IM",
+        "JE",
+        "LU",
+        "NL"
+      ]
+    },
+    {
+      "code": "EU-S",
+      "namePl": "Europa Południowa",
+      "nameEn": "Southern Europe",
+      "continent": "EU",
+      "countries": [
+        "CY",
+        "ES",
+        "GI",
+        "GR",
+        "IT",
+        "MT",
+        "PT"
+      ]
+    },
+    {
+      "code": "EU-C",
+      "namePl": "Europa Środkowa",
+      "nameEn": "Central Europe",
+      "continent": "EU",
+      "countries": [
+        "AT",
+        "CH",
+        "CZ",
+        "DE",
+        "HU",
+        "PL",
+        "SK"
+      ]
+    },
+    {
+      "code": "EU-E",
+      "namePl": "Europa Wschodnia",
+      "nameEn": "Eastern Europe",
+      "continent": "EU",
+      "countries": [
+        "BY",
+        "MD",
+        "RU"
+      ]
+    },
+    {
+      "code": "EU-B",
+      "namePl": "Bałkany",
+      "nameEn": "Balkans",
+      "continent": "EU",
+      "countries": [
+        "AL",
+        "BA",
+        "BG",
+        "HR",
+        "ME",
+        "MK",
+        "RO",
+        "RS",
+        "SI",
+        "XK"
+      ]
+    },
+    {
+      "code": "AS-SE",
+      "namePl": "Azja Południowo-Wschodnia",
+      "nameEn": "South-Eastern Asia",
+      "continent": "AS",
+      "countries": [
+        "BN",
+        "ID",
+        "KH",
+        "LA",
+        "MM",
+        "MY",
+        "PH",
+        "SG",
+        "TH",
+        "TL",
+        "VN"
+      ]
+    },
+    {
+      "code": "AS-E",
+      "namePl": "Azja Wschodnia",
+      "nameEn": "Eastern Asia",
+      "continent": "AS",
+      "countries": [
+        "CN",
+        "HK",
+        "JP",
+        "KP",
+        "KR",
+        "MN",
+        "MO",
+        "TW"
+      ]
+    },
+    {
+      "code": "AS-S",
+      "namePl": "Azja Południowa",
+      "nameEn": "Southern Asia",
+      "continent": "AS",
+      "countries": [
+        "AF",
+        "BD",
+        "BT",
+        "IN",
+        "LK",
+        "MV",
+        "NP",
+        "PK"
+      ]
+    },
+    {
+      "code": "AS-C",
+      "namePl": "Azja Środkowa",
+      "nameEn": "Central Asia",
+      "continent": "AS",
+      "countries": [
+        "KG",
+        "KZ",
+        "TJ",
+        "TM",
+        "UZ"
+      ]
+    },
+    {
+      "code": "AS-ME",
+      "namePl": "Bliski Wschód",
+      "nameEn": "Middle East",
+      "continent": "AS",
+      "countries": [
+        "AE",
+        "BH",
+        "IL",
+        "IQ",
+        "IR",
+        "JO",
+        "KW",
+        "LB",
+        "OM",
+        "QA",
+        "SA",
+        "SY",
+        "TR",
+        "YE"
+      ]
+    },
+    {
+      "code": "AS-CA",
+      "namePl": "Kaukaz",
+      "nameEn": "Caucasus",
+      "continent": "AS",
+      "countries": [
+        "AM",
+        "AZ",
+        "GE"
+      ]
+    },
+    {
+      "code": "AF-N",
+      "namePl": "Afryka Północna",
+      "nameEn": "Northern Africa",
+      "continent": "AF",
+      "countries": [
+        "DZ",
+        "EG",
+        "EH",
+        "LY",
+        "MA",
+        "SD",
+        "TN"
+      ]
+    },
+    {
+      "code": "AF-W",
+      "namePl": "Afryka Zachodnia",
+      "nameEn": "Western Africa",
+      "continent": "AF",
+      "countries": [
+        "BF",
+        "BJ",
+        "CI",
+        "CV",
+        "GH",
+        "GM",
+        "GN",
+        "GW",
+        "LR",
+        "ML",
+        "MR",
+        "NE",
+        "NG",
+        "SH",
+        "SL",
+        "SN",
+        "TG"
+      ]
+    },
+    {
+      "code": "AF-E",
+      "namePl": "Afryka Wschodnia",
+      "nameEn": "Eastern Africa",
+      "continent": "AF",
+      "countries": [
+        "BI",
+        "DJ",
+        "ER",
+        "ET",
+        "KE",
+        "KM",
+        "MG",
+        "MU",
+        "RE",
+        "RW",
+        "SC",
+        "SO",
+        "SS",
+        "TZ",
+        "UG",
+        "YT"
+      ]
+    },
+    {
+      "code": "AF-C",
+      "namePl": "Afryka Środkowa",
+      "nameEn": "Middle Africa",
+      "continent": "AF",
+      "countries": [
+        "AO",
+        "CD",
+        "CF",
+        "CG",
+        "CM",
+        "GA",
+        "GQ",
+        "ST",
+        "TD"
+      ]
+    },
+    {
+      "code": "AF-S",
+      "namePl": "Afryka Południowa",
+      "nameEn": "Southern Africa",
+      "continent": "AF",
+      "countries": [
+        "BW",
+        "LS",
+        "MW",
+        "MZ",
+        "NA",
+        "SZ",
+        "ZA",
+        "ZM",
+        "ZW"
+      ]
+    },
+    {
+      "code": "NA-N",
+      "namePl": "Ameryka Północna",
+      "nameEn": "Northern America",
+      "continent": "NA",
+      "countries": [
+        "BM",
+        "CA",
+        "GL",
+        "MX",
+        "PM",
+        "US"
+      ]
+    },
+    {
+      "code": "NA-C",
+      "namePl": "Ameryka Środkowa",
+      "nameEn": "Central America",
+      "continent": "NA",
+      "countries": [
+        "BZ",
+        "CR",
+        "GT",
+        "HN",
+        "NI",
+        "PA",
+        "SV"
+      ]
+    },
+    {
+      "code": "NA-CB",
+      "namePl": "Karaiby",
+      "nameEn": "Caribbean",
+      "continent": "NA",
+      "countries": [
+        "AG",
+        "AI",
+        "AW",
+        "BB",
+        "BL",
+        "BQ",
+        "BS",
+        "CU",
+        "CW",
+        "DM",
+        "DO",
+        "GD",
+        "GP",
+        "HT",
+        "JM",
+        "KN",
+        "KY",
+        "LC",
+        "MF",
+        "MQ",
+        "MS",
+        "PR",
+        "SX",
+        "TC",
+        "TT",
+        "VC",
+        "VG",
+        "VI"
+      ]
+    },
+    {
+      "code": "SA",
+      "namePl": "Ameryka Południowa",
+      "nameEn": "South America",
+      "continent": "SA",
+      "countries": [
+        "AR",
+        "BO",
+        "BR",
+        "CL",
+        "CO",
+        "EC",
+        "FK",
+        "GF",
+        "GY",
+        "PE",
+        "PY",
+        "SR",
+        "UY",
+        "VE"
+      ]
+    },
+    {
+      "code": "OC",
+      "namePl": "Australia i Oceania",
+      "nameEn": "Australia and Oceania",
+      "continent": "OC",
+      "countries": [
+        "AS",
+        "AU",
+        "CC",
+        "CK",
+        "CX",
+        "FJ",
+        "FM",
+        "GU",
+        "KI",
+        "MH",
+        "MP",
+        "NC",
+        "NF",
+        "NR",
+        "NU",
+        "NZ",
+        "PF",
+        "PG",
+        "PW",
+        "SB",
+        "TO",
+        "TV",
+        "UM",
+        "VU",
+        "WF",
+        "WS"
+      ]
+    },
+    {
+      "code": "AN",
+      "namePl": "Antarktyda",
+      "nameEn": "Antarctica",
+      "continent": "AN",
+      "countries": []
+    }
+  ],
+  "countries": [
+    {
+      "code": "AE",
+      "namePl": "Zjednoczone Emiraty Arabskie",
+      "nameEn": "United Arab Emirates",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "AF",
+      "namePl": "Afganistan",
+      "nameEn": "Afghanistan",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "AG",
+      "namePl": "Antigua i Barbuda",
+      "nameEn": "Antigua and Barbuda",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "AI",
+      "namePl": "Anguilla",
+      "nameEn": "Anguilla",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "AL",
+      "namePl": "Albania",
+      "nameEn": "Albania",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "AM",
+      "namePl": "Armenia",
+      "nameEn": "Armenia",
+      "continent": "AS",
+      "subregion": "AS-CA"
+    },
+    {
+      "code": "AO",
+      "namePl": "Angola",
+      "nameEn": "Angola",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "AR",
+      "namePl": "Argentyna",
+      "nameEn": "Argentina",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "AS",
+      "namePl": "Samoa Amerykańskie",
+      "nameEn": "American Samoa",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "AT",
+      "namePl": "Austria",
+      "nameEn": "Austria",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "AU",
+      "namePl": "Australia",
+      "nameEn": "Australia",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "AW",
+      "namePl": "Aruba",
+      "nameEn": "Aruba",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "AZ",
+      "namePl": "Azerbejdżan",
+      "nameEn": "Azerbaijan",
+      "continent": "AS",
+      "subregion": "AS-CA"
+    },
+    {
+      "code": "BA",
+      "namePl": "Bośnia i Hercegowina",
+      "nameEn": "Bosnia and Herzegovina",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "BB",
+      "namePl": "Barbados",
+      "nameEn": "Barbados",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "BD",
+      "namePl": "Bangladesz",
+      "nameEn": "Bangladesh",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "BE",
+      "namePl": "Belgia",
+      "nameEn": "Belgium",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "BF",
+      "namePl": "Burkina Faso",
+      "nameEn": "Burkina Faso",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "BG",
+      "namePl": "Bułgaria",
+      "nameEn": "Bulgaria",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "BH",
+      "namePl": "Bahrajn",
+      "nameEn": "Bahrain",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "BI",
+      "namePl": "Burundi",
+      "nameEn": "Burundi",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "BJ",
+      "namePl": "Benin",
+      "nameEn": "Benin",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "BL",
+      "namePl": "Saint-Barthélemy",
+      "nameEn": "Saint Barthélemy",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "BM",
+      "namePl": "Bermudy",
+      "nameEn": "Bermuda",
+      "continent": "NA",
+      "subregion": "NA-N"
+    },
+    {
+      "code": "BN",
+      "namePl": "Brunei",
+      "nameEn": "Brunei",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "BO",
+      "namePl": "Boliwia",
+      "nameEn": "Bolivia",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "BQ",
+      "namePl": "Bonaire, Sint Eustatius i Saba",
+      "nameEn": "Caribbean Netherlands",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "BR",
+      "namePl": "Brazylia",
+      "nameEn": "Brazil",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "BS",
+      "namePl": "Bahamy",
+      "nameEn": "Bahamas",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "BT",
+      "namePl": "Bhutan",
+      "nameEn": "Bhutan",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "BW",
+      "namePl": "Botswana",
+      "nameEn": "Botswana",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "BY",
+      "namePl": "Białoruś",
+      "nameEn": "Belarus",
+      "continent": "EU",
+      "subregion": "EU-E"
+    },
+    {
+      "code": "BZ",
+      "namePl": "Belize",
+      "nameEn": "Belize",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "CA",
+      "namePl": "Kanada",
+      "nameEn": "Canada",
+      "continent": "NA",
+      "subregion": "NA-N"
+    },
+    {
+      "code": "CC",
+      "namePl": "Wyspy Kokosowe",
+      "nameEn": "Cocos (Keeling) Islands",
+      "continent": "AS",
+      "subregion": "OC"
+    },
+    {
+      "code": "CD",
+      "namePl": "Demokratyczna Republika Konga",
+      "nameEn": "Democratic Republic of the Congo",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "CF",
+      "namePl": "Republika Środkowoafrykańska",
+      "nameEn": "Central African Republic",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "CG",
+      "namePl": "Republika Konga",
+      "nameEn": "Republic of the Congo",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "CH",
+      "namePl": "Szwajcaria",
+      "nameEn": "Switzerland",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "CI",
+      "namePl": "Wybrzeże Kości Słoniowej",
+      "nameEn": "Côte d'Ivoire",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "CK",
+      "namePl": "Wyspy Cooka",
+      "nameEn": "Cook Islands",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "CL",
+      "namePl": "Chile",
+      "nameEn": "Chile",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "CM",
+      "namePl": "Kamerun",
+      "nameEn": "Cameroon",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "CN",
+      "namePl": "Chiny",
+      "nameEn": "China",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "CO",
+      "namePl": "Kolumbia",
+      "nameEn": "Colombia",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "CR",
+      "namePl": "Kostaryka",
+      "nameEn": "Costa Rica",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "CU",
+      "namePl": "Kuba",
+      "nameEn": "Cuba",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "CV",
+      "namePl": "Republika Zielonego Przylądka",
+      "nameEn": "Cape Verde",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "CW",
+      "namePl": "Curaçao",
+      "nameEn": "Curaçao",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "CX",
+      "namePl": "Wyspa Bożego Narodzenia",
+      "nameEn": "Christmas Island",
+      "continent": "AS",
+      "subregion": "OC"
+    },
+    {
+      "code": "CY",
+      "namePl": "Cypr",
+      "nameEn": "Cyprus",
+      "continent": "AS",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "CZ",
+      "namePl": "Czechy",
+      "nameEn": "Czech Republic",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "DE",
+      "namePl": "Niemcy",
+      "nameEn": "Germany",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "DJ",
+      "namePl": "Dżibuti",
+      "nameEn": "Djibouti",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "DK",
+      "namePl": "Dania",
+      "nameEn": "Denmark",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "DM",
+      "namePl": "Dominika",
+      "nameEn": "Dominica",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "DO",
+      "namePl": "Dominikana",
+      "nameEn": "Dominican Republic",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "DZ",
+      "namePl": "Algieria",
+      "nameEn": "Algeria",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "EC",
+      "namePl": "Ekwador",
+      "nameEn": "Ecuador",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "EE",
+      "namePl": "Estonia",
+      "nameEn": "Estonia",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "EG",
+      "namePl": "Egipt",
+      "nameEn": "Egypt",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "EH",
+      "namePl": "Sahara Zachodnia",
+      "nameEn": "Western Sahara (disputed territory)",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "ER",
+      "namePl": "Erytrea",
+      "nameEn": "Eritrea",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "ES",
+      "namePl": "Hiszpania",
+      "nameEn": "Spain",
+      "continent": "EU",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "ET",
+      "namePl": "Etiopia",
+      "nameEn": "Ethiopia",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "FI",
+      "namePl": "Finlandia",
+      "nameEn": "Finland",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "FJ",
+      "namePl": "Fidżi",
+      "nameEn": "Fiji",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "FK",
+      "namePl": "Falklandy",
+      "nameEn": "Falkland Islands",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "FM",
+      "namePl": "Mikronezja",
+      "nameEn": "Micronesia",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "FO",
+      "namePl": "Wyspy Owcze",
+      "nameEn": "Faroe Islands",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "FR",
+      "namePl": "Francja",
+      "nameEn": "France",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "GA",
+      "namePl": "Gabon",
+      "nameEn": "Gabon",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "GB",
+      "namePl": "Wielka Brytania",
+      "nameEn": "United Kingdom",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "GD",
+      "namePl": "Grenada",
+      "nameEn": "Grenada",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "GE",
+      "namePl": "Gruzja",
+      "nameEn": "Georgia",
+      "continent": "AS",
+      "subregion": "AS-CA"
+    },
+    {
+      "code": "GF",
+      "namePl": "Gujana Francuska",
+      "nameEn": "French Guiana",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "GG",
+      "namePl": "Guernsey",
+      "nameEn": "Guernsey",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "GH",
+      "namePl": "Ghana",
+      "nameEn": "Ghana",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "GI",
+      "namePl": "Gibraltar",
+      "nameEn": "Gibraltar",
+      "continent": "EU",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "GL",
+      "namePl": "Grenlandia",
+      "nameEn": "Greenland",
+      "continent": "NA",
+      "subregion": "NA-N"
+    },
+    {
+      "code": "GM",
+      "namePl": "Gambia",
+      "nameEn": "Gambia",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "GN",
+      "namePl": "Gwinea",
+      "nameEn": "Guinea",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "GP",
+      "namePl": "Gwadelupa",
+      "nameEn": "Guadeloupe",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "GQ",
+      "namePl": "Gwinea Równikowa",
+      "nameEn": "Equatorial Guinea",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "GR",
+      "namePl": "Grecja",
+      "nameEn": "Greece",
+      "continent": "EU",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "GT",
+      "namePl": "Gwatemala",
+      "nameEn": "Guatemala",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "GU",
+      "namePl": "Guam",
+      "nameEn": "Guam",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "GW",
+      "namePl": "Gwinea Bissau",
+      "nameEn": "Guinea-Bissau",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "GY",
+      "namePl": "Gujana",
+      "nameEn": "Guyana",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "HK",
+      "namePl": "Hongkong",
+      "nameEn": "Hong Kong",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "HN",
+      "namePl": "Honduras",
+      "nameEn": "Honduras",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "HR",
+      "namePl": "Chorwacja",
+      "nameEn": "Croatia",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "HT",
+      "namePl": "Haiti",
+      "nameEn": "Haiti",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "HU",
+      "namePl": "Węgry",
+      "nameEn": "Hungary",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "ID",
+      "namePl": "Indonezja",
+      "nameEn": "Indonesia",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "IE",
+      "namePl": "Irlandia",
+      "nameEn": "Ireland",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "IL",
+      "namePl": "Izrael",
+      "nameEn": "Israel",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "IM",
+      "namePl": "Wyspa Man",
+      "nameEn": "Isle of Man",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "IN",
+      "namePl": "Indie",
+      "nameEn": "India",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "IQ",
+      "namePl": "Irak",
+      "nameEn": "Iraq",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "IR",
+      "namePl": "Iran",
+      "nameEn": "Iran",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "IS",
+      "namePl": "Islandia",
+      "nameEn": "Iceland",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "IT",
+      "namePl": "Włochy",
+      "nameEn": "Italy",
+      "continent": "EU",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "JE",
+      "namePl": "Jersey",
+      "nameEn": "Jersey",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "JM",
+      "namePl": "Jamajka",
+      "nameEn": "Jamaica",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "JO",
+      "namePl": "Jordania",
+      "nameEn": "Jordan",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "JP",
+      "namePl": "Japonia",
+      "nameEn": "Japan",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "KE",
+      "namePl": "Kenia",
+      "nameEn": "Kenya",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "KG",
+      "namePl": "Kirgistan",
+      "nameEn": "Kyrgyzstan",
+      "continent": "AS",
+      "subregion": "AS-C"
+    },
+    {
+      "code": "KH",
+      "namePl": "Kambodża",
+      "nameEn": "Cambodia",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "KI",
+      "namePl": "Kiribati",
+      "nameEn": "Kiribati",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "KM",
+      "namePl": "Komory",
+      "nameEn": "Comoros",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "KN",
+      "namePl": "Saint Kitts i Nevis",
+      "nameEn": "Saint Kitts and Nevis",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "KP",
+      "namePl": "Korea Północna",
+      "nameEn": "North Korea",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "KR",
+      "namePl": "Korea Południowa",
+      "nameEn": "South Korea",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "KW",
+      "namePl": "Kuwejt",
+      "nameEn": "Kuwait",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "KY",
+      "namePl": "Kajmany",
+      "nameEn": "Cayman Islands",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "KZ",
+      "namePl": "Kazachstan",
+      "nameEn": "Kazakhstan",
+      "continent": "AS",
+      "subregion": "AS-C"
+    },
+    {
+      "code": "LA",
+      "namePl": "Laos",
+      "nameEn": "Laos",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "LB",
+      "namePl": "Liban",
+      "nameEn": "Lebanon",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "LC",
+      "namePl": "Saint Lucia",
+      "nameEn": "Saint Lucia",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "LK",
+      "namePl": "Sri Lanka",
+      "nameEn": "Sri Lanka",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "LR",
+      "namePl": "Liberia",
+      "nameEn": "Liberia",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "LS",
+      "namePl": "Lesotho",
+      "nameEn": "Lesotho",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "LT",
+      "namePl": "Litwa",
+      "nameEn": "Lithuania",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "LU",
+      "namePl": "Luksemburg",
+      "nameEn": "Luxembourg",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "LV",
+      "namePl": "Łotwa",
+      "nameEn": "Latvia",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "LY",
+      "namePl": "Libia",
+      "nameEn": "Libya",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "MA",
+      "namePl": "Maroko",
+      "nameEn": "Morocco",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "MD",
+      "namePl": "Mołdawia",
+      "nameEn": "Moldova",
+      "continent": "EU",
+      "subregion": "EU-E"
+    },
+    {
+      "code": "ME",
+      "namePl": "Czarnogóra",
+      "nameEn": "Montenegro",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "MF",
+      "namePl": "Saint-Martin",
+      "nameEn": "Saint Martin",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "MG",
+      "namePl": "Madagaskar",
+      "nameEn": "Madagascar",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "MH",
+      "namePl": "Wyspy Marshalla",
+      "nameEn": "Marshall Islands",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "MK",
+      "namePl": "Macedonia Północna",
+      "nameEn": "North Macedonia",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "ML",
+      "namePl": "Mali",
+      "nameEn": "Mali",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "MM",
+      "namePl": "Mjanma",
+      "nameEn": "Myanmar",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "MN",
+      "namePl": "Mongolia",
+      "nameEn": "Mongolia",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "MO",
+      "namePl": "Makau",
+      "nameEn": "Macau",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "MP",
+      "namePl": "Mariany Północne",
+      "nameEn": "Northern Mariana Islands",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "MQ",
+      "namePl": "Martynika",
+      "nameEn": "Martinique",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "MR",
+      "namePl": "Mauretania",
+      "nameEn": "Mauritania",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "MS",
+      "namePl": "Montserrat",
+      "nameEn": "Montserrat",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "MT",
+      "namePl": "Malta",
+      "nameEn": "Malta",
+      "continent": "EU",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "MU",
+      "namePl": "Mauritius",
+      "nameEn": "Mauritius",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "MV",
+      "namePl": "Malediwy",
+      "nameEn": "Maldives",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "MW",
+      "namePl": "Malawi",
+      "nameEn": "Malawi",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "MX",
+      "namePl": "Meksyk",
+      "nameEn": "Mexico",
+      "continent": "NA",
+      "subregion": "NA-N"
+    },
+    {
+      "code": "MY",
+      "namePl": "Malezja",
+      "nameEn": "Malaysia",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "MZ",
+      "namePl": "Mozambik",
+      "nameEn": "Mozambique",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "NA",
+      "namePl": "Namibia",
+      "nameEn": "Namibia",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "NC",
+      "namePl": "Nowa Kaledonia",
+      "nameEn": "New Caledonia",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "NE",
+      "namePl": "Niger",
+      "nameEn": "Niger",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "NF",
+      "namePl": "Wyspa Norfolk",
+      "nameEn": "Norfolk Island",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "NG",
+      "namePl": "Nigeria",
+      "nameEn": "Nigeria",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "NI",
+      "namePl": "Nikaragua",
+      "nameEn": "Nicaragua",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "NL",
+      "namePl": "Holandia",
+      "nameEn": "Netherlands",
+      "continent": "EU",
+      "subregion": "EU-W"
+    },
+    {
+      "code": "NO",
+      "namePl": "Norwegia",
+      "nameEn": "Norway",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "NP",
+      "namePl": "Nepal",
+      "nameEn": "Nepal",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "NR",
+      "namePl": "Nauru",
+      "nameEn": "Nauru",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "NU",
+      "namePl": "Niue",
+      "nameEn": "Niue",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "NZ",
+      "namePl": "Nowa Zelandia",
+      "nameEn": "New Zealand",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "OM",
+      "namePl": "Oman",
+      "nameEn": "Oman",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "PA",
+      "namePl": "Panama",
+      "nameEn": "Panama",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "PE",
+      "namePl": "Peru",
+      "nameEn": "Peru",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "PF",
+      "namePl": "Polinezja Francuska",
+      "nameEn": "French Polynesia",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "PG",
+      "namePl": "Papua-Nowa Gwinea",
+      "nameEn": "Papua New Guinea",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "PH",
+      "namePl": "Filipiny",
+      "nameEn": "Philippines",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "PK",
+      "namePl": "Pakistan",
+      "nameEn": "Pakistan",
+      "continent": "AS",
+      "subregion": "AS-S"
+    },
+    {
+      "code": "PL",
+      "namePl": "Polska",
+      "nameEn": "Poland",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "PM",
+      "namePl": "Saint-Pierre i Miquelon",
+      "nameEn": "Saint Pierre and Miquelon",
+      "continent": "NA",
+      "subregion": "NA-N"
+    },
+    {
+      "code": "PR",
+      "namePl": "Portoryko",
+      "nameEn": "Puerto Rico",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "PT",
+      "namePl": "Portugalia",
+      "nameEn": "Portugal",
+      "continent": "EU",
+      "subregion": "EU-S"
+    },
+    {
+      "code": "PW",
+      "namePl": "Palau",
+      "nameEn": "Palau",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "PY",
+      "namePl": "Paragwaj",
+      "nameEn": "Paraguay",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "QA",
+      "namePl": "Katar",
+      "nameEn": "Qatar",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "RE",
+      "namePl": "Reunion",
+      "nameEn": "Réunion",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "RO",
+      "namePl": "Rumunia",
+      "nameEn": "Romania",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "RS",
+      "namePl": "Serbia",
+      "nameEn": "Serbia",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "RU",
+      "namePl": "Rosja",
+      "nameEn": "Russia",
+      "continent": "EU",
+      "subregion": "EU-E"
+    },
+    {
+      "code": "RW",
+      "namePl": "Rwanda",
+      "nameEn": "Rwanda",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "SA",
+      "namePl": "Arabia Saudyjska",
+      "nameEn": "Saudi Arabia",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "SB",
+      "namePl": "Wyspy Salomona",
+      "nameEn": "Solomon Islands",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "SC",
+      "namePl": "Seszele",
+      "nameEn": "Seychelles",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "SD",
+      "namePl": "Sudan",
+      "nameEn": "Sudan",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "SE",
+      "namePl": "Szwecja",
+      "nameEn": "Sweden",
+      "continent": "EU",
+      "subregion": "EU-N"
+    },
+    {
+      "code": "SG",
+      "namePl": "Singapur",
+      "nameEn": "Singapore",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "SH",
+      "namePl": "Wyspa Świętej Heleny",
+      "nameEn": "Saint Helena, Ascension and Tristan da Cunha",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "SI",
+      "namePl": "Słowenia",
+      "nameEn": "Slovenia",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "SK",
+      "namePl": "Słowacja",
+      "nameEn": "Slovakia",
+      "continent": "EU",
+      "subregion": "EU-C"
+    },
+    {
+      "code": "SL",
+      "namePl": "Sierra Leone",
+      "nameEn": "Sierra Leone",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "SN",
+      "namePl": "Senegal",
+      "nameEn": "Senegal",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "SO",
+      "namePl": "Somalia",
+      "nameEn": "Somalia",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "SR",
+      "namePl": "Surinam",
+      "nameEn": "Suriname",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "SS",
+      "namePl": "Sudan Południowy",
+      "nameEn": "South Sudan",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "ST",
+      "namePl": "Wyspy Świętego Tomasza i Książęca",
+      "nameEn": "São Tomé and Principe",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "SV",
+      "namePl": "Salwador",
+      "nameEn": "El Salvador",
+      "continent": "NA",
+      "subregion": "NA-C"
+    },
+    {
+      "code": "SX",
+      "namePl": "Sint Maarten",
+      "nameEn": "Sint Maarten",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "SY",
+      "namePl": "Syria",
+      "nameEn": "Syria",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "SZ",
+      "namePl": "Eswatini",
+      "nameEn": "Eswatini",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "TC",
+      "namePl": "Turks i Caicos",
+      "nameEn": "Turks and Caicos Islands",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "TD",
+      "namePl": "Czad",
+      "nameEn": "Chad",
+      "continent": "AF",
+      "subregion": "AF-C"
+    },
+    {
+      "code": "TG",
+      "namePl": "Togo",
+      "nameEn": "Togo",
+      "continent": "AF",
+      "subregion": "AF-W"
+    },
+    {
+      "code": "TH",
+      "namePl": "Tajlandia",
+      "nameEn": "Thailand",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "TJ",
+      "namePl": "Tadżykistan",
+      "nameEn": "Tajikistan",
+      "continent": "AS",
+      "subregion": "AS-C"
+    },
+    {
+      "code": "TL",
+      "namePl": "Timor Wschodni",
+      "nameEn": "Timor-Leste",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "TM",
+      "namePl": "Turkmenistan",
+      "nameEn": "Turkmenistan",
+      "continent": "AS",
+      "subregion": "AS-C"
+    },
+    {
+      "code": "TN",
+      "namePl": "Tunezja",
+      "nameEn": "Tunisia",
+      "continent": "AF",
+      "subregion": "AF-N"
+    },
+    {
+      "code": "TO",
+      "namePl": "Tonga",
+      "nameEn": "Tonga",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "TR",
+      "namePl": "Turcja",
+      "nameEn": "Turkey",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "TT",
+      "namePl": "Trynidad i Tobago",
+      "nameEn": "Trinidad and Tobago",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "TV",
+      "namePl": "Tuvalu",
+      "nameEn": "Tuvalu",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "TW",
+      "namePl": "Tajwan",
+      "nameEn": "Taiwan",
+      "continent": "AS",
+      "subregion": "AS-E"
+    },
+    {
+      "code": "TZ",
+      "namePl": "Tanzania",
+      "nameEn": "Tanzania",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "UG",
+      "namePl": "Uganda",
+      "nameEn": "Uganda",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "UM",
+      "namePl": "Dalekie Wyspy Mniejsze Stanów Zjednoczonych",
+      "nameEn": "United States Minor Outlying Islands",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "US",
+      "namePl": "Stany Zjednoczone",
+      "nameEn": "United States",
+      "continent": "NA",
+      "subregion": "NA-N"
+    },
+    {
+      "code": "UY",
+      "namePl": "Urugwaj",
+      "nameEn": "Uruguay",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "UZ",
+      "namePl": "Uzbekistan",
+      "nameEn": "Uzbekistan",
+      "continent": "AS",
+      "subregion": "AS-C"
+    },
+    {
+      "code": "VC",
+      "namePl": "Saint Vincent i Grenadyny",
+      "nameEn": "Saint Vincent and the Grenadines",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "VE",
+      "namePl": "Wenezuela",
+      "nameEn": "Venezuela",
+      "continent": "SA",
+      "subregion": "SA"
+    },
+    {
+      "code": "VG",
+      "namePl": "Brytyjskie Wyspy Dziewicze",
+      "nameEn": "British Virgin Islands",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "VI",
+      "namePl": "Wyspy Dziewicze Stanów Zjednoczonych",
+      "nameEn": "U.S. Virgin Islands",
+      "continent": "NA",
+      "subregion": "NA-CB"
+    },
+    {
+      "code": "VN",
+      "namePl": "Wietnam",
+      "nameEn": "Vietnam",
+      "continent": "AS",
+      "subregion": "AS-SE"
+    },
+    {
+      "code": "VU",
+      "namePl": "Vanuatu",
+      "nameEn": "Vanuatu",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "WF",
+      "namePl": "Wallis i Futuna",
+      "nameEn": "Wallis and Futuna",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "WS",
+      "namePl": "Samoa",
+      "nameEn": "Samoa",
+      "continent": "OC",
+      "subregion": "OC"
+    },
+    {
+      "code": "XK",
+      "namePl": "Kosowo",
+      "nameEn": "Kosovo",
+      "continent": "EU",
+      "subregion": "EU-B"
+    },
+    {
+      "code": "YE",
+      "namePl": "Jemen",
+      "nameEn": "Yemen",
+      "continent": "AS",
+      "subregion": "AS-ME"
+    },
+    {
+      "code": "YT",
+      "namePl": "Majotta",
+      "nameEn": "Mayotte",
+      "continent": "AF",
+      "subregion": "AF-E"
+    },
+    {
+      "code": "ZA",
+      "namePl": "Republika Południowej Afryki",
+      "nameEn": "South Africa",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "ZM",
+      "namePl": "Zambia",
+      "nameEn": "Zambia",
+      "continent": "AF",
+      "subregion": "AF-S"
+    },
+    {
+      "code": "ZW",
+      "namePl": "Zimbabwe",
+      "nameEn": "Zimbabwe",
+      "continent": "AF",
+      "subregion": "AF-S"
+    }
+  ]
+}

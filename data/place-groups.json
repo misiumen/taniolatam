@@ -1,0 +1,129 @@
+{
+  "PL": {
+    "namePl": "Polska",
+    "nameEn": "Poland",
+    "airports": [
+      "BZG",
+      "GDN",
+      "IEG",
+      "KRK",
+      "KTW",
+      "LCJ",
+      "LUZ",
+      "POZ",
+      "RDO",
+      "RZE",
+      "SZY",
+      "SZZ",
+      "WAW",
+      "WMI",
+      "WRO"
+    ]
+  },
+  "WAW-city": {
+    "namePl": "Warszawa",
+    "nameEn": "Warsaw",
+    "airports": [
+      "WAW",
+      "WMI"
+    ]
+  },
+  "LON-city": {
+    "namePl": "Londyn",
+    "nameEn": "London",
+    "airports": [
+      "LHR",
+      "LGW",
+      "STN",
+      "LTN",
+      "LCY",
+      "SEN"
+    ]
+  },
+  "PAR-city": {
+    "namePl": "Paryż",
+    "nameEn": "Paris",
+    "airports": [
+      "CDG",
+      "ORY",
+      "BVA"
+    ]
+  },
+  "MIL-city": {
+    "namePl": "Mediolan",
+    "nameEn": "Milan",
+    "airports": [
+      "MXP",
+      "LIN",
+      "BGY"
+    ]
+  },
+  "BER-city": {
+    "namePl": "Berlin",
+    "nameEn": "Berlin",
+    "airports": [
+      "BER"
+    ]
+  },
+  "NYC-city": {
+    "namePl": "Nowy Jork",
+    "nameEn": "New York",
+    "airports": [
+      "JFK",
+      "EWR",
+      "LGA"
+    ]
+  },
+  "BKK-city": {
+    "namePl": "Bangkok",
+    "nameEn": "Bangkok",
+    "airports": [
+      "BKK",
+      "DMK"
+    ]
+  },
+  "TYO-city": {
+    "namePl": "Tokio",
+    "nameEn": "Tokyo",
+    "airports": [
+      "NRT",
+      "HND"
+    ]
+  },
+  "IST-city": {
+    "namePl": "Stambuł",
+    "nameEn": "Istanbul",
+    "airports": [
+      "IST",
+      "SAW"
+    ]
+  },
+  "PL-near": {
+    "namePl": "Polska i lotniska przygraniczne",
+    "nameEn": "Poland and nearby airports",
+    "airports": [
+      "BER",
+      "BTS",
+      "BZG",
+      "DRS",
+      "GDN",
+      "IEG",
+      "KRK",
+      "KTW",
+      "KUN",
+      "LCJ",
+      "LUZ",
+      "POZ",
+      "PRG",
+      "RDO",
+      "RZE",
+      "SZY",
+      "SZZ",
+      "VIE",
+      "VNO",
+      "WAW",
+      "WMI",
+      "WRO"
+    ]
+  }
+}
