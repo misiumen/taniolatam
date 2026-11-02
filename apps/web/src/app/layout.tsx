@@ -1,11 +1,20 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { socialMeta } from "../lib/seo-meta";
+import { SITE_NAME, siteUrl } from "../lib/site";
 import "./globals.css";
 
+const DEFAULT_TITLE = "Gdzie Polecę - najtańsze loty z mapą";
+const DEFAULT_DESCRIPTION =
+  "Znajdź najtańsze kierunki: wybierz skąd lecisz, kiedy i na jak długo, a zobaczysz ceny na liście i trasy na mapie.";
+
 export const metadata: Metadata = {
-  title: "Gdzie Polecę - najtańsze loty z mapą",
-  description:
-    "Znajdź najtańsze kierunki: wybierz skąd lecisz, kiedy i na jak długo, a zobaczysz ceny na liście i trasy na mapie.",
+  // Canonical host from PUBLIC_SITE_URL (default https://gdziepolece.pl); relative URLs below resolve against it.
+  metadataBase: siteUrl(),
+  title: { default: DEFAULT_TITLE, template: `%s - ${SITE_NAME}` },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  ...socialMeta(DEFAULT_TITLE, DEFAULT_DESCRIPTION, "/"),
 };
 
 export const viewport: Viewport = {

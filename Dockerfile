@@ -36,7 +36,9 @@ COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 # Reference data: airports.json, regions.json, place-groups.json.
 COPY data ./data
-RUN mkdir -p /app/.cache && chown -R node:node /app/.cache
+# .cache: SQLite; apps/web/.next: ISR disk cache for the route pages (/loty/...); config: charter feeds.
+COPY config ./config
+RUN mkdir -p /app/.cache && chown -R node:node /app/.cache /app/apps/web/.next
 USER node
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]

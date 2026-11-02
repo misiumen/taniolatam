@@ -261,7 +261,7 @@ export function SearchApp() {
   return (
     <div className="flex h-dvh flex-col" data-hydrated={hydrated}>
       <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line bg-surface px-4">
-        <a href="/szukaj" className="flex items-center gap-2 text-fg" aria-label="Gdzie Polecę">
+        <a href="/" className="flex items-center gap-2 text-fg" aria-label="Gdzie Polecę">
           <svg aria-hidden viewBox="0 0 28 20" className="h-5 w-7 text-accent">
             <path d="M3 16 Q14 -2 25 12" fill="none" stroke="currentColor" strokeWidth="2" />
             <circle cx="3" cy="16" r="2.5" fill="var(--origin)" />
