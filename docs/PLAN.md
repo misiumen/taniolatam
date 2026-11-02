@@ -106,7 +106,8 @@ Zasady:
 1. **Szkielet + Travelpayouts + mapa** — działająca wyszukiwarka "skąd → dokąd → kiedy" z filtrami, listą i mapą, deep-linki do weryfikacji (Google Flights, Skyscanner, Kiwi, Aviasales). Kalendarz świąt i dni mostowych PL, kursy NBP. Użytek własny.
 2. **Okazje + live** — RSS okazji po pisemnej zgodzie (fly4free, tanie-loty.com.pl, Secret Flying), deep-linki Kayak/Momondo i eSky, Duffel za flagą, kalendarz cen, multicity/open-jaw w rankingu, alerty e-mail.
 3. **Czartery + mobile** — feedy afiliacyjne touroperatorów; aplikacja mobilna (Expo) na tym samym API.
-4. **Komercjalizacja** — konta, płatności, wnioski partnerskie (Skyscanner, Kiwi, Aviasales live), Postgres, monitoring, polityka prywatności.
+4. **Konta, alerty, historia** — plan w `docs/ACCOUNTS_ALERTS.md`: historia lokalna, konta (Auth.js, Postgres, Resend), alerty cenowe z wysyłką zbiorczą.
+5. **Komercjalizacja** — wg `docs/MONETIZATION.md`: afiliacja poza lotami, AdSense po osiągnięciu ruchu, wnioski partnerskie (Skyscanner, Kiwi, Aviasales live), monitoring.
 
 ## 6. Decyzje otwarte (do potwierdzenia przez właściciela)
 
