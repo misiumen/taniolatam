@@ -18,7 +18,7 @@ test("Dokąd is a combobox with Gdziekolwiek as a regular suggestion", async ({ 
   const to = page.getByRole("combobox", { name: "Dokąd", exact: true });
   // No checkbox any more; an empty field means "gdziekolwiek".
   await expect(page.getByRole("checkbox", { name: "Gdziekolwiek" })).toHaveCount(0);
-  await expect(to).toHaveAttribute("placeholder", "Gdziekolwiek lub kraj, miasto…");
+  await expect(to).toHaveAttribute("placeholder", "Gdziekolwiek lub kraj, miasto");
 
   // Focused and empty: the anywhere suggestion with its hint.
   await to.focus();
@@ -303,55 +303,82 @@ test("airline filter, names, age and currency on cards", async ({ page }) => {
   await expect(page.getByRole("checkbox", { name: /Wizz Air/ })).not.toBeChecked();
 });
 
-test("time windows: keyboard sliders go to the API and the URL", async ({ page }) => {
+test("time windows: period chips (multi-select) and exact ranges go to the API and the URL", async ({
+  page,
+}) => {
   await open(page);
+  const depart = page.getByTestId("depart-time");
+  const arrive = page.getByTestId("arrive-time");
   const departLabel = page.getByTestId("depart-time-label");
   const arriveLabel = page.getByTestId("arrive-time-label");
+  const chip = (field: typeof depart, name: string) =>
+    field.getByRole("button", { name, exact: true });
   await expect(departLabel).toHaveText("dowolnie");
   await expect(arriveLabel).toHaveText("dowolnie");
   await expect(page.getByTestId("time-windows")).toContainText(
     "Dotyczy każdego odcinka. Oferty bez znanej godziny są pokazywane i oznaczone.",
   );
+  // No hour sliders any more (the month slider stays).
+  await expect(page.getByRole("slider", { name: /godzina/i })).toHaveCount(0);
+  for (const name of ["Rano", "Popołudnie", "Wieczór", "Noc"]) {
+    await expect(chip(depart, name)).toHaveAttribute("aria-pressed", "false");
+  }
 
-  // Departure 06:00 – 22:30: 12 steps of 30 min up, 3 down from 24:00.
-  const departFrom = page.getByRole("slider", { name: "Najwcześniejsza godzina wylotu" });
-  await departFrom.focus();
-  for (let i = 0; i < 12; i++) await departFrom.press("ArrowRight");
-  const departTo = page.getByRole("slider", { name: "Najpóźniejsza godzina wylotu" });
-  await departTo.focus();
-  for (let i = 0; i < 3; i++) await departTo.press("ArrowLeft");
-  await expect(departLabel).toHaveText("06:00 – 22:30");
-  // Arrival up to 23:00.
-  const arriveTo = page.getByRole("slider", { name: "Najpóźniejsza godzina przylotu" });
-  await arriveTo.focus();
-  await arriveTo.press("ArrowLeft");
-  await arriveTo.press("ArrowLeft");
-  await expect(arriveLabel).toHaveText("00:00 – 23:00");
+  // Plain clicks: "Rano" then "Wieczór" leaves both selected.
+  await chip(depart, "Rano").click();
+  await chip(depart, "Wieczór").click();
+  await expect(chip(depart, "Rano")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip(depart, "Wieczór")).toHaveAttribute("aria-pressed", "true");
+  await expect(departLabel).toHaveText("rano, wieczór");
+  // Ctrl/Cmd+click behaves the same: toggles only that chip.
+  await chip(depart, "Popołudnie").click({ modifiers: ["ControlOrMeta"] });
+  await expect(departLabel).toHaveText("rano, popołudnie, wieczór");
+  await chip(depart, "Popołudnie").click({ modifiers: ["ControlOrMeta"] });
+  await expect(departLabel).toHaveText("rano, wieczór");
+
+  // Arrival: a chip from the keyboard, then an exact range, which clears the chip.
+  await chip(arrive, "Noc").focus();
+  await page.keyboard.press("Space");
+  await expect(chip(arrive, "Noc")).toHaveAttribute("aria-pressed", "true");
+  const exactLink = arrive.getByRole("button", { name: "Dokładny zakres" });
+  await expect(exactLink).toHaveAttribute("aria-expanded", "false");
+  await expect(arrive.getByLabel("Godzina przylotu od")).toBeHidden();
+  await exactLink.click();
+  await arrive.getByLabel("Godzina przylotu od").selectOption({ label: "06:00" });
+  await arrive.getByLabel("Godzina przylotu do").selectOption({ label: "12:00" });
+  await expect(arriveLabel).toHaveText("06:00 - 12:00");
+  await expect(chip(arrive, "Noc")).toHaveAttribute("aria-pressed", "false");
 
   const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
   await page.getByRole("button", { name: "Szukaj", exact: true }).click();
   const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
-  expect(body.filters.departTime).toEqual({ from: 360, to: 1350 });
-  expect(body.filters.arriveTime).toEqual({ from: 0, to: 1380 });
+  // Two non-adjacent periods: two windows (OR).
+  expect(body.filters.departTime).toEqual([
+    { from: 300, to: 719 },
+    { from: 1020, to: 1259 },
+  ]);
+  expect(body.filters.arriveTime).toEqual({ from: 360, to: 720 });
   await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
   const params = new URL(page.url()).searchParams;
-  expect([params.get("dt"), params.get("at")]).toEqual(["360-1350", "0-1380"]);
+  expect([params.get("dt"), params.get("at")]).toEqual(["rano,wieczor", "360-720"]);
   await expect(page.getByTestId("search-summary")).toContainText(
-    "wylot 06:00–22:30 · przylot do 23:00",
+    "wylot rano lub wieczorem · przylot 06:00-12:00",
   );
 
-  // The shared link restores both windows; back to the full day sends nothing.
+  // The shared link restores both fields; a chip clears the exact range; nothing = nothing sent.
   await page.reload();
   await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
   await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
   await openSection(page, "Termin");
-  await expect(departLabel).toHaveText("06:00 – 22:30");
-  await departFrom.focus();
-  await departFrom.press("Home");
-  await departTo.focus();
-  await departTo.press("End");
-  await arriveTo.focus();
-  await arriveTo.press("End");
+  await expect(departLabel).toHaveText("rano, wieczór");
+  await expect(arriveLabel).toHaveText("06:00 - 12:00");
+  await expect(arrive.getByLabel("Godzina przylotu od")).toHaveValue("360");
+  await chip(arrive, "Rano").click();
+  await expect(arriveLabel).toHaveText("rano");
+  await expect(arrive.getByLabel("Godzina przylotu od")).toHaveValue("0");
+  await chip(arrive, "Rano").click();
+  await chip(depart, "Rano").click();
+  await chip(depart, "Wieczór").click();
   await expect(departLabel).toHaveText("dowolnie");
   await expect(arriveLabel).toHaveText("dowolnie");
   const request2 = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
@@ -360,6 +387,15 @@ test("time windows: keyboard sliders go to the API and the URL", async ({ page }
   expect(body2.filters).not.toHaveProperty("departTime");
   expect(body2.filters).not.toHaveProperty("arriveTime");
   await expect.poll(() => new URL(page.url()).searchParams.has("dt")).toBe(false);
+});
+
+test("old numeric time links still work", async ({ page }) => {
+  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await open(page, "/szukaj?o=country:PL:Polska&dt=360-1350");
+  const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters.departTime).toEqual({ from: 360, to: 1350 });
+  await openSection(page, "Termin");
+  await expect(page.getByTestId("depart-time-label")).toHaveText("06:00 - 22:30");
 });
 
 test("cards show flight times, or a chip when they are unknown", async ({ page }) => {

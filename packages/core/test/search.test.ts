@@ -27,7 +27,10 @@ describe("searchDestinations (mock end-to-end)", () => {
     expect(result.errors).toEqual([]);
     expect(result.cacheHits).toBe(0);
     // Country buckets (mock supports them): 4 PL airports × {TH, JP} × 2 months.
-    expect(result.plan.strategies).toEqual({ mock: "country" });
+    expect(result.plan.strategies.mock).toMatchObject({
+      strategy: "country",
+      tasks: { airport: 4 * 4 * 2, country: 4 * 2 * 2, anywhere: 4 * 2 },
+    });
     expect(result.plan.tasks).toHaveLength(4 * 2 * 2);
     expect(result.taskCount).toBe(16);
     expect(result.openJaw).toBeUndefined();

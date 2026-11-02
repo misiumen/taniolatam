@@ -4,12 +4,14 @@ import {
   ALL_CARRIER_TYPES,
   applyDatePreset,
   DAY_MINUTES,
+  DAY_PERIODS,
   defaultFormState,
   formatClock,
-  isAnyTime,
+  isAnyTimeChoice,
   isAnywhere,
   type DatePreset,
   type FormState,
+  type TimeChoice,
 } from "./form-state";
 import type { TimeWindow } from "./api-extensions";
 
@@ -32,7 +34,7 @@ const WEEKDAY_SHORT: Record<Weekday, string> = {
 
 /** "Polska → gdziekolwiek", "Kraków, Gdańsk → Włochy". */
 export function routeText(s: FormState): string {
-  const from = s.origins.map((c) => c.label).join(", ") || "—";
+  const from = s.origins.map((c) => c.label).join(", ") || "-";
   const to = isAnywhere(s.destinations)
     ? "gdziekolwiek"
     : s.destinations.map((c) => c.label).join(", ");
@@ -46,7 +48,7 @@ export function datesText(s: FormState): string {
 
 export function stayText(s: FormState): string {
   if (s.oneWay) return "w jedną stronę";
-  return s.minDays === s.maxDays ? `${s.minDays} dni` : `${s.minDays}–${s.maxDays} dni`;
+  return s.minDays === s.maxDays ? `${s.minDays} dni` : `${s.minDays}-${s.maxDays} dni`;
 }
 
 export function weekdaysText(s: FormState): string | undefined {
@@ -59,14 +61,25 @@ export function weekdaysText(s: FormState): string | undefined {
 function timeRangeText(w: TimeWindow): string {
   if (w.from <= 0) return `do ${formatClock(w.to)}`;
   if (w.to >= DAY_MINUTES) return `od ${formatClock(w.from)}`;
-  return `${formatClock(w.from)}–${formatClock(w.to)}`;
+  return `${formatClock(w.from)}-${formatClock(w.to)}`;
 }
 
-/** Summary fragments of the time windows: ["wylot 06:00–12:00", "przylot do 23:00"]. */
+/** "rano lub wieczorem", "06:00–12:00"; undefined for "dowolnie". */
+function timeChoiceText(c: TimeChoice): string | undefined {
+  if (isAnyTimeChoice(c)) return undefined;
+  if (c.exact) return timeRangeText(c.exact);
+  return DAY_PERIODS.filter((d) => c.periods.includes(d.id))
+    .map((d) => d.inSentence)
+    .join(" lub ");
+}
+
+/** Summary fragments of the time fields: ["wylot rano lub wieczorem", "przylot do 23:00"]. */
 export function timeWindowsText(s: FormState): string[] {
   const out: string[] = [];
-  if (!isAnyTime(s.departTime)) out.push(`wylot ${timeRangeText(s.departTime)}`);
-  if (!isAnyTime(s.arriveTime)) out.push(`przylot ${timeRangeText(s.arriveTime)}`);
+  const dep = timeChoiceText(s.departTime);
+  const arr = timeChoiceText(s.arriveTime);
+  if (dep) out.push(`wylot ${dep}`);
+  if (arr) out.push(`przylot ${arr}`);
   return out;
 }
 

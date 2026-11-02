@@ -1,0 +1,5 @@
+productId;name;price;currency;productUrl;categories;extraInfo;airline
+TD-2001;"Lot czarterowy Wrocław – Fuerteventura, ""last minute""";899,00;PLN;https://example.test/td/TD-2001;Czartery,Lot,Hiszpania;wylot=Wrocław Strachowice|cel=Fuerteventura|termin=03.02.2027|powrot=10.02.2027;Enter Air
+TD-2002;"Wczasy Antalya; 7 nocy";"2.499,00";PLN;https://example.test/td/TD-2002;Czartery,Pakiet,Turcja;wylot=Rzeszów Jasionka|cel=Antalya|termin=10.03.2027|noce=7;
+TD-2003;Lot Lublin – Hurghada;1.199,00;PLN;https://example.test/td/TD-2003;Czartery,Lot,Egipt;wylot=Lublin Świdnik|cel=Hurghada (HRG)|termin=15.01.2027|powrot=22.01.2027;LOT
+TD-2004;Lot bez daty;699,00;PLN;https://example.test/td/TD-2004;Czartery,Lot,Egipt;wylot=Katowice Pyrzowice|cel=Hurghada;

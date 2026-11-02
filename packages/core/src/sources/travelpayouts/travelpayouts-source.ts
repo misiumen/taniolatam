@@ -96,6 +96,14 @@ export interface TravelpayoutsSourceOptions {
   pageSize?: number;
   /** Max pages per request family; pages stop early when one comes back short. Default 3. */
   maxPages?: number;
+  /**
+   * Tasks whose `spanMonths` has at least this many months share ONE `/v2/prices/latest`
+   * request (`period_type=year`, `beginning_of_period` = first month of the span) per run,
+   * clipped per task. Default `TP_LATEST_SPAN_MIN_MONTHS` (6); `Infinity` turns it off.
+   */
+  latestSpanMinMonths?: number;
+  /** Max pages of that shared span request (it covers many months). Default 5. */
+  latestSpanMaxPages?: number;
   /** Overrides `TRAVELPAYOUTS_TOKEN` / `TRAVELPAYOUTS_MARKER` from the context env. */
   token?: string;
   marker?: string;
@@ -111,6 +119,12 @@ export interface TravelpayoutsSourceOptions {
 export const TP_LATEST_RATE_LIMIT = { rps: 4, burst: 4 } as const;
 /** Default `pricesRateLimit`: 8 × 60 + 8 = 488 requests per minute at most (limit 600). */
 export const TP_PRICES_RATE_LIMIT = { rps: 8, burst: 8 } as const;
+
+/** Default `latestSpanMinMonths`: spans this long use one `period_type=year` request. */
+export const TP_LATEST_SPAN_MIN_MONTHS = 6;
+
+/** A shared span request is reused for this long at most, even if the context lives on. */
+const SPAN_MEMO_TTL_MS = 10 * 60_000;
 
 /** Max return months queried for a `fixedReturn` trip spanning several months. */
 const MAX_RETURN_MONTHS = 3;
@@ -464,11 +478,14 @@ export class TravelpayoutsSource implements FlightSource {
     multicity: false,
     // `destination` accepts a country code (docs; unverified with a live token, see README).
     countryDestination: true,
+    // ...and an IATA city code (TYO), documented for both search endpoints (see README).
+    cityDestination: true,
   };
   // Documented: 600 req/min for prices_for_dates and grouped_prices, 300 req/min for
   // /v2/prices/latest. A task asks both endpoints (default mode), so tasks may start at 8/s;
   // the requests themselves pass through per-endpoint buckets (`latestRateLimit` 4 rps,
-  // `pricesRateLimit` 8 rps), since one task can make several requests (pages, return months).
+  // `pricesRateLimit` 8 rps, also used by `calendar()`), since one task can make several
+  // requests (pages, return months) and span tasks share one latest request.
   readonly rateLimit = { rps: 8, burst: 2, concurrency: 6 };
 
   private readonly opts: TravelpayoutsSourceOptions;
@@ -476,6 +493,15 @@ export class TravelpayoutsSource implements FlightSource {
   private readonly latestBucket: TokenBucket;
   private readonly pricesBucket: TokenBucket;
   private rateLimitInfo: TpRateLimitInfo | undefined;
+  /**
+   * Shared `/v2/prices/latest` span requests, per run: the runner passes one context object to
+   * every task of a run, so keying by it coalesces exactly the tasks of one search (and lets
+   * the entries go with the context). Entries also expire after `SPAN_MEMO_TTL_MS`.
+   */
+  private readonly spanRequests = new WeakMap<
+    SourceContext,
+    Map<string, { at: number; offers: Promise<Offer[]> }>
+  >();
 
   constructor(opts: TravelpayoutsSourceOptions = {}) {
     this.opts = opts;
@@ -540,18 +566,32 @@ export class TravelpayoutsSource implements FlightSource {
     );
   }
 
-  /** `/v2/prices/latest` for one task; filtered locally like prices_for_dates. */
+  /**
+   * `/v2/prices/latest` for one task; filtered locally like prices_for_dates. A task whose
+   * `spanMonths` has ≥ `latestSpanMinMonths` months reads the span's shared request instead
+   * (`period_type=year`, see `latestSpan`), so a year of months costs one request per (origin,
+   * destination) and run instead of one per month.
+   */
   private async searchLatest(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
     const dest = task.destination;
     const singleDay = task.departFrom === task.departTo;
+    const span = task.spanMonths;
+    const yearly =
+      !singleDay &&
+      span !== undefined &&
+      span.length >= (this.opts.latestSpanMinMonths ?? TP_LATEST_SPAN_MIN_MONTHS);
     const base: TpParams = {
       currency: TP_CURRENCY,
       origin: task.origin,
-      // Country buckets: the endpoint takes cities only, so ask for anywhere and keep the
-      // country's cities locally (needs `places`).
-      destination: dest.kind === "airport" ? dest.code : undefined,
-      beginning_of_period: singleDay ? task.departFrom : `${task.month}-01`,
-      period_type: singleDay ? "day" : "month",
+      // Airport or city code (TYO). Country buckets: the endpoint takes cities only, so ask for
+      // anywhere and keep the country's cities locally (needs `places`).
+      destination: dest.kind === "airport" || dest.kind === "city" ? dest.code : undefined,
+      beginning_of_period: yearly
+        ? `${span[0]}-01`
+        : singleDay
+          ? task.departFrom
+          : `${task.month}-01`,
+      period_type: yearly ? "year" : singleDay ? "day" : "month",
       one_way: task.trip.kind === "oneway",
       limit: this.pageSize,
       show_to_affiliates: true,
@@ -559,20 +599,9 @@ export class TravelpayoutsSource implements FlightSource {
       trip_class: 0,
     };
 
-    const offers: Offer[] = [];
-    for (let page = 1; page <= this.maxPages; page++) {
-      ctx.signal?.throwIfAborted();
-      await this.latestBucket.take();
-      ctx.signal?.throwIfAborted();
-      const body = await this.get<TpLatestEntry[]>(LATEST_PRICES_PATH, { ...base, page }, ctx);
-      const entries = Array.isArray(body.data) ? body.data : [];
-      const opts = this.mapOptions((body.currency ?? TP_CURRENCY).toUpperCase(), ctx);
-      for (const e of entries) {
-        const o = e && typeof e === "object" ? mapTravelpayoutsLatestEntry(e, opts) : undefined;
-        if (o) offers.push(o);
-      }
-      if (entries.length < this.pageSize) break;
-    }
+    const offers = yearly
+      ? await this.latestSpan(base, ctx)
+      : await this.fetchLatest(base, this.maxPages, ctx);
 
     const places = this.opts.places;
     const inCountry = (o: Offer): boolean => {
@@ -582,6 +611,56 @@ export class TravelpayoutsSource implements FlightSource {
       return airports.some((a) => places.airport(a)?.countryCode === dest.code);
     };
     return this.clip(offers.filter(inCountry), task);
+  }
+
+  /**
+   * One shared span request per (params, run): the first task of the span starts it, the
+   * others of the same run await the same promise and clip the result to their own month. A
+   * failed request is forgotten, so a later task of the span retries it.
+   */
+  private latestSpan(params: TpParams, ctx: SourceContext): Promise<Offer[]> {
+    let memo = this.spanRequests.get(ctx);
+    if (!memo) {
+      memo = new Map();
+      this.spanRequests.set(ctx, memo);
+    }
+    const now = performance.now();
+    for (const [k, v] of memo) if (now - v.at > SPAN_MEMO_TTL_MS) memo.delete(k);
+    const key = JSON.stringify(params);
+    const hit = memo.get(key);
+    if (hit) return hit.offers;
+    const entry = {
+      at: now,
+      offers: this.fetchLatest(params, this.spanMaxPages, ctx),
+    };
+    memo.set(key, entry);
+    entry.offers.catch(() => {
+      if (memo.get(key) === entry) memo.delete(key);
+    });
+    return entry.offers;
+  }
+
+  /** Pages of one `/v2/prices/latest` request, mapped (not clipped). */
+  private async fetchLatest(
+    params: TpParams,
+    maxPages: number,
+    ctx: SourceContext,
+  ): Promise<Offer[]> {
+    const offers: Offer[] = [];
+    for (let page = 1; page <= maxPages; page++) {
+      ctx.signal?.throwIfAborted();
+      await this.latestBucket.take();
+      ctx.signal?.throwIfAborted();
+      const body = await this.get<TpLatestEntry[]>(LATEST_PRICES_PATH, { ...params, page }, ctx);
+      const entries = Array.isArray(body.data) ? body.data : [];
+      const opts = this.mapOptions((body.currency ?? TP_CURRENCY).toUpperCase(), ctx);
+      for (const e of entries) {
+        const o = e && typeof e === "object" ? mapTravelpayoutsLatestEntry(e, opts) : undefined;
+        if (o) offers.push(o);
+      }
+      if (entries.length < this.pageSize) break;
+    }
+    return offers;
   }
 
   /** Window, direct-only and origin = destination checks, then dedupe. */
@@ -598,15 +677,17 @@ export class TravelpayoutsSource implements FlightSource {
   }
 
   /**
-   * `prices_for_dates` for one task. Country buckets send `destination=<ISO country>` (one
-   * request per origin × country × month); anywhere omits it.
+   * `prices_for_dates` for one task. Country buckets send `destination=<ISO country>`, city
+   * buckets the city code (one request per origin × bucket × month); anywhere omits it. Always
+   * one month per request, also for span tasks: the documented `departure_at` is one month or
+   * day (whether it can be omitted or be a range is a live-token check, see README).
    */
   private async searchPricesForDates(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
     const dest = task.destination;
     const anywhere = dest.kind === "anywhere";
     const base: TpParams = {
       origin: task.origin,
-      // Airport IATA, or a country code for country buckets (see README, unverified).
+      // Airport or city IATA, or a country code for country buckets (see README, unverified).
       destination: dest.kind === "anywhere" ? undefined : dest.code,
       // A single-day window asks for that day; otherwise the whole month, clipped locally.
       departure_at: task.departFrom === task.departTo ? task.departFrom : task.month,
@@ -650,6 +731,10 @@ export class TravelpayoutsSource implements FlightSource {
     ctx: SourceContext,
   ): Promise<Offer[]> {
     const trip = opts.trip ?? { kind: "oneway" };
+    // grouped_prices shares the documented 600 req/min with prices_for_dates.
+    ctx.signal?.throwIfAborted();
+    await this.pricesBucket.take();
+    ctx.signal?.throwIfAborted();
     const body = await this.get<Record<string, TpPriceEntry>>(
       GROUPED_PRICES_PATH,
       {
@@ -691,6 +776,10 @@ export class TravelpayoutsSource implements FlightSource {
 
   private get maxPages(): number {
     return Math.max(1, Math.floor(this.opts.maxPages ?? 3));
+  }
+
+  private get spanMaxPages(): number {
+    return Math.max(1, Math.floor(this.opts.latestSpanMaxPages ?? 5));
   }
 
   private tokenFrom(env: Env): string | undefined {

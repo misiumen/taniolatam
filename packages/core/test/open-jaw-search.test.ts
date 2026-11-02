@@ -16,7 +16,8 @@ import { ctx, offer } from "./helpers.ts";
 const places = new PlaceIndex(fixtureData);
 
 /**
- * Scripted source: answers from a table keyed by `${origin}>${bucket}>${oneway|round}`.
+ * Scripted source: answers from a table keyed by `${origin}>${bucket}>${oneway|round}`; an
+ * airport bucket without its own entry gets the anywhere ("*") entry's offers to that airport.
  * Anywhere-capable; records every task.
  */
 function scripted(table: Record<string, Offer[]>): FlightSource & { calls: SearchTask[] } {
@@ -31,9 +32,14 @@ function scripted(table: Record<string, Offer[]>): FlightSource & { calls: Searc
     async search(task) {
       calls.push(task);
       const kind = task.trip.kind === "oneway" ? "oneway" : "round";
-      return (table[`${task.origin}>${bucketKey(task.destination)}>${kind}`] ?? []).filter(
-        (o) => o.departDate >= task.departFrom && o.departDate <= task.departTo,
-      );
+      const dest = task.destination;
+      const own = table[`${task.origin}>${bucketKey(dest)}>${kind}`];
+      const offers =
+        own ??
+        (dest.kind === "airport"
+          ? (table[`${task.origin}>*>${kind}`] ?? []).filter((o) => o.destination === dest.code)
+          : []);
+      return offers.filter((o) => o.departDate >= task.departFrom && o.departDate <= task.departTo);
     },
   };
 }
@@ -104,13 +110,14 @@ describe("searchDestinations with open-jaw", () => {
     });
     const back = src.calls.filter((t) => t.id.endsWith(":back"));
     expect(result.openJaw).toMatchObject({
-      outboundTasks: 2,
+      // 2 origins × 4 Asian airports: the airport grid fits, so it beats anywhere.
+      outboundTasks: 8,
       returnTasks: back.length,
       returnDestinations: ["BKK", "HKT", "NRT", "HND"],
       truncated: false,
     });
     expect(result.taskCount).toBe(src.calls.length);
-    // Return legs: from each destination to each home airport (2 ≤ threshold → airport buckets).
+    // Return legs: from each destination to each home airport (airport buckets).
     expect(new Set(back.map((t) => bucketKey(t.destination)))).toEqual(new Set(["WAW", "KRK"]));
 
     const bkk = result.summaries.find(

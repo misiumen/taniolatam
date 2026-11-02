@@ -155,7 +155,7 @@ export function PlaceInput({
           autoComplete="off"
           disabled={disabled}
           value={text}
-          placeholder={chips.length === 0 ? placeholder : "Dodaj kolejne…"}
+          placeholder={chips.length === 0 ? placeholder : "Dodaj kolejne"}
           className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm text-fg outline-none placeholder:text-muted disabled:opacity-50"
           onChange={(e) => {
             setText(e.target.value);

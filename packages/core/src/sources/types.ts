@@ -22,6 +22,11 @@ export interface SourceCapabilities {
    * planner can send one task per destination country instead of one per airport.
    */
   countryDestination?: boolean;
+  /**
+   * Accepts an IATA city (metro) code such as TYO (NRT + HND) as the destination of one request,
+   * so the planner can send one task per multi-airport city (`{ kind: "city" }` buckets).
+   */
+  cityDestination?: boolean;
 }
 
 export interface RateLimit {
@@ -37,9 +42,16 @@ export type DestinationBucket =
   | { kind: "anywhere" }
   | { kind: "airport"; code: string }
   /** Every airport of one country (ISO-3166-1 alpha-2); needs `capabilities.countryDestination`. */
-  | { kind: "country"; code: string };
+  | { kind: "country"; code: string }
+  /**
+   * One IATA city (metro) code from a curated `<CODE>-city` group (TYO = NRT + HND); needs
+   * `capabilities.cityDestination`. The source asks for the whole city; `airports` lists the
+   * requested airports it stands for (informational: the pipeline filters by
+   * `SearchPlan.destinations`, so the cache key is the city code alone).
+   */
+  | { kind: "city"; code: string; airports: string[] };
 
-/** Short stable form of a bucket for task ids and cache keys: "*", "BKK", "country-TH". */
+/** Short stable form of a bucket for task ids and cache keys: "*", "BKK", "country-TH", "city-TYO". */
 export function bucketKey(b: DestinationBucket): string {
   switch (b.kind) {
     case "anywhere":
@@ -48,6 +60,8 @@ export function bucketKey(b: DestinationBucket): string {
       return b.code;
     case "country":
       return `country-${b.code}`;
+    case "city":
+      return `city-${b.code}`;
   }
 }
 
@@ -76,6 +90,14 @@ export interface SearchTask {
   maxPriceAgeHours?: number;
   /** The query's `filters.allowUnknownPriceAge` (planner default true). */
   allowUnknownPriceAge?: boolean;
+  /**
+   * Every month the planner emitted for this task's (source, origin, destination bucket), in
+   * order and consecutive, this task's `month` among them; set when there are ≥ 2. A source may
+   * fetch the whole span in one request and clip it per task (Travelpayouts `/v2/prices/latest`
+   * with `period_type=year`). Not part of the id or the cache key: each task still answers for
+   * its own `departFrom…departTo` only.
+   */
+  spanMonths?: IsoMonth[];
 }
 
 export interface SourceContext {

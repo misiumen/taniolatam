@@ -20,10 +20,10 @@ export interface TimeWindow {
 }
 
 export type WebSearchFilters = ApiSearchFilters & {
-  /** Local departure time of every leg. */
-  departTime?: TimeWindow;
-  /** Local arrival time of every leg. */
-  arriveTime?: TimeWindow;
+  /** Local departure time of every leg; an array is OR ("rano" or "wieczór"). */
+  departTime?: TimeWindow | TimeWindow[];
+  /** Local arrival time of every leg; as `departTime`. */
+  arriveTime?: TimeWindow | TimeWindow[];
 };
 
 export type WebSearchRequest = Omit<SearchRequest, "filters"> & { filters: WebSearchFilters };

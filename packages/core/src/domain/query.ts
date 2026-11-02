@@ -48,10 +48,17 @@ export interface SearchFilters {
    * Departure time window (local clock at each leg's origin airport), minutes from midnight
    * 0–1440, inclusive; `from > to` wraps past midnight. Applied to EVERY leg (outbound and
    * return); legs with an unknown time pass. Undefined or the whole day = any time.
+   * An array is OR: a leg passes when it is inside any of the windows (e.g. "rano" or
+   * "wieczór"); an empty array, or one containing the whole day, = any time.
    */
-  departTime?: TimeWindow;
-  /** Arrival time window (local clock at each leg's destination airport); as `departTime`. */
-  arriveTime?: TimeWindow;
+  departTime?: TimeWindow | TimeWindow[];
+  /** Arrival time window(s) (local clock at each leg's destination airport); as `departTime`. */
+  arriveTime?: TimeWindow | TimeWindow[];
+  /**
+   * Keep tour-operator packages (`Offer.isPackage`: flight + hotel prices from charter feeds).
+   * Default false: results compare flight prices only.
+   */
+  includePackages?: boolean;
   /** Reserved for true multi-city itineraries (not implemented yet). */
   multicity?: boolean;
 }

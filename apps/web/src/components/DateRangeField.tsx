@@ -95,7 +95,7 @@ export function DateRangeField({ state, onChange }: Props) {
             aria-live="polite"
             suppressHydrationWarning
           >
-            {monthAt(lo)} … {monthAt(hi)}
+            {monthAt(lo)} - {monthAt(hi)}
           </p>
         </div>
       )}

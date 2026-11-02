@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTETYCZNE DANE TESTOWE w stylu pliku XML touroperatora / TravelLead (lista <oferta>).
+  Nazwy, ceny, identyfikatory i adresy są zmyślone; to nie jest prawdziwy feed ani jego format.
+-->
+<oferty wygenerowano="2026-11-02T06:00:00+01:00">
+  <oferta id="TL-1001" typ="lot">
+    <operator>Przykładowy Operator</operator>
+    <wylot>
+      <lotnisko>Katowice Pyrzowice</lotnisko>
+      <data>12.01.2027</data>
+      <godzina>06:15</godzina>
+    </wylot>
+    <cel>
+      <kraj>Egipt</kraj>
+      <miejsce>Hurghada</miejsce>
+    </cel>
+    <powrot><data>19.01.2027</data></powrot>
+    <cena waluta="PLN">1 299,00</cena>
+    <przewoznik>Enter Air Sp. z o.o.</przewoznik>
+    <miejsca>4</miejsca>
+    <url>https://example.test/oferta/TL-1001?a=1&amp;b=2</url>
+  </oferta>
+  <oferta id="TL-1002" typ="wczasy">
+    <wylot><lotnisko>Warszawa Chopina</lotnisko><data>20.01.2027</data></wylot>
+    <cel><kraj>Turcja</kraj><miejsce>Antalya</miejsce></cel>
+    <noce>7</noce>
+    <cena waluta="PLN">3 450,00</cena>
+    <url>https://example.test/oferta/TL-1002</url>
+  </oferta>
+  <oferta id="TL-1003" typ="lot">
+    <wylot><lotnisko>Gdańsk Rębiechowo</lotnisko><data>05.02.2027</data></wylot>
+    <cel><kraj>Grecja</kraj><miejsce><![CDATA[Kreta / Heraklion]]></miejsce></cel>
+    <cena waluta="PLN">749</cena>
+    <przewoznik>Smartwings</przewoznik>
+    <url>https://example.test/oferta/TL-1003</url>
+  </oferta>
+  <oferta id="TL-1004" typ="lot">
+    <wylot><lotnisko>Kraków Balice</lotnisko><data>14.01.2027</data></wylot>
+    <cel><kraj>Egipt</kraj><miejsce>Marsa Alam</miejsce></cel>
+    <powrot><data>21.01.2027</data></powrot>
+    <cena waluta="PLN"></cena>
+  </oferta>
+  <oferta id="TL-1005" typ="lot">
+    <wylot><lotnisko>Lotnisko Nieistniejące</lotnisko><data>14.01.2027</data></wylot>
+    <cel><kraj>Egipt</kraj><miejsce>Hurghada</miejsce></cel>
+    <cena waluta="PLN">999</cena>
+  </oferta>
+  <oferta id="TL-1006" typ="lot">
+    <wylot><lotnisko>Poznań Ławica</lotnisko><data>01.10.2026</data></wylot>
+    <cel><kraj>Hiszpania</kraj><miejsce>Fuerteventura</miejsce></cel>
+    <cena waluta="PLN">599</cena>
+  </oferta>
+  <oferta id="TL-1007" typ="lot"/>
+</oferty>

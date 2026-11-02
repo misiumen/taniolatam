@@ -7,7 +7,7 @@ const TODAY = "2026-11-02";
 describe("describeSearch", () => {
   it("summarises the default search", () => {
     expect(describeSearch(defaultFormState(TODAY)).join(" · ")).toBe(
-      "Polska → gdziekolwiek · pół roku · 7–21 dni · ceny do 7 dni",
+      "Polska → gdziekolwiek · pół roku · 7-21 dni · ceny do 7 dni",
     );
   });
 
@@ -25,7 +25,7 @@ describe("describeSearch", () => {
     expect(describeSearch(s)).toEqual([
       "Polska → gdziekolwiek",
       "pół roku",
-      "7–21 dni",
+      "7-21 dni",
       "wylot: Pt, So",
       "max 1 przesiadka",
       "lot do 24 h",
@@ -44,7 +44,7 @@ describe("describeSearch", () => {
       departTo: "2027-04-20",
       oneWay: true,
     };
-    expect(describeSearch(s).slice(1, 3)).toEqual(["10 mar – 20 kwi 2027", "w jedną stronę"]);
+    expect(describeSearch(s).slice(1, 3)).toEqual(["10 mar - 20 kwi 2027", "w jedną stronę"]);
   });
 });
 
@@ -65,19 +65,29 @@ describe("time window fragments", () => {
     expect(
       describeSearch({
         ...base,
-        departTime: { from: 360, to: 720 },
-        arriveTime: { from: 0, to: 1380 },
+        departTime: { periods: ["rano", "wieczor"] },
+        arriveTime: { periods: [], exact: { from: 360, to: 720 } },
       }),
     ).toEqual([
       "Polska → gdziekolwiek",
       "pół roku",
-      "7–21 dni",
-      "wylot 06:00–12:00",
-      "przylot do 23:00",
+      "7-21 dni",
+      "wylot rano lub wieczorem",
+      "przylot 06:00-12:00",
       "ceny do 7 dni",
     ]);
-    expect(describeSearch({ ...base, departTime: { from: 1080, to: 1440 } })).toContain(
-      "wylot od 18:00",
+    const exact = (from: number, to: number) => ({ periods: [], exact: { from, to } });
+    expect(describeSearch({ ...base, departTime: exact(1080, 1440) })).toContain("wylot od 18:00");
+    expect(describeSearch({ ...base, arriveTime: exact(0, 1380) })).toContain("przylot do 23:00");
+    expect(describeSearch({ ...base, departTime: { periods: ["popoludnie", "noc"] } })).toContain(
+      "wylot po południu lub w nocy",
     );
+    // All four periods = the whole day: nothing to say.
+    expect(
+      describeSearch({
+        ...base,
+        departTime: { periods: ["rano", "popoludnie", "wieczor", "noc"] },
+      }).some((p) => p.startsWith("wylot")),
+    ).toBe(false);
   });
 });

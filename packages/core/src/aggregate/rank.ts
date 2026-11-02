@@ -1,4 +1,9 @@
-import type { DestinationSummary, HistogramBucket, Offer } from "../domain/offer.ts";
+import type {
+  DestinationMonth,
+  DestinationSummary,
+  HistogramBucket,
+  Offer,
+} from "../domain/offer.ts";
 import { placeKey, type Place } from "../domain/place.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 
@@ -8,6 +13,12 @@ export interface SummarizeOptions {
   places?: PlaceIndex;
   /** Histogram bucket count. Default 6. */
   buckets?: number;
+  /**
+   * When > 0, every summary carries `offers` (up to this many distinct itineraries, cheapest
+   * first, each month's cheapest always included) and `byMonth`. Default 0: neither is set, which
+   * keeps "anywhere" payloads small.
+   */
+  offersPerDestination?: number;
 }
 
 export function priceHistogram(prices: number[], buckets = 6): HistogramBucket[] {
@@ -47,6 +58,64 @@ function destinationPlace(iata: string, opts: SummarizeOptions): Place {
   return { kind: "airport", code: iata };
 }
 
+/** Cheapest first; equal prices: earlier departure, then id (stable output). */
+export function compareOffersByPrice(a: Offer, b: Offer): number {
+  return a.price - b.price || a.departDate.localeCompare(b.departDate) || a.id.localeCompare(b.id);
+}
+
+/**
+ * Identity of a trip inside one destination group: the same departure airport, dates and airlines
+ * are the same flight even when sources report it to different airports of the group (NRT vs the
+ * city code TYO).
+ */
+function tripKey(o: Offer): string {
+  return [o.origin, o.departDate, o.returnDate ?? "", o.returnTo ?? "", o.carriers.join("+")].join(
+    "|",
+  );
+}
+
+/** One offer per trip (the cheapest; a live price wins a tie), sorted by price. */
+export function distinctTrips(offers: Offer[]): Offer[] {
+  const best = new Map<string, Offer>();
+  for (const o of offers) {
+    const key = tripKey(o);
+    const prev = best.get(key);
+    if (
+      !prev ||
+      o.price < prev.price ||
+      (o.price === prev.price && o.freshness === "live" && prev.freshness !== "live")
+    ) {
+      best.set(key, o);
+    }
+  }
+  return [...best.values()].sort(compareOffersByPrice);
+}
+
+/** Cheapest offer and offer count per departure month, months ascending. */
+export function cheapestByMonth(offers: Offer[]): DestinationMonth[] {
+  const months = new Map<string, DestinationMonth>();
+  for (const o of offers) {
+    const month = o.departDate.slice(0, 7);
+    const m = months.get(month);
+    if (!m) months.set(month, { month, cheapest: o, count: 1 });
+    else {
+      m.count++;
+      if (compareOffersByPrice(o, m.cheapest) < 0) m.cheapest = o;
+    }
+  }
+  return [...months.values()].sort((a, b) => a.month.localeCompare(b.month));
+}
+
+/**
+ * The `limit` cheapest trips, plus every month's cheapest when it falls outside them (so a month
+ * filter in the UI never comes up empty), cheapest first.
+ */
+function pickOffers(trips: Offer[], byMonth: DestinationMonth[], limit: number): Offer[] {
+  const picked = new Set(trips.slice(0, limit));
+  for (const m of byMonth) picked.add(m.cheapest);
+  return [...picked].sort(compareOffersByPrice);
+}
+
 /** One row per destination, cheapest first (ties broken by destination code for stable output). */
 export function summarizeByDestination(
   offers: Offer[],
@@ -74,6 +143,7 @@ export function summarizeByDestination(
           opts.buckets,
         ),
         sources: [...sources].sort(),
+        ...offerList(g.offers, opts.offersPerDestination ?? 0),
       } satisfies DestinationSummary,
     };
   });
@@ -81,4 +151,14 @@ export function summarizeByDestination(
     (a, b) => a.summary.cheapest.price - b.summary.cheapest.price || a.key.localeCompare(b.key),
   );
   return rows.map((r) => r.summary);
+}
+
+function offerList(
+  offers: Offer[],
+  limit: number,
+): Pick<DestinationSummary, "offers" | "byMonth"> | undefined {
+  if (!(limit > 0)) return undefined;
+  const trips = distinctTrips(offers);
+  const byMonth = cheapestByMonth(trips);
+  return { offers: pickOffers(trips, byMonth, Math.floor(limit)), byMonth };
 }

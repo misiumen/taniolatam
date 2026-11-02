@@ -28,11 +28,12 @@ export interface FilterExtensions {
   /**
    * Departure time window, local clock at each leg's origin, in minutes from midnight (0–1440,
    * inclusive; `from > to` wraps past midnight). Applies to every leg; unknown times pass.
-   * Omit (or send the whole day) for any time.
+   * Omit (or send the whole day) for any time. An array (1–4 windows) is OR: a leg passes when
+   * it is inside any of them, e.g. "rano" + "wieczór".
    */
-  departTime?: { from: number; to: number };
-  /** Arrival time window, local clock at each leg's destination; as `departTime`. */
-  arriveTime?: { from: number; to: number };
+  departTime?: { from: number; to: number } | { from: number; to: number }[];
+  /** Arrival time window(s), local clock at each leg's destination; as `departTime`. */
+  arriveTime?: { from: number; to: number } | { from: number; to: number }[];
 }
 
 export type ApiSearchFilters = SearchFilters & FilterExtensions;
@@ -85,7 +86,31 @@ export type ApiOffer = Offer &
     legs?: ApiLeg[];
   };
 
-export type ApiDestinationSummary = Omit<DestinationSummary, "cheapest"> & { cheapest: ApiOffer };
+/** Cheapest offer of one departure month (`ApiDestinationSummary.byMonth`). */
+export interface ApiDestinationMonth {
+  /** "YYYY-MM". */
+  month: IsoMonth;
+  cheapest: ApiOffer;
+  /** Distinct itineraries departing that month. */
+  count: number;
+}
+
+export type ApiDestinationSummary = Omit<DestinationSummary, "cheapest" | "offers" | "byMonth"> & {
+  cheapest: ApiOffer;
+  /**
+   * Additive and optional: the cheapest distinct itineraries to this destination (one per origin,
+   * dates and airlines), cheapest first. Sent only with `meta.view: "offers"`.
+   */
+  offers?: ApiOffer[];
+  /** Additive and optional: cheapest offer per departure month, months ascending. */
+  byMonth?: ApiDestinationMonth[];
+};
+
+/**
+ * How the UI should present the result: "destinations" (one card per destination) or "offers"
+ * (few destinations: every destination with its list of dates and prices).
+ */
+export type ResultsView = "destinations" | "offers";
 
 /** One airline in `SearchResponse.carrierFacet`. */
 export interface CarrierFacetEntry {
@@ -109,6 +134,8 @@ export interface SearchMeta {
   warnings: string[];
   /** The task grid was cut at the server limit; results cover only part of the date range. */
   truncated: boolean;
+  /** Additive and optional: presentation hint, see `ResultsView`. Absent = "destinations". */
+  view?: ResultsView;
 }
 
 /** Display data for an airport referenced by a result (the browser has no airport dictionary). */

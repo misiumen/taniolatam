@@ -231,7 +231,7 @@ export function SearchForm({
               chips={state.origins}
               onChange={(c) => set("origins", c)}
               api={api}
-              placeholder="Lotnisko, miasto, kraj…"
+              placeholder="Lotnisko, miasto, kraj"
             />
           </div>
           <div>
@@ -242,7 +242,7 @@ export function SearchForm({
               onChange={(c) => set("destinations", c)}
               api={api}
               anywhere
-              placeholder="Gdziekolwiek lub kraj, miasto…"
+              placeholder="Gdziekolwiek lub kraj, miasto"
             />
           </div>
         </Section>
@@ -282,7 +282,7 @@ export function SearchForm({
                   value={state.minDays}
                   onChange={(e) => set("minDays", e.target.valueAsNumber)}
                 />
-                <span className="text-muted">–</span>
+                <span className="text-muted">-</span>
                 <input
                   type="number"
                   min={0}
@@ -325,14 +325,12 @@ export function SearchForm({
             <legend className="sr-only">Godziny lotu</legend>
             <TimeRangeField
               label="Godzina wylotu"
-              noun="wylotu"
               value={state.departTime}
               onChange={(w) => set("departTime", w)}
               testId="depart-time"
             />
             <TimeRangeField
               label="Godzina przylotu"
-              noun="przylotu"
               value={state.arriveTime}
               onChange={(w) => set("arriveTime", w)}
               testId="arrive-time"
@@ -411,7 +409,7 @@ export function SearchForm({
               <p className="text-xs text-muted" data-testid="carriers-hint">
                 {searched
                   ? "Brak danych o liniach w tych wynikach."
-                  : "Po wyszukiwaniu pojawi się lista linii — odznacz te, których nie chcesz."}
+                  : "Po wyszukiwaniu pojawi się lista linii. Odznacz te, których nie chcesz."}
               </p>
             ) : (
               <div
@@ -532,7 +530,7 @@ export function SearchForm({
           </p>
         )}
         <button type="submit" className={`${btnPrimaryCls} w-full py-2.5`} disabled={loading}>
-          {loading ? "Szukam…" : "Szukaj"}
+          {loading ? "Szukam" : "Szukaj"}
         </button>
       </div>
     </form>

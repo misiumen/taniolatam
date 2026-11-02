@@ -43,16 +43,135 @@ export type PriceAgeWindow = "7d" | "48h";
 
 export const DEFAULT_PRICE_AGE: PriceAgeWindow = "7d";
 
-/** Minutes in a day: the upper end of a time slider ("24:00"). */
+/** Minutes in a day: the last option of the "do" select ("24:00"). */
 export const DAY_MINUTES = 1440;
 
-/** Step of the "Godzina wylotu" / "Godzina przylotu" sliders, in minutes. */
+/** Step of the exact "od" / "do" selects, in minutes. */
 export const TIME_STEP = 30;
 
 /** Full day = "dowolnie": nothing is sent and no URL parameter is written. */
 export const ANY_TIME: TimeWindow = { from: 0, to: DAY_MINUTES };
 
-export const isAnyTime = (w: TimeWindow): boolean => w.from <= 0 && w.to >= DAY_MINUTES;
+export const isAnyTime = (w: TimeWindow): boolean =>
+  (w.from <= 0 && w.to >= DAY_MINUTES) || w.from === w.to;
+
+export type DayPeriod = "rano" | "popoludnie" | "wieczor" | "noc";
+
+/**
+ * Period chips of "Godzina wylotu" / "Godzina przylotu", in day order (each starts one minute
+ * after the previous one ends, "Noc" wraps past midnight). `inSentence` reads after "wylot" /
+ * "przylot" in the summary ("wylot rano lub wieczorem").
+ */
+export const DAY_PERIODS: {
+  id: DayPeriod;
+  label: string;
+  hours: string;
+  inSentence: string;
+  window: TimeWindow;
+}[] = [
+  { id: "rano", label: "Rano", hours: "05-12", inSentence: "rano", window: { from: 300, to: 719 } },
+  {
+    id: "popoludnie",
+    label: "Popołudnie",
+    hours: "12-17",
+    inSentence: "po południu",
+    window: { from: 720, to: 1019 },
+  },
+  {
+    id: "wieczor",
+    label: "Wieczór",
+    hours: "17-21",
+    inSentence: "wieczorem",
+    window: { from: 1020, to: 1259 },
+  },
+  {
+    id: "noc",
+    label: "Noc",
+    hours: "21-05",
+    inSentence: "w nocy",
+    window: { from: 1260, to: 299 },
+  },
+];
+
+/**
+ * One time field: period chips (multi-select) or an exact range, never both. No periods and no
+ * exact range = "dowolnie".
+ */
+export interface TimeChoice {
+  periods: DayPeriod[];
+  exact?: TimeWindow;
+}
+
+export const ANY_TIME_CHOICE: TimeChoice = { periods: [] };
+
+const periodIndex = (p: DayPeriod) => DAY_PERIODS.findIndex((d) => d.id === p);
+const sortPeriods = (ps: DayPeriod[]) =>
+  [...new Set(ps)]
+    .filter((p) => periodIndex(p) >= 0)
+    .sort((a, b) => periodIndex(a) - periodIndex(b));
+
+/** Chip click (plain or with Ctrl/Cmd: the same): toggles one period, keeps the others, drops the exact range. */
+export function togglePeriod(c: TimeChoice, p: DayPeriod): TimeChoice {
+  const on = c.periods.includes(p);
+  return { periods: sortPeriods(on ? c.periods.filter((x) => x !== p) : [...c.periods, p]) };
+}
+
+/** Exact range from the selects: clears the chips; the whole day (or an empty range) = "dowolnie". */
+export function setExactTime(w: TimeWindow): TimeChoice {
+  return isAnyTime(w) ? { periods: [] } : { periods: [], exact: { ...w } };
+}
+
+/**
+ * Windows to send: the exact range, or the selected periods with adjacent ones merged into one
+ * window (noc + rano → 21:00–11:59), sorted by start. `[]` = any time (also when all four
+ * periods are selected).
+ */
+export function timeChoiceWindows(c: TimeChoice): TimeWindow[] {
+  if (c.exact) return isAnyTime(c.exact) ? [] : [{ ...c.exact }];
+  const on = DAY_PERIODS.map((d) => c.periods.includes(d.id));
+  const gap = on.indexOf(false);
+  if (gap < 0) return [];
+  const out: TimeWindow[] = [];
+  let run: TimeWindow | undefined;
+  for (let k = 1; k <= DAY_PERIODS.length; k++) {
+    const i = (gap + k) % DAY_PERIODS.length;
+    const w = DAY_PERIODS[i]!.window;
+    if (on[i]) run = run ? { from: run.from, to: w.to } : { ...w };
+    else if (run) {
+      out.push(run);
+      run = undefined;
+    }
+  }
+  return out.sort((a, b) => a.from - b.from);
+}
+
+export const isAnyTimeChoice = (c: TimeChoice): boolean => timeChoiceWindows(c).length === 0;
+
+/** Label next to the field: "dowolnie", "rano, wieczór", "06:00 – 22:30". */
+export function timeChoiceLabel(c: TimeChoice): string {
+  if (c.exact) return timeWindowLabel(c.exact);
+  if (c.periods.length === DAY_PERIODS.length) return "dowolnie (cała doba)";
+  if (c.periods.length === 0) return "dowolnie";
+  return c.periods.map((p) => DAY_PERIODS[periodIndex(p)]!.label.toLowerCase()).join(", ");
+}
+
+/** `dt` / `at`: "rano,wieczor" for periods, "360-1350" for an exact range (also old links). */
+function timeChoiceParam(c: TimeChoice): string | undefined {
+  if (c.exact) return isAnyTime(c.exact) ? undefined : `${c.exact.from}-${c.exact.to}`;
+  return c.periods.length > 0 ? c.periods.join(",") : undefined;
+}
+
+function parseTimeChoice(v: string | null): TimeChoice {
+  if (!v) return { periods: [] };
+  if (/^\d/.test(v)) {
+    const w = parseTimeWindow(v);
+    return isAnyTime(w) ? { periods: [] } : { periods: [], exact: w };
+  }
+  const ids = DAY_PERIODS.map((d) => d.id) as string[];
+  return {
+    periods: sortPeriods(v.split(",").filter((x): x is DayPeriod => ids.includes(x.trim()))),
+  };
+}
 
 /** 390 → "06:30", 1440 → "24:00". */
 export function formatClock(minutes: number): string {
@@ -61,14 +180,14 @@ export function formatClock(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Slider label: "dowolnie" for the full day, otherwise "06:00 – 22:30". */
+/** Exact range label: "dowolnie" for the full day, otherwise "06:00 – 22:30" (or "22:00 – 02:00"). */
 export function timeWindowLabel(w: TimeWindow): string {
-  return isAnyTime(w) ? "dowolnie" : `${formatClock(w.from)} – ${formatClock(w.to)}`;
+  return isAnyTime(w) ? "dowolnie" : `${formatClock(w.from)} - ${formatClock(w.to)}`;
 }
 
 /**
- * `dt=360-1350` → { from: 360, to: 1350 }. Only slider positions are accepted (multiples of
- * `TIME_STEP`, `from < to`); anything else, and the full day, mean "dowolnie".
+ * `dt=360-1350` → { from: 360, to: 1350 }. Only select positions are accepted (multiples of
+ * `TIME_STEP`, 0–1440; `from > to` crosses midnight); anything else means "dowolnie".
  */
 function parseTimeWindow(v: string | null): TimeWindow {
   const m = /^(\d{1,4})-(\d{1,4})$/.exec(v ?? "");
@@ -76,10 +195,8 @@ function parseTimeWindow(v: string | null): TimeWindow {
   const from = Number(m[1]);
   const to = Number(m[2]);
   const ok = (n: number) => n >= 0 && n <= DAY_MINUTES && n % TIME_STEP === 0;
-  return ok(from) && ok(to) && from < to ? { from, to } : { ...ANY_TIME };
+  return ok(from) && ok(to) && from !== to ? { from, to } : { ...ANY_TIME };
 }
-
-const timeParam = (w: TimeWindow) => `${w.from}-${w.to}`;
 
 export interface FormState {
   origins: PlaceChip[];
@@ -106,10 +223,10 @@ export interface FormState {
   /** Uppercase carrier codes removed from the results ("Linie lotnicze"). */
   excludeCarriers: string[];
   priceAge: PriceAgeWindow;
-  /** "Godzina wylotu" (every leg, local time); `ANY_TIME` = no window. */
-  departTime: TimeWindow;
-  /** "Godzina przylotu" (every leg, local time); `ANY_TIME` = no window. */
-  arriveTime: TimeWindow;
+  /** "Godzina wylotu" (every leg, local time); `ANY_TIME_CHOICE` = no window. */
+  departTime: TimeChoice;
+  /** "Godzina przylotu" (every leg, local time); `ANY_TIME_CHOICE` = no window. */
+  arriveTime: TimeChoice;
 }
 
 /** The "Gdziekolwiek" chip of the destination combobox (never serialised into the URL). */
@@ -211,8 +328,8 @@ export function defaultFormState(today = todayIso()): FormState {
     allowOpenJaw: false,
     excludeCarriers: [],
     priceAge: DEFAULT_PRICE_AGE,
-    departTime: { ...ANY_TIME },
-    arriveTime: { ...ANY_TIME },
+    departTime: { periods: [] },
+    arriveTime: { periods: [] },
   };
 }
 
@@ -259,9 +376,15 @@ export function toSearchQuery(s: FormState): WebSearchRequest {
     filters.maxPriceAgeHours = STRICT_PRICE_AGE_HOURS;
     filters.allowUnknownPriceAge = false;
   }
-  // The full day is "dowolnie": nothing is sent.
-  if (!isAnyTime(s.departTime)) filters.departTime = { ...s.departTime };
-  if (!isAnyTime(s.arriveTime)) filters.arriveTime = { ...s.arriveTime };
+  // "Dowolnie" (or the whole day) sends nothing; several non-adjacent periods send a list (OR).
+  const timeFilter = (c: TimeChoice) => {
+    const ws = timeChoiceWindows(c);
+    return ws.length === 0 ? undefined : ws.length === 1 ? ws[0] : ws;
+  };
+  const departTime = timeFilter(s.departTime);
+  const arriveTime = timeFilter(s.arriveTime);
+  if (departTime) filters.departTime = departTime;
+  if (arriveTime) filters.arriveTime = arriveTime;
   return {
     origins: s.origins.map((c) => c.place),
     destinations: isAnywhere(s.destinations)
@@ -354,8 +477,10 @@ export function formToParams(s: FormState): URLSearchParams {
   if (s.allowOpenJaw) p.set("oj", "1");
   if (s.excludeCarriers.length > 0) p.set("xa", s.excludeCarriers.join(","));
   if (s.priceAge === "48h") p.set("pa", "48h");
-  if (!isAnyTime(s.departTime)) p.set("dt", timeParam(s.departTime));
-  if (!isAnyTime(s.arriveTime)) p.set("at", timeParam(s.arriveTime));
+  const dt = timeChoiceParam(s.departTime);
+  const at = timeChoiceParam(s.arriveTime);
+  if (dt) p.set("dt", dt);
+  if (at) p.set("at", at);
   return p;
 }
 
@@ -436,7 +561,7 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     excludeCarriers: parseCarrierCodes(p.get("xa")),
     // Old links carry `pa=7d`: that is the default now, read like any other value.
     priceAge: p.get("pa") === "48h" ? "48h" : DEFAULT_PRICE_AGE,
-    departTime: parseTimeWindow(p.get("dt")),
-    arriveTime: parseTimeWindow(p.get("at")),
+    departTime: parseTimeChoice(p.get("dt")),
+    arriveTime: parseTimeChoice(p.get("at")),
   };
 }

@@ -10,12 +10,17 @@ function better(a: Offer, b: Offer): Offer {
 /**
  * Dedupe identity: the trip as the traveller sees it — airports and dates. Carriers are not part
  * of it (two sources pricing the same dates with different airlines are one result: the cheaper).
- * `returnTo` is: an open-jaw combination landing elsewhere is a different trip.
+ * `returnTo` is: an open-jaw combination landing elsewhere is a different trip, and so is a
+ * package (`isPackage`).
  */
 export function dedupeKey(
-  o: Pick<Offer, "origin" | "destination" | "departDate" | "returnDate" | "returnTo">,
+  o: Pick<Offer, "origin" | "destination" | "departDate" | "returnDate" | "returnTo"> &
+    Partial<Pick<Offer, "isPackage">>,
 ): string {
-  return [o.origin, o.destination, o.departDate, o.returnDate ?? "", o.returnTo ?? ""].join("|");
+  const key = [o.origin, o.destination, o.departDate, o.returnDate ?? "", o.returnTo ?? ""];
+  // A package (flight + hotel) is a different product from the flight alone.
+  if (o.isPackage) key.push("pkg");
+  return key.join("|");
 }
 
 /**

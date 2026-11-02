@@ -268,12 +268,26 @@ export function SearchApp() {
             <circle cx="25" cy="12" r="2.5" fill="currentColor" />
           </svg>
           <span className="font-display text-[22px] font-semibold leading-none tracking-tight">
-            Gdzie Polecę
+            Gdzie polecę?
           </span>
         </a>
-        <p className="hidden text-sm text-muted sm:block">
-          Najtańsze kierunki na liście, trasy i ceny na mapie
-        </p>
+        <div className="hidden min-w-0 flex-col leading-tight sm:flex">
+          <p className="font-display text-[17px] italic text-muted">Odpowiedź znajdziesz tutaj.</p>
+          <p className="hidden items-center gap-1.5 text-xs text-muted/80 lg:flex">
+            <svg aria-hidden viewBox="0 0 14 14" className="h-3.5 w-3.5 text-accent">
+              <path
+                d="M7 1.5v8M3.5 7 7 10.5 10.5 7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="2.5 2"
+              />
+            </svg>
+            <span>wpisz skąd, a resztę policzymy</span>
+          </p>
+        </div>
       </header>
 
       {/* Phone: the search collapses to a summary bar that opens the form sheet. */}
@@ -409,7 +423,7 @@ export function SearchApp() {
             )}
             {shownStatus.kind === "done" && pins.length === 0 && listed.length > 0 && (
               <p className="absolute left-2 top-2 rounded-md bg-warn-bg px-3 py-1.5 text-xs text-warn-fg">
-                Brak współrzędnych dla wyników — piny niedostępne.
+                Brak współrzędnych dla wyników, piny niedostępne.
               </p>
             )}
           </section>

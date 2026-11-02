@@ -82,6 +82,7 @@ describe("TravelpayoutsSource basics", () => {
       live: false,
       multicity: false,
       countryDestination: true,
+      cityDestination: true,
     });
     // 600 req/min documented → tasks stay under 10 rps (requests have their own buckets).
     expect(src.rateLimit.rps * 60).toBeLessThanOrEqual(600);

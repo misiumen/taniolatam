@@ -140,7 +140,7 @@ export function CalendarPanel({ offer, api, stay }: Props) {
         </div>
       </div>
 
-      {state.kind === "loading" && <p className="text-sm text-muted">Ładuję ceny…</p>}
+      {state.kind === "loading" && <p className="text-sm text-muted">Ładuję ceny</p>}
       {state.kind === "error" && (
         <p role="alert" className="text-sm text-danger">
           {state.message}
@@ -168,7 +168,7 @@ export function CalendarPanel({ offer, api, stay }: Props) {
                     className="rounded bg-surface-2 p-1 text-center text-[11px] text-muted opacity-60"
                   >
                     <div>{day}</div>
-                    <div>–</div>
+                    <div>-</div>
                   </div>
                 );
               }

@@ -4,6 +4,9 @@ import {
   describePrice,
   formatMonthYear,
   formatPrice,
+  formatStay,
+  formatTripDates,
+  formatWeekday,
   offerTimes,
   priceAge,
   timesText,
@@ -107,5 +110,26 @@ describe("flight times", () => {
     expect(timesText(offerTimes({ departTimeLocal: "07:05" }).out)).toBe("wylot 07:05");
     expect(offerTimes({}).out).toBeUndefined();
     expect(timesText(undefined)).toBeUndefined();
+  });
+});
+
+describe("trip dates", () => {
+  it("names the weekday of an ISO date", () => {
+    expect(formatWeekday("2027-03-12")).toBe("pt");
+    expect(formatWeekday("2027-03-14")).toBe("nd");
+    expect(formatWeekday("2026-11-02")).toBe("pn");
+  });
+
+  it("formats round trips and one-ways with weekdays", () => {
+    expect(formatTripDates("2027-03-12", "2027-03-21")).toBe("pt 12 mar - nd 21 mar 2027");
+    expect(formatTripDates("2026-12-28", "2027-01-04")).toBe("pn 28 gru 2026 - pn 4 sty 2027");
+    expect(formatTripDates("2027-03-12")).toBe("pt 12 mar 2027");
+  });
+
+  it("formats the length of stay", () => {
+    expect(formatStay("2027-03-12", "2027-03-13")).toBe("1 dzień");
+    expect(formatStay("2027-03-12", "2027-03-21")).toBe("9 dni");
+    expect(formatStay("2027-03-12")).toBe("w jedną stronę");
+    expect(formatMonthYear("2027-03")).toBe("mar 2027");
   });
 });

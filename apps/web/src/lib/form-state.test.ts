@@ -12,7 +12,11 @@ import {
   sliderPositions,
   toSearchQuery,
   formatClock,
+  setExactTime,
+  timeChoiceLabel,
+  timeChoiceWindows,
   timeWindowLabel,
+  togglePeriod,
   validateForm,
 } from "./form-state";
 
@@ -248,13 +252,17 @@ describe("form state", () => {
     });
   });
 
-  it("sends and serialises time windows only when narrower than the full day", () => {
+  it("sends and serialises an exact time range only when narrower than the full day", () => {
     const base = defaultFormState(TODAY);
-    expect(base.departTime).toEqual({ from: 0, to: 1440 });
+    expect(base.departTime).toEqual({ periods: [] });
     expect(toSearchQuery(base).filters).not.toHaveProperty("departTime");
     expect(formToParams(base).has("dt")).toBe(false);
 
-    const s = { ...base, departTime: { from: 360, to: 1350 }, arriveTime: { from: 0, to: 1380 } };
+    const s = {
+      ...base,
+      departTime: setExactTime({ from: 360, to: 1350 }),
+      arriveTime: setExactTime({ from: 0, to: 1380 }),
+    };
     expect(toSearchQuery(s).filters).toMatchObject({
       departTime: { from: 360, to: 1350 },
       arriveTime: { from: 0, to: 1380 },
@@ -263,22 +271,59 @@ describe("form state", () => {
     expect([p.get("dt"), p.get("at")]).toEqual(["360-1350", "0-1380"]);
     const back = paramsToForm(p, TODAY);
     expect([back.departTime, back.arriveTime]).toEqual([s.departTime, s.arriveTime]);
+    expect(setExactTime({ from: 0, to: 1440 })).toEqual({ periods: [] });
   });
 
-  it("ignores malformed time window parameters", () => {
-    for (const v of ["1350-360", "0-1500", "10-20", "abc", "360"]) {
+  it("toggles periods independently and merges adjacent ones into one window", () => {
+    let c = togglePeriod({ periods: [] }, "wieczor");
+    c = togglePeriod(c, "rano");
+    expect(c.periods).toEqual(["rano", "wieczor"]);
+    expect(timeChoiceWindows(c)).toEqual([
+      { from: 300, to: 719 },
+      { from: 1020, to: 1259 },
+    ]);
+    expect(timeChoiceLabel(c)).toBe("rano, wieczór");
+    // Toggling one off keeps the other; choosing a period drops an exact range.
+    expect(togglePeriod(c, "rano").periods).toEqual(["wieczor"]);
+    expect(togglePeriod(setExactTime({ from: 60, to: 120 }), "noc")).toEqual({ periods: ["noc"] });
+    // noc + rano → 21:00–11:59 across midnight; rano + popołudnie + wieczór → 05:00–20:59.
+    expect(timeChoiceWindows({ periods: ["rano", "noc"] })).toEqual([{ from: 1260, to: 719 }]);
+    expect(timeChoiceWindows({ periods: ["rano", "popoludnie", "wieczor"] })).toEqual([
+      { from: 300, to: 1259 },
+    ]);
+    // All four = the whole day = nothing to send.
+    expect(timeChoiceWindows({ periods: ["rano", "popoludnie", "wieczor", "noc"] })).toEqual([]);
+
+    const s = { ...defaultFormState(TODAY), departTime: c };
+    expect(toSearchQuery(s).filters.departTime).toEqual([
+      { from: 300, to: 719 },
+      { from: 1020, to: 1259 },
+    ]);
+    const p = formToParams(s);
+    expect(p.get("dt")).toBe("rano,wieczor");
+    expect(paramsToForm(p, TODAY).departTime).toEqual(c);
+  });
+
+  it("ignores malformed time parameters", () => {
+    for (const v of ["0-1500", "10-20", "360-360", "abc", "360", "rano-noc"]) {
       expect(
         paramsToForm(new URLSearchParams(`o=country:PL:Polska&dt=${v}`), TODAY).departTime,
-      ).toEqual({
-        from: 0,
-        to: 1440,
-      });
+      ).toEqual({ periods: [] });
     }
+    // Unknown names are dropped, known ones kept in day order; a range across midnight is fine.
+    expect(
+      paramsToForm(new URLSearchParams("o=country:PL:Polska&dt=noc,xyz,rano"), TODAY).departTime,
+    ).toEqual({ periods: ["rano", "noc"] });
+    expect(
+      paramsToForm(new URLSearchParams("o=country:PL:Polska&at=1320-120"), TODAY).arriveTime,
+    ).toEqual({ periods: [], exact: { from: 1320, to: 120 } });
   });
 
   it("labels time windows", () => {
     expect(timeWindowLabel({ from: 0, to: 1440 })).toBe("dowolnie");
-    expect(timeWindowLabel({ from: 360, to: 1350 })).toBe("06:00 – 22:30");
+    expect(timeWindowLabel({ from: 360, to: 1350 })).toBe("06:00 - 22:30");
+    expect(timeChoiceLabel({ periods: [] })).toBe("dowolnie");
+    expect(timeChoiceLabel(setExactTime({ from: 360, to: 1350 }))).toBe("06:00 - 22:30");
     expect(formatClock(1440)).toBe("24:00");
   });
 });

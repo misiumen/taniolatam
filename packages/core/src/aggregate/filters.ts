@@ -126,28 +126,49 @@ export function offerTimesUnknown(o: Offer): boolean {
   );
 }
 
+/**
+ * The windows of `filters.departTime` / `arriveTime` that restrict anything, or undefined for
+ * "any time": nothing set, an empty array, or a window covering the whole day (OR with the whole
+ * day is the whole day). Invalid entries are ignored.
+ */
+export function activeTimeWindows(
+  w: TimeWindow | TimeWindow[] | undefined,
+): TimeWindow[] | undefined {
+  if (w === undefined) return undefined;
+  const list = Array.isArray(w) ? w : [w];
+  const valid = list.filter((x) => x && Number.isFinite(x.from) && Number.isFinite(x.to));
+  if (valid.length === 0) return undefined;
+  const active: TimeWindow[] = [];
+  for (const x of valid) {
+    const a = activeTimeWindow(x);
+    if (!a) return undefined;
+    active.push(a);
+  }
+  return active;
+}
+
 /** `filters.departTime` or `filters.arriveTime` restricts anything. */
 export function hasTimeWindows(f: Pick<SearchFilters, "departTime" | "arriveTime">): boolean {
   return (
-    activeTimeWindow(f.departTime) !== undefined || activeTimeWindow(f.arriveTime) !== undefined
+    activeTimeWindows(f.departTime) !== undefined || activeTimeWindows(f.arriveTime) !== undefined
   );
 }
 
 /**
  * `filters.departTime` / `arriveTime` check on EVERY leg: a leg passes when its local departure
- * (arrival) time is inside the window, or unknown. No window set → true.
+ * (arrival) time is inside the window (any of them, for an array), or unknown. No window → true.
  */
 export function timeWindowsAllowed(
   o: Offer,
   f: Pick<SearchFilters, "departTime" | "arriveTime">,
 ): boolean {
-  const dep = activeTimeWindow(f.departTime);
-  const arr = activeTimeWindow(f.arriveTime);
+  const dep = activeTimeWindows(f.departTime);
+  const arr = activeTimeWindows(f.arriveTime);
   if (!dep && !arr) return true;
-  const ok = (t: string | undefined, w: TimeWindow | undefined) => {
-    if (!w) return true;
+  const ok = (t: string | undefined, ws: TimeWindow[] | undefined) => {
+    if (!ws) return true;
     const m = parseClock(t);
-    return m === undefined || inTimeWindow(m, w);
+    return m === undefined || ws.some((w) => inTimeWindow(m, w));
   };
   return offerLegClocks(o).every((l) => ok(l.depart, dep) && ok(l.arrive, arr));
 }
@@ -204,8 +225,10 @@ export function matchesFilters(o: Offer, f: SearchFilters, ctx: FilterContext = 
   ) {
     return false;
   }
-  // Unknown carriers (`carriers: []`) pass: their type is a placeholder.
-  if (f.carrierTypes?.length && o.carriers.length > 0) {
+  if (o.isPackage && !f.includePackages) return false;
+  // Unknown carriers (`carriers: []`) pass: their type is a placeholder. Charter offers are the
+  // exception: the source knows the type even when the feed names no airline.
+  if (f.carrierTypes?.length && (o.carriers.length > 0 || o.carrierType === "charter")) {
     const allowed = f.carrierTypes;
     // Combined open-jaw offers carry per-leg types: every leg with a known carrier must be allowed.
     const typedLegs = o.legs?.filter((l) => l.carrierType !== undefined) ?? [];

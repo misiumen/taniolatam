@@ -17,6 +17,10 @@ services:
     envVars:
       - key: PORT
         value: "3000"
+      # Canonical host: pages, canonical tags, sitemap and robots.txt use it; any other host (e.g.
+      # gdziepolece.onrender.com) is served with X-Robots-Tag: noindex and "Disallow: /".
+      - key: PUBLIC_SITE_URL
+        value: https://gdziepolece.pl
       - key: SOURCE_MOCK
         value: "0"
       - key: SOURCE_TRAVELPAYOUTS
@@ -25,10 +29,24 @@ services:
         sync: false
       - key: TRAVELPAYOUTS_MARKER
         sync: false
+      # Czartery (faza 3), domyślnie wyłączone. Na Renderze cron job nie widzi dysku usługi web,
+      # więc import działa w procesie serwera: SOURCE_CHARTERS=1 + CHARTER_IMPORT_INTERVAL_MINUTES
+      # (np. 360) + CHARTER_FEEDS_FILE (np. /data/charter-feeds.json). Sekrety feedów (nazwy z
+      # auth.*.valueEnv w konfiguracji) dodaj w panelu jako zmienne bez wartości w repo.
+      - key: SOURCE_CHARTERS
+        value: "0"
+      # Pusta = <repo>/config/charter-feeds.json; ustawiana w panelu (sync: false).
+      - key: CHARTER_FEEDS_FILE
+        sync: false
+      - key: CHARTER_IMPORT_INTERVAL_MINUTES
+        value: "0"
       - key: CACHE_DRIVER
         value: sqlite
       - key: CACHE_PATH
         value: /data/cache.sqlite
+      # Twardy limit zapytań do źródeł na jedno wyszukiwanie (domyślnie 500).
+      - key: SEARCH_MAX_TASKS
+        value: "500"
       # Read at runtime by GET /api/v1/config (no Docker build arg needed).
       - key: MAP_STYLE_URL
         value: https://tiles.openfreemap.org/styles/liberty

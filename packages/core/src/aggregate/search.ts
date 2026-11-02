@@ -22,7 +22,7 @@ import {
 } from "./filters.ts";
 import { dedupeOffers } from "./merge.ts";
 import { combineOpenJaw } from "./open-jaw.ts";
-import { planSearch, type SearchPlan } from "./planner.ts";
+import { DEFAULT_MAX_TASKS, planSearch, type SearchPlan } from "./planner.ts";
 import { summarizeByDestination, type SummarizeOptions } from "./rank.ts";
 import { runTasks, type RunResult, type TaskResult } from "./runner.ts";
 
@@ -41,7 +41,7 @@ export interface SearchDeps {
    * cheapest by outbound one-way price first. Default 40.
    */
   openJawDestinations?: number;
-  /** Cap on open-jaw return-leg tasks. Default `maxTasks` (300). */
+  /** Cap on open-jaw return-leg tasks. Default `maxTasks` (`DEFAULT_MAX_TASKS`, 500). */
   openJawMaxTasks?: number;
   /**
    * NBP rates (e.g. `new NbpRates({ cache })`) for converting offers priced in another currency
@@ -323,8 +323,9 @@ export async function searchDestinations(
   let report: OpenJawReport | undefined;
   if (outPlan) {
     // Legs are checked on their own (no price cap: it applies to the sum); an old leg makes the
-    // combination old, so the age limit applies per leg.
-    const legFilters = { ...baseFilters, ...age, maxPrice: undefined };
+    // combination old, so the age limit applies per leg. Packages (flight + hotel) never become
+    // open-jaw legs.
+    const legFilters = { ...baseFilters, ...age, maxPrice: undefined, includePackages: false };
     if (timeReport) timeReport.droppedOpenJawLegs = 0;
     const outLegs = inHours(
       applyFilters(outOffers, legFilters, {
@@ -347,7 +348,7 @@ export async function searchDestinations(
       .sort(([a, x], [b, y]) => x.price - y.price || a.localeCompare(b))
       .slice(0, limit);
 
-    const cap = deps.openJawMaxTasks ?? deps.maxTasks ?? 300;
+    const cap = deps.openJawMaxTasks ?? deps.maxTasks ?? DEFAULT_MAX_TASKS;
     const backTasks: SearchTask[] = [];
     let requested = 0;
     for (const [destination, { dates }] of top) {

@@ -48,7 +48,7 @@ export function parseCalendarParams(sp: URLSearchParams): Validated<CalendarPara
     if (![min, max].every((n) => Number.isInteger(n) && n >= 0 && n <= 365) || min > max) {
       return {
         ok: false,
-        error: "Parametry „stayMin” i „stayMax” muszą być liczbami dni (0–365), min ≤ max.",
+        error: "Parametry „stayMin” i „stayMax” muszą być liczbami dni (0-365), min ≤ max.",
       };
     }
     trip = { kind: "length", minDays: min, maxDays: max };

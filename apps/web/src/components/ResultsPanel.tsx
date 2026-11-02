@@ -6,6 +6,7 @@ import { SORT_LABELS, type DestinationView, type SortMode } from "../lib/destina
 import { plural } from "../lib/format";
 import { EXAMPLE_SEARCHES, type ExampleSearch } from "../lib/search-summary";
 import { DestinationCard } from "./DestinationCard";
+import { OFFERS_PAGE_SIZE, OffersList } from "./OffersList";
 import { btnGhostCls, chipCls, chipOffCls, chipOnCls } from "./ui";
 
 export type SearchStatus =
@@ -57,7 +58,7 @@ export function ResultsPanel(props: Props) {
     return (
       <div className="px-4 py-4" role="status" aria-live="polite">
         {summary && <SummaryLine parts={summary} />}
-        <p className="mb-3 mt-1 text-sm text-muted">Szukam najtańszych lotów…</p>
+        <p className="mb-3 mt-1 text-sm text-muted">Szukam najtańszych lotów</p>
         <div className="flex flex-col">
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="flex justify-between gap-4 border-b border-line py-4">
@@ -101,7 +102,7 @@ function EmptyState({ onExample }: { onExample: (example: ExampleSearch) => void
       </svg>
       <h2 className="font-display text-[28px] font-semibold leading-tight">Dokąd polecimy?</h2>
       <p className="mt-2 text-[15px] text-muted">
-        Podaj skąd lecisz i na jak długo — pokażemy najtańsze kierunki na liście, a trasy i ceny na
+        Podaj skąd lecisz i na jak długo, a pokażemy najtańsze kierunki na liście, a trasy i ceny na
         mapie. „Dokąd” możesz zostawić puste: wtedy szukamy po całym świecie.
       </p>
       <h3 className="mt-7 text-[13px] font-medium text-fg">Na początek spróbuj:</h3>
@@ -119,7 +120,7 @@ function EmptyState({ onExample }: { onExample: (example: ExampleSearch) => void
         ))}
       </ul>
       <p className="mt-7 text-xs text-muted">
-        Ceny pochodzą z wyszukiwań z ostatnich 7 dni i są orientacyjne — przed zakupem sprawdź je w
+        Ceny pochodzą z wyszukiwań z ostatnich 7 dni i są orientacyjne. Przed zakupem sprawdź je w
         serwisie, do którego prowadzi link przy ofercie.
       </p>
     </div>
@@ -143,6 +144,11 @@ function Loaded({
 }: Props & { response: SearchResponse; stay: { min: number; max: number } | null }) {
   const [warningsOpen, setWarningsOpen] = useState(true);
   const { meta } = response;
+  // Few destinations: each one lists its dates (the server sends `offers` per destination).
+  const offersView = meta.view === "offers";
+  const offersTotal = views.reduce((n, v) => n + v.summary.offersCount, 0);
+  // One destination gets a full page of dates; several share the space.
+  const rowsPerDestination = views.length === 1 ? OFFERS_PAGE_SIZE : 5;
 
   return (
     <div className="flex flex-col">
@@ -152,6 +158,13 @@ function Loaded({
           <h2 className="text-sm" data-testid="results-count">
             <span className="font-semibold tabular-nums">{views.length}</span>{" "}
             {plural(views.length, "kierunek", "kierunki", "kierunków")}
+            {offersView && (
+              <>
+                {" · "}
+                <span className="font-semibold tabular-nums">{offersTotal}</span>{" "}
+                {plural(offersTotal, "oferta", "oferty", "ofert")}
+              </>
+            )}
             <span className="text-muted">
               {" "}
               · {meta.tasks} zapytań · {meta.tookMs} ms
@@ -175,7 +188,9 @@ function Loaded({
 
       {(meta.truncated || meta.warnings.length > 0) && (
         <div className="flex flex-col gap-2 px-4 pt-3">
-          {meta.truncated && (
+          {/* The planner's own warning ("Pokazano loty do końca ...") already explains a truncated
+              grid; show the generic banner only when no such warning came back. */}
+          {meta.truncated && !meta.warnings.some((w) => w.startsWith("Pokazano loty do")) && (
             <p role="status" className="rounded-md bg-warn-bg px-3 py-2 text-sm text-warn-fg">
               Wyniki są niepełne: zapytanie przekroczyło limit zapytań do źródeł. Zawęź miejsca
               wylotu lub przedział dat, aby zobaczyć wszystko.
@@ -210,6 +225,23 @@ function Loaded({
             Nie znaleźliśmy lotów dla tych parametrów. Poszerz daty, zwiększ limit ceny albo dopuść
             przesiadki.
           </p>
+        </div>
+      ) : offersView ? (
+        <div data-testid="results-list" className="flex flex-col gap-4">
+          {views.slice(0, limit).map((v) => (
+            <OffersList
+              key={v.key}
+              view={v}
+              sort={sort}
+              pageSize={rowsPerDestination}
+              selected={v.key === selectedKey}
+              highlighted={v.key === hoveredKey}
+              onSelect={() => onSelect(v.key === selectedKey ? null : v.key)}
+              onHover={onHover}
+              api={api}
+              stay={stay}
+            />
+          ))}
         </div>
       ) : (
         <ol data-testid="results-list">

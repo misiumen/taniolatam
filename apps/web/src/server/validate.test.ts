@@ -126,10 +126,32 @@ describe("validateSearchQuery", () => {
       { from: 1.5, to: 10 },
       { from: 0 },
       "6-22",
+      [],
+      [
+        { from: 0, to: 10 },
+        { from: 0, to: 10 },
+        { from: 0, to: 10 },
+        { from: 0, to: 10 },
+        { from: 0, to: 10 },
+      ],
+      [
+        { from: 300, to: 719 },
+        { from: 0, to: 1500 },
+      ],
     ]) {
       const r = validateSearchQuery({ ...valid, filters: { departTime: bad } });
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.error).toMatch(/godzina wylotu/);
     }
+  });
+
+  it("accepts a list of 1–4 time windows (OR)", () => {
+    const windows = [
+      { from: 300, to: 719 },
+      { from: 1020, to: 1259 },
+    ];
+    const r = validateSearchQuery({ ...valid, filters: { departTime: windows } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.filters.departTime).toEqual(windows);
   });
 });

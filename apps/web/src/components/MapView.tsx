@@ -9,7 +9,7 @@ export type { MapArc, MapOrigin, MapPin };
 
 const loadingBox = (
   <div className="grid h-full min-h-72 place-items-center bg-map text-sm text-muted">
-    Ładowanie mapy…
+    Ładowanie mapy
   </div>
 );
 

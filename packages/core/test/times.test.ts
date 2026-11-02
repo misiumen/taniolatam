@@ -3,10 +3,12 @@ import {
   MockSource,
   PlaceIndex,
   activeTimeWindow,
+  activeTimeWindows,
   applyFilters,
   bucketKey,
   combineOpenJaw,
   formatClock,
+  hasTimeWindows,
   inTimeWindow,
   legTimes,
   localDateTimeIn,
@@ -312,6 +314,22 @@ describe("departTime / arriveTime filters", () => {
     expect(timeWindowsAllowed(redEye, { departTime: { from: h(22), to: h(2) } })).toBe(true);
     expect(timeWindowsAllowed(redEye, { departTime: { from: h(22), to: h(0, 59) } })).toBe(false);
     expect(timeWindowsAllowed(redEye, { arriveTime: { from: h(2), to: h(1) } })).toBe(true);
+  });
+
+  it("an array of windows is OR; empty or whole-day arrays mean any time", () => {
+    const o = roundTrip(["08:00", "11:00"], ["18:30", "20:45"]);
+    const morning = { from: h(5), to: h(11, 59) };
+    const evening = { from: h(17), to: h(20, 59) };
+    const afternoon = { from: h(12), to: h(16, 59) };
+    // Outbound in the morning, return in the evening: both legs inside one of the windows.
+    expect(timeWindowsAllowed(o, { departTime: [morning, evening] })).toBe(true);
+    expect(timeWindowsAllowed(o, { departTime: [morning] })).toBe(false);
+    expect(timeWindowsAllowed(o, { departTime: [afternoon, evening] })).toBe(false);
+    expect(timeWindowsAllowed(o, { departTime: [] })).toBe(true);
+    expect(timeWindowsAllowed(o, { departTime: [afternoon, { from: 0, to: 1440 }] })).toBe(true);
+    expect(hasTimeWindows({ departTime: [] })).toBe(false);
+    expect(hasTimeWindows({ arriveTime: [morning] })).toBe(true);
+    expect(activeTimeWindows([morning, { from: 0, to: 1440 }])).toBeUndefined();
   });
 
   it("legs with unknown times pass and mark the offer timesUnknown", () => {

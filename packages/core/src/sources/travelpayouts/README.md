@@ -28,7 +28,9 @@ z `data/airlines.json`: typ przewoźnika i `carrierNames`), `mode` (nadpisuje
 `TRAVELPAYOUTS_MODE`), `latestRateLimit` (domyślnie 4 zapytania/s, burst 4),
 `pricesRateLimit` (domyślnie 8 zapytań/s, burst 8), `fetchImpl`
 (wstrzykiwany `fetch`, testy), `baseUrl`, `linkBaseUrl` (host Aviasales), `market` (domyślnie
-`pl`), `pageSize` (domyślnie i maks. 1000), `maxPages` (domyślnie 3), `token`/`marker`
+`pl`), `pageSize` (domyślnie i maks. 1000), `maxPages` (domyślnie 3),
+`latestSpanMinMonths` (domyślnie 6; od tylu miesięcy okresu `latest` pyta raz z
+`period_type=year`, `Infinity` wyłącza), `latestSpanMaxPages` (domyślnie 5), `token`/`marker`
 (nadpisują env), `onRateLimit`, `logger`, `lowRemainingThreshold` (domyślnie 20).
 
 ## Tryby (`mode` / `TRAVELPAYOUTS_MODE`)
@@ -94,9 +96,9 @@ wysyła kilka zapytań (dwa endpointy, strony).
 |---|---|
 | `currency` | `pln` |
 | `origin` | IATA lotniska z zadania (API przyjmuje lotnisko lub miasto ⚠️) |
-| `destination` | IATA lotniska dla kubełka lotniska; **pomijany** dla "gdziekolwiek" **i dla kubełka kraju** (endpoint zna tylko miasta; miasta kraju wybieramy lokalnie przez `places`, nieznane miasta odpadają) |
-| `beginning_of_period` | `YYYY-MM-01` miesiąca zadania albo `YYYY-MM-DD`, gdy okno to jeden dzień |
-| `period_type` | `month`, albo `day` dla jednego dnia ⚠️ |
+| `destination` | IATA lotniska dla kubełka lotniska, kod miasta dla kubełka miasta (`TYO`); **pomijany** dla "gdziekolwiek" **i dla kubełka kraju** (endpoint zna tylko miasta; miasta kraju wybieramy lokalnie przez `places`, nieznane miasta odpadają) |
+| `beginning_of_period` | `YYYY-MM-01` miesiąca zadania albo `YYYY-MM-DD`, gdy okno to jeden dzień; dla zadań okresu ≥ 6 miesięcy `YYYY-MM-01` **pierwszego** miesiąca okresu (sekcja "Rok w jednym zapytaniu") |
+| `period_type` | `month`, albo `day` dla jednego dnia ⚠️, albo `year` dla zadań okresu ⚠️ |
 | `one_way` | `true` dla `oneway`, inaczej `false` |
 | `limit` / `page` | jak w `prices_for_dates` (1000, kolejna strona tylko po pełnej) |
 | `show_to_affiliates` | `true` |
@@ -131,7 +133,7 @@ Pomijane: `value` ≤ 0, brak `depart_date` lub kodów, kod niebędący 3-znakow
 | Parametr | Wartość |
 |---|---|
 | `origin` | IATA lotniska z zadania (API przyjmuje kod lotniska lub miasta) |
-| `destination` | IATA celu; dla kubełka kraju (`{ kind: "country" }`) **kod kraju ISO** (np. `TH`) ⚠️; **pomijany** dla "gdziekolwiek" |
+| `destination` | IATA celu; dla kubełka miasta (`{ kind: "city" }`) **kod miasta** (np. `TYO`) ⚠️; dla kubełka kraju (`{ kind: "country" }`) **kod kraju ISO** (np. `TH`) ⚠️; **pomijany** dla "gdziekolwiek" |
 | `departure_at` | `YYYY-MM` (miesiąc zadania) albo `YYYY-MM-DD`, gdy okno to jeden dzień |
 | `return_at` | tylko dla `fixedReturn`: dokładna data, gdy `returnFrom === returnTo`, inaczej osobne zapytanie na każdy miesiąc zakresu (maks. 3) |
 | `one_way` | `true` dla `oneway`, `false` dla `length` i `fixedReturn` |
@@ -163,6 +165,35 @@ obejmuje całe kraje (np. "Azja"), a siatka mieści się w limicie zadań; inacz
 "gdziekolwiek". Zakładamy, że odpowiedź dla kraju zawiera ceny do wielu miast tego kraju
 z wypełnionym `destination_airport`. Jeśli API odrzuci kod kraju, wystarczy ustawić
 `countryDestination: false` — planner wróci do "gdziekolwiek" / lotnisk.
+
+### Miasto jako cel (`capabilities.cityDestination = true`)
+
+Oba endpointy `search()` przyjmują jako `destination` kod IATA **miasta** (dokumentacja: "IATA
+code of the city or airport"). Planner tworzy kubełek `{ kind: "city", code, airports }` dla
+kuratorowanej grupy `<KOD>-city` (`data/place-groups.json`), gdy obejmuje ≥ 2 lotniska celu
+(Tokio: TYO = NRT + HND). Do kubełka trafiają tylko lotniska obsługujące to miasto
+(`cityEn` = `nameEn` grupy): Girona i Reus z BCN-city zostają osobnymi kubełkami lotnisk. Kody
+zastępcze (QLA, QSF, …) są pomijane. Adapter wysyła `destination=TYO` do `latest`
+i `prices_for_dates` (`unique=false`, wszystkie daty); oferty `latest` z kodem miasta
+(`destinationIsCity`) pipeline dopasowuje do lotnisk celu przez `cityAirports`. Klucz cache
+to `city-TYO` (bez listy lotnisk: wynik zależy tylko od kodu miasta, a lotniska filtruje
+pipeline) ⚠️ (punkty 31–32).
+
+### Rok w jednym zapytaniu `latest` (`period_type=year`)
+
+Planner nadal tworzy **jedno zadanie na miesiąc** (limit zadań, strumieniowanie wyników i klucze
+cache bez zmian), ale każde zadanie dostaje `spanMonths`: wszystkie miesiące, które planner
+wygenerował dla tego samego (źródło × lotnisko wylotu × kubełek), kolejne i po kolei (po
+przycięciu tylko zachowane). Gdy `spanMonths` ma ≥ `latestSpanMinMonths` (domyślnie 6,
+`TP_LATEST_SPAN_MIN_MONTHS`) miesięcy, `latest` dla tych zadań to **jedno wspólne zapytanie**:
+`period_type=year`, `beginning_of_period=<pierwszy miesiąc okresu>-01`, do
+`latestSpanMaxPages` (domyślnie 5) stron. Zadania tego samego przebiegu (`runTasks` przekazuje
+jeden obiekt kontekstu wszystkim zadaniom) czekają na tę samą obietnicę i każde przycina wynik
+lokalnie do swojego `departFrom…departTo` i długości pobytu, więc ceny spoza okna odpadają,
+a wynik zadania w cache (klucz z oknem miesiąca) jest taki sam jak przy zapytaniu miesięcznym.
+Wspólne zapytania żyją z kontekstem przebiegu (WeakMap) i najwyżej 10 minut; nieudane jest
+zapominane, więc kolejne zadanie okresu ponawia je. Krótsze zakresy i okna jednodniowe pytają
+jak wcześniej (`month` / `day`). `prices_for_dates` zawsze pyta miesiąc po miesiącu ⚠️ (punkt 30).
 
 ## Mapowanie na `Offer`
 
@@ -226,7 +257,13 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
   `rateLimit = { rps: 8, burst: 2, concurrency: 6 }` dla zadań, a same zapytania przechodzą
   przez osobne token buckety: `latestRateLimit` 4/s, burst 4 (`TP_LATEST_RATE_LIMIT`, ≤ 244/min)
   i `pricesRateLimit` 8/s, burst 8 (`TP_PRICES_RATE_LIMIT`, ≤ 488/min, także strony i miesiące
-  powrotu). W praktyce tempo zadań w `both` wyznacza bucket `latest` (≈ 4 zadania/s).
+  powrotu, a od teraz także `calendar()` / `grouped_prices`). Najgorszy przypadek w dowolnej
+  minucie to `rps × 60 + burst`, więc oba limity są dotrzymane przy dowolnej liczbie zadań
+  (sprawdza to test "rate limits"); burst nie wymaga zmiany. Dla zadań okresu (≥ 6 miesięcy)
+  `latest` to jedno zapytanie na (lotnisko × kubełek), więc tempo zadań w `both` wyznacza
+  bucket `prices_for_dates` (≈ 8 zadań/s); dla krótkich zakresów — bucket `latest` (≈ 4/s).
+  Przykład: Polska → Tokio na 13 miesięcy = 195 zadań → 15 zapytań `latest` + 195
+  `prices_for_dates` (wcześniej 300 z 390 zadań i 600 zapytań).
 - Nagłówki `X-Rate-Limit`, `X-Rate-Limit-Remaining`, `X-Rate-Limit-Reset` ⚠️ są czytane po każdej
   odpowiedzi: `source.lastRateLimit`, callback `onRateLimit`, ostrzeżenie w `logger` przy
   `remaining ≤ lowRemainingThreshold`.
@@ -288,6 +325,23 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
     nieznany) i czy dla lotów w jedną stronę `duration` = `duration_to`.
 28. Czy godziny w `prices_for_dates` dotyczą pierwszego segmentu (wylot z lotniska `origin_airport`)
     i ostatniego (przylot do `destination_airport`), także przy przesiadkach na innych lotniskach.
+29. `/v2/prices/latest` z `period_type=year`: czy zwraca ceny na **wszystkie** daty wylotu
+    (dokumentacja: "za cały czas"), czy `beginning_of_period` jest wtedy brane pod uwagę, czy
+    ignorowane, oraz czy `limit=1000` × `latestSpanMaxPages` (5) mieści rok cen dla jednego
+    lotniska wylotu (zwłaszcza "gdziekolwiek" z WAW); przy pełnych stronach wyniki odległych
+    miesięcy mogą wypaść (sortowanie po cenie). Wtedy podnieść `latestSpanMaxPages` albo
+    ustawić `latestSpanMinMonths: Infinity` (zapytania miesięczne jak wcześniej).
+30. `prices_for_dates`: czy `departure_at` można **pominąć** (cały dostępny okres) albo podać jako
+    zakres; dziś zakładamy, że to tylko `YYYY-MM` lub `YYYY-MM-DD`, więc zadania okresu dalej
+    pytają miesiąc po miesiącu. Jeśli pominięcie działa, rok kosztowałby jedno zapytanie na
+    (lotnisko × kubełek), jak w `latest`.
+31. `destination=<kod miasta>` (np. `TYO`) w obu endpointach: czy obejmuje wszystkie lotniska
+    miasta (NRT + HND) i czy `prices_for_dates` wypełnia wtedy `destination_airport`. Sprawdzić
+    grupy, w których Aviasales może liczyć lotniska inaczej niż `data/place-groups.json`:
+    PAR (BVA), MIL (BGY), BRU (CRL), VCE (TSF), STO (VST), YTO (YTZ). Gdy lotniska brak w
+    mieście Aviasales, ceny do niego znikną z kubełka miasta — wtedy usunąć je z grupy.
+32. Czy kody miast kubełków (`TYO`, `LON`, `BKK`, …) to kody miast Aviasales; kody zastępcze
+    z grup (QLA, QSF, QMI, QHO, QDF) planner pomija, bo nie są kodami IATA miast.
 
 ## Uwagi prawne
 

@@ -1,4 +1,4 @@
-import type { IsoDate } from "./dates.ts";
+import type { IsoDate, IsoMonth } from "./dates.ts";
 import type { Place } from "./place.ts";
 
 export type CarrierType = "scheduled" | "lowcost" | "charter";
@@ -91,6 +91,16 @@ export interface Offer {
   /** Short Polish note for the UI about the price's provenance, e.g. "cache do 7 dni". */
   note?: string;
   /**
+   * The price is a tour operator's package (flight + hotel), not a flight alone (charter feeds;
+   * `note: "cena pakietu (lot + hotel)"`). Dropped by the filters unless
+   * `filters.includePackages`, and never deduplicated against flight-only prices.
+   */
+  isPackage?: boolean;
+  /** Tour operator selling the seat or package (charter feeds), e.g. "Itaka". */
+  operator?: string;
+  /** Seats left at that price, when the source says (charter feeds). */
+  seatsLeft?: number;
+  /**
    * `origin` / `destination` is an IATA city (metro) code with several airports (LON, WAW as the
    * city), not one airport. Sources that only know cities (Travelpayouts latest prices) set it;
    * `PlaceIndex.cityAirports(code)` lists the airports.
@@ -121,12 +131,29 @@ export interface HistogramBucket {
   count: number;
 }
 
+/** Cheapest offer of one departure month of a destination (`DestinationSummary.byMonth`). */
+export interface DestinationMonth {
+  /** Departure month, "YYYY-MM". */
+  month: IsoMonth;
+  cheapest: Offer;
+  /** Distinct itineraries departing that month (deduped as in `DestinationSummary.offers`). */
+  count: number;
+}
+
 export interface DestinationSummary {
   destination: Place;
   cheapest: Offer;
   offersCount: number;
   histogram: HistogramBucket[];
   sources: string[];
+  /**
+   * The cheapest itineraries to this destination, cheapest first, one per (origin, departDate,
+   * returnDate, carriers). Only set when `summarizeByDestination` gets `offersPerDestination > 0`;
+   * always includes each month's cheapest offer (see `byMonth`).
+   */
+  offers?: Offer[];
+  /** Cheapest offer per departure month, months ascending. Set together with `offers`. */
+  byMonth?: DestinationMonth[];
 }
 
 /**

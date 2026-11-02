@@ -1,7 +1,52 @@
-import type { AirportInfo, SearchRequest } from "@gdziepolece/api-client";
-import { placeKey, searchDestinations } from "@gdziepolece/core";
+import type { AirportInfo, ResultsView, SearchRequest } from "@gdziepolece/api-client";
+import {
+  placeKey,
+  searchDestinations,
+  summarizeByDestination,
+  type Offer,
+  type PlaceIndex,
+} from "@gdziepolece/core";
 import type { WebSearchResponse } from "../lib/api-extensions";
 import type { ServerContext } from "./context";
+
+/** At most this many destinations in the result: list every destination's dates ("offers"). */
+export const OFFERS_VIEW_MAX_DESTINATIONS = 8;
+/** Explicit destinations resolving to at most this many cities also get the offers view. */
+export const OFFERS_VIEW_MAX_CITIES = 3;
+/** Offers listed per destination in the offers view. */
+export const OFFERS_PER_DESTINATION = 40;
+
+/**
+ * Number of cities behind explicit destinations, or undefined for "anywhere" / an unresolvable
+ * place. A country or region usually expands to many cities.
+ */
+export function explicitCityCount(
+  destinations: SearchRequest["destinations"],
+  places: Pick<PlaceIndex, "resolve" | "cityOf">,
+): number | undefined {
+  if (destinations.length === 0 || destinations.some((d) => d.kind === "anywhere")) {
+    return undefined;
+  }
+  const cities = new Set<string>();
+  try {
+    for (const d of destinations) {
+      for (const code of places.resolve(d)) {
+        const city = places.cityOf(code);
+        cities.add(city ? placeKey(city) : code);
+      }
+    }
+  } catch {
+    return undefined;
+  }
+  return cities.size > 0 ? cities.size : undefined;
+}
+
+/** Few destinations: show each one's dates and prices instead of one card per destination. */
+export function resultsView(destinationCount: number, explicitCities?: number): ResultsView {
+  if (destinationCount <= OFFERS_VIEW_MAX_DESTINATIONS) return "offers";
+  if (explicitCities !== undefined && explicitCities <= OFFERS_VIEW_MAX_CITIES) return "offers";
+  return "destinations";
+}
 
 /** Runs one search and shapes it into the `/api/v1/search` response. */
 export async function runSearch(
@@ -55,9 +100,21 @@ export async function runSearch(
       lon: a.lon,
     };
   };
-  const groupAirports: Record<string, string[]> = {};
-  for (const d of result.summaries) {
-    const o = d.cheapest;
+  const view = resultsView(
+    result.summaries.length,
+    explicitCityCount(query.destinations, ctx.places),
+  );
+  // The core summaries carry no offer lists; the offers view re-summarizes the same offers.
+  const summaries =
+    view === "offers" && result.summaries.length > 0
+      ? summarizeByDestination(result.offers, {
+          groupBy: "city",
+          places: ctx.places,
+          offersPerDestination: OFFERS_PER_DESTINATION,
+        })
+      : result.summaries;
+
+  const addOfferAirports = (o: Offer) => {
     addAirport(o.destination);
     addAirport(o.origin);
     if (o.returnTo) addAirport(o.returnTo);
@@ -65,6 +122,11 @@ export async function runSearch(
       addAirport(leg.origin);
       addAirport(leg.destination);
     }
+  };
+  const groupAirports: Record<string, string[]> = {};
+  for (const d of summaries) {
+    addOfferAirports(d.cheapest);
+    for (const o of d.offers ?? []) addOfferAirports(o);
     try {
       const codes = ctx.places.resolve(d.destination);
       if (codes.length > 1) groupAirports[placeKey(d.destination)] = [...codes].sort();
@@ -77,7 +139,7 @@ export async function runSearch(
   const timeWindows = (result as { timeWindows?: { dropped: number } }).timeWindows;
 
   return {
-    destinations: result.summaries,
+    destinations: summaries,
     ...(timeWindows ? { timeWindows } : {}),
     carrierFacet: result.carrierFacet,
     groupAirports,
@@ -89,6 +151,7 @@ export async function runSearch(
       tookMs: Date.now() - started,
       warnings,
       truncated: result.plan.truncated,
+      view,
     },
   };
 }

@@ -50,6 +50,8 @@ export default defineConfig({
       SOURCE_TRAVELPAYOUTS: "0",
       SOURCE_DUFFEL: "0",
       CACHE_DRIVER: "memory",
+      // Canonical URLs in the SEO specs assume the production address.
+      PUBLIC_SITE_URL: "https://gdziepolece.pl",
       NEXT_TELEMETRY_DISABLED: "1",
     },
   },

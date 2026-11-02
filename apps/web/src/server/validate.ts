@@ -2,6 +2,8 @@ import type { CarrierType, DateWindow, Place, TripSpec, Weekday } from "@gdziepo
 import type { TimeWindow, WebSearchFilters, WebSearchRequest } from "../lib/api-extensions";
 
 const DAY_MINUTES = 1440;
+/** "Rano", "Popołudnie", "Wieczór", "Noc": at most four time windows per field. */
+const MAX_TIME_WINDOWS = 4;
 
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -48,7 +50,7 @@ function num(
     (int && !Number.isInteger(v))
   ) {
     return fail(
-      `Pole „${what}” musi być ${int ? "liczbą całkowitą" : "liczbą"} z zakresu ${min}–${max}.`,
+      `Pole „${what}” musi być ${int ? "liczbą całkowitą" : "liczbą"} z zakresu ${min}-${max}.`,
     );
   }
   return v;
@@ -104,7 +106,7 @@ function places(v: unknown, what: string, { required }: { required: boolean }): 
 function weekdays(v: unknown, what: string): Weekday[] | undefined {
   if (v === undefined) return undefined;
   if (!Array.isArray(v) || v.length > 7)
-    return fail(`Pole „${what}” musi być listą dni tygodnia 1–7.`);
+    return fail(`Pole „${what}” musi być listą dni tygodnia 1-7.`);
   return [...new Set(v.map((d) => num(d, what, { min: 1, max: 7, int: true })))] as Weekday[];
 }
 
@@ -160,7 +162,7 @@ function carrierCodes(v: unknown, what: string): string[] | undefined {
   }
   const codes = v.map((c) => (typeof c === "string" ? c.trim().toUpperCase() : ""));
   if (!codes.every((c) => CARRIER_CODE.test(c))) {
-    return fail(`Pole „${what}” zawiera nieprawidłowy kod linii (oczekiwano 2–3 znaków).`);
+    return fail(`Pole „${what}” zawiera nieprawidłowy kod linii (oczekiwano 2-3 znaków).`);
   }
   return [...new Set(codes)];
 }
@@ -169,11 +171,20 @@ function carrierCodes(v: unknown, what: string): string[] | undefined {
  * `{ from, to }` in minutes from local midnight, integers 0–1440, both inclusive. `from > to`
  * is a window across midnight (e.g. 22:00–02:00) and is allowed.
  */
-function timeWindow(v: unknown, what: string): TimeWindow | undefined {
-  if (v === undefined) return undefined;
+function oneTimeWindow(v: unknown, what: string): TimeWindow {
   if (!isObj(v)) return fail(`Pole „${what}” musi mieć postać { from, to } (minuty od północy).`);
   const opts = { min: 0, max: DAY_MINUTES, int: true };
   return { from: num(v.from, `${what} od`, opts), to: num(v.to, `${what} do`, opts) };
+}
+
+/** One window, or a list of 1–4 windows (OR: "rano" or "wieczór"). */
+function timeWindow(v: unknown, what: string): TimeWindow | TimeWindow[] | undefined {
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v)) return oneTimeWindow(v, what);
+  if (v.length < 1 || v.length > MAX_TIME_WINDOWS) {
+    return fail(`Pole „${what}” może mieć od 1 do ${MAX_TIME_WINDOWS} przedziałów godzin.`);
+  }
+  return v.map((w) => oneTimeWindow(w, what));
 }
 
 function filters(v: unknown): WebSearchFilters {

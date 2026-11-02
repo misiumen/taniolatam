@@ -31,6 +31,12 @@ const nextConfig = {
       test: /packages[\\/]core[\\/]src[\\/]places[\\/]loader\.ts$/,
       parser: { url: false },
     });
+    // Same for the charter config loader: its default file (<repo>/config/charter-feeds.json) is
+    // optional and read at runtime, so webpack must not try to bundle it as an asset.
+    config.module.rules.push({
+      test: /packages[\\/]core[\\/]src[\\/]sources[\\/]charters[\\/]config-loader\.ts$/,
+      parser: { url: false },
+    });
     return config;
   },
 };

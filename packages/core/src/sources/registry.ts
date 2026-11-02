@@ -1,5 +1,7 @@
 import type { AirlineIndex } from "../airlines/airline-index.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
+import { CharterSource } from "./charters/charter-source.ts";
+import type { CharterStore } from "./charters/types.ts";
 import { MockSource } from "./mock/mock-source.ts";
 import { TravelpayoutsSource } from "./travelpayouts/travelpayouts-source.ts";
 import type { Env, FlightSource } from "./types.ts";
@@ -35,6 +37,11 @@ export interface DefaultSourceDeps {
   places: PlaceIndex;
   /** `data/airlines.json` (see `loadAirlineIndex`); optional. */
   airlines?: AirlineIndex;
+  /**
+   * Imported charter rows (`openCharterStore` from "@gdziepolece/core/node"). Without it the
+   * charter source stays disabled even with SOURCE_CHARTERS=1.
+   */
+  charters?: CharterStore;
 }
 
 /** All built-in sources. New adapters add one line here (each gates itself via `isEnabled`). */
@@ -43,5 +50,7 @@ export function createDefaultRegistry(deps: DefaultSourceDeps): SourceRegistry {
     new MockSource({ places: deps.places }),
     // SOURCE_TRAVELPAYOUTS=1 + TRAVELPAYOUTS_TOKEN; TRAVELPAYOUTS_MODE picks the endpoint(s).
     new TravelpayoutsSource({ places: deps.places, airlines: deps.airlines }),
+    // SOURCE_CHARTERS=1 + a charter store filled by importCharterFeeds (see sources/charters).
+    new CharterSource({ store: deps.charters, airlines: deps.airlines }),
   ]);
 }

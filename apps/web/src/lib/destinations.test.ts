@@ -2,7 +2,16 @@ import type { ApiDestinationSummary, ApiOffer } from "@gdziepolece/api-client";
 import { placeKey } from "@gdziepolece/core";
 import { describe, expect, it } from "vitest";
 import type { SearchResponse } from "@gdziepolece/api-client";
-import { describeDestinations, excludeCarriersLocally, sortDestinations } from "./destinations";
+import {
+  describeDestinations,
+  destinationMonths,
+  destinationOffers,
+  excludeCarriersLocally,
+  monthsOf,
+  offersInMonth,
+  sortDestinations,
+  sortOffers,
+} from "./destinations";
 
 function summary(
   city: string,
@@ -105,5 +114,72 @@ describe("excludeCarriersLocally", () => {
 
   it("returns the response untouched when nothing is excluded", () => {
     expect(excludeCarriersLocally(response, [])).toBe(response);
+  });
+});
+
+function trip(id: string, departDate: string, price: number, extra: Partial<ApiOffer> = {}) {
+  return { ...summary(id, price, { departDate, ...extra }).cheapest, id };
+}
+
+describe("offer list helpers", () => {
+  const offers = [
+    trip("a", "2027-03-05", 2671, { durationMinutes: 900, stops: 1, cacheAgeHours: 30 }),
+    trip("b", "2027-01-12", 2700, { durationMinutes: 780, stops: 0, cacheAgeHours: 5 }),
+    trip("c", "2027-01-10", 2900, { durationMinutes: 780, stops: 0, freshness: "live" }),
+    trip("d", "2027-02-03", 3100, { stops: 2 }),
+  ];
+
+  it("sorts offers in each mode, price then date breaking ties", () => {
+    const ids = (mode: Parameters<typeof sortOffers>[1]) =>
+      sortOffers(offers, mode).map((o) => o.id);
+    expect(ids("price")).toEqual(["a", "b", "c", "d"]);
+    expect(ids("duration")).toEqual(["b", "c", "a", "d"]);
+    expect(ids("direct")).toEqual(["b", "c", "a", "d"]);
+    expect(ids("fresh")).toEqual(["c", "b", "a", "d"]);
+    // Equal price and duration: earlier departure first.
+    const tied = [trip("x", "2027-05-02", 100), trip("y", "2027-05-01", 100)];
+    expect(sortOffers(tied, "price").map((o) => o.id)).toEqual(["y", "x"]);
+  });
+
+  it("groups offers by month and filters by month", () => {
+    expect(monthsOf(offers).map((m) => [m.month, m.cheapest.id, m.count])).toEqual([
+      ["2027-01", "b", 2],
+      ["2027-02", "d", 1],
+      ["2027-03", "a", 1],
+    ]);
+    expect(offersInMonth(offers, "2027-01").map((o) => o.id)).toEqual(["b", "c"]);
+    expect(offersInMonth(offers, null)).toHaveLength(4);
+  });
+
+  it("falls back to the cheapest offer and derived months without server lists", () => {
+    const plain = summary("Tokio", 2671);
+    expect(destinationOffers(plain)).toEqual([plain.cheapest]);
+    expect(destinationMonths(plain).map((m) => m.month)).toEqual(["2027-03"]);
+    const listed = { ...plain, offers, byMonth: monthsOf(offers.slice(0, 1)) };
+    expect(destinationOffers(listed)).toBe(offers);
+    expect(destinationMonths(listed).map((m) => m.month)).toEqual(["2027-03"]);
+  });
+
+  it("removes excluded airlines from an offer list and promotes the next cheapest", () => {
+    const withList: ApiDestinationSummary = {
+      ...summary("Tokio", 2671),
+      offers: [
+        trip("a", "2027-03-05", 2671, { carriers: ["TK"] }),
+        trip("b", "2027-01-12", 2700, { carriers: ["LO"] }),
+        trip("c", "2027-02-03", 3100, { carriers: ["TK", "LO"] }),
+      ],
+    };
+    withList.cheapest = withList.offers![0]!;
+    const response = {
+      destinations: [withList],
+      airports: {},
+      meta: { sources: [], tasks: 0, cacheHits: 0, tookMs: 0, warnings: [], truncated: false },
+    } satisfies SearchResponse;
+    const [d] = excludeCarriersLocally(response, ["TK"]).destinations;
+    expect(d?.cheapest.id).toBe("b");
+    expect(d?.offers?.map((o) => o.id)).toEqual(["b"]);
+    expect(d?.byMonth?.map((m) => m.month)).toEqual(["2027-01"]);
+    expect(excludeCarriersLocally(response, ["TK", "LO"]).destinations).toEqual([]);
+    expect(excludeCarriersLocally(response, ["W6"]).destinations[0]).toBe(withList);
   });
 });

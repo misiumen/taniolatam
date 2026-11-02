@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AirlineIndex,
   LATEST_PRICES_PATH,
+  MemoryCache,
   PRICES_FOR_DATES_PATH,
   PlaceIndex,
   TP_CACHE_7D_NOTE,
@@ -11,8 +12,11 @@ import {
   mapTravelpayoutsLatestEntry,
   mergeLatestWithPricesForDates,
   parseTravelpayoutsMode,
+  planSearch,
   resolveCityCode,
+  runTasks,
   searchDestinations,
+  taskCacheKey,
   type SearchQuery,
   type SearchTask,
   type SourceContext,
@@ -705,5 +709,220 @@ describe("mergeLatestWithPricesForDates", () => {
   it("equal prices keep the prices_for_dates details", () => {
     const [o] = mergeLatestWithPricesForDates([latest("BCN", 300)], [v3("BCN", 300)], places);
     expect(o).toMatchObject({ carriers: ["LO"], price: 300, cacheAgeHours: 4 });
+  });
+});
+
+describe("TravelpayoutsSource: city buckets and year spans", () => {
+  const tyo = new PlaceIndex({
+    ...fixtureData,
+    groups: {
+      ...fixtureData.groups,
+      "TYO-city": { namePl: "Tokio", nameEn: "Tokyo", airports: ["NRT", "HND"] },
+    },
+  });
+
+  /** Latest round trips to Tokyo (city code) for whichever origin was asked. */
+  const tokyoLatest = (origin: string) => ({
+    success: true,
+    currency: "pln",
+    data: [
+      ["2026-12-05", "2026-12-20", 3100], // 15 days
+      ["2027-03-10", "2027-03-28", 2900], // 18 days
+      ["2027-03-12", "2027-03-15", 1500], // 3 days: outside 14–21
+      ["2027-10-01", "2027-10-16", 3300], // 15 days
+      ["2028-01-10", "2028-01-25", 2000], // after the window
+    ].map(([depart, ret, value]) => ({
+      value,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin,
+      destination: "TYO",
+      depart_date: depart,
+      return_date: ret,
+      number_of_changes: 1,
+      found_at: "2026-11-02T08:00:00Z",
+      actual: true,
+    })),
+  });
+
+  /** Answers latest by `origin`; prices_for_dates empty. Records every URL. */
+  function tokyoFetch() {
+    const calls: URL[] = [];
+    const fn = vi.fn(async (input: string) => {
+      const url = new URL(input);
+      calls.push(url);
+      const body =
+        url.pathname === LATEST_PRICES_PATH
+          ? tokyoLatest(url.searchParams.get("origin")!)
+          : emptyData;
+      return new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    return Object.assign(fn, {
+      calls,
+      of: (path: string) => calls.filter((u) => u.pathname === path),
+    });
+  }
+
+  const yearQuery: SearchQuery = {
+    origins: [{ kind: "country", code: "PL" }],
+    destinations: [{ kind: "group", id: "TYO-city" }],
+    dates: {
+      departFrom: "2026-11-16",
+      departTo: "2027-11-15",
+      trip: { kind: "length", minDays: 14, maxDays: 21 },
+    },
+    filters: {},
+    currency: "PLN",
+  };
+  const fast = { rps: 1000, burst: 100 };
+  // The runner's task lane (8 tasks/s by default) would make a year of tasks slow.
+  const limits = { travelpayouts: { rps: 1000, burst: 100, concurrency: 16 } };
+  const tpSource = (fetchImpl: ReturnType<typeof tokyoFetch>, over = {}) =>
+    new TravelpayoutsSource({
+      fetchImpl,
+      places: tyo,
+      latestRateLimit: fast,
+      pricesRateLimit: fast,
+      ...over,
+    });
+
+  it("city bucket: both endpoints get destination=TYO, prices_for_dates keeps every date", async () => {
+    const fetchImpl = tokyoFetch();
+    const offers = await tpSource(fetchImpl).search(
+      task({
+        destination: { kind: "city", code: "TYO", airports: ["HND", "NRT"] },
+        trip: { kind: "length", minDays: 14, maxDays: 21 },
+      }),
+      ctx(),
+    );
+    const latest = fetchImpl.of(LATEST_PRICES_PATH)[0]!.searchParams;
+    const v3 = fetchImpl.of(PRICES_FOR_DATES_PATH)[0]!.searchParams;
+    expect(latest.get("destination")).toBe("TYO");
+    expect(latest.get("period_type")).toBe("month"); // no span: one month
+    expect(v3.get("destination")).toBe("TYO");
+    expect(v3.get("unique")).toBe("false");
+    expect(offers.map((o) => [o.destination, o.destinationIsCity, o.departDate])).toEqual([
+      ["TYO", true, "2027-03-10"],
+    ]);
+  });
+
+  it("PL → Tokyo for a year: one latest request per origin (period_type=year), per-month cache keys", async () => {
+    const fetchImpl = tokyoFetch();
+    const src = tpSource(fetchImpl);
+    const plan = planSearch(yearQuery, { places: tyo, sources: [src], today: "2026-11-02" });
+    expect(plan.strategies.travelpayouts?.strategy).toBe("city");
+    expect(plan.tasks).toHaveLength(4 * 13); // 4 fixture PL airports × 13 months
+
+    const cache = new MemoryCache();
+    const run = () => runTasks(plan.tasks, { sources: [src], ctx: ctx(), cache, limits });
+    const first = await run();
+    expect(first.errors).toEqual([]);
+
+    const latest = fetchImpl.of(LATEST_PRICES_PATH);
+    expect(latest.map((u) => u.searchParams.get("origin")).sort()).toEqual([
+      "KRK",
+      "POZ",
+      "WAW",
+      "WMI",
+    ]);
+    for (const u of latest) {
+      expect(u.searchParams.get("period_type")).toBe("year");
+      expect(u.searchParams.get("beginning_of_period")).toBe("2026-11-01");
+      expect(u.searchParams.get("destination")).toBe("TYO");
+    }
+    // prices_for_dates still asks month by month.
+    const v3 = fetchImpl.of(PRICES_FOR_DATES_PATH);
+    expect(v3).toHaveLength(4 * 13);
+    expect(new Set(v3.map((u) => u.searchParams.get("departure_at")))).toEqual(
+      new Set(plan.months),
+    );
+
+    // Each task keeps only its own month (and the stay length); nothing after the window.
+    const byTask = Object.fromEntries(
+      first.results
+        .filter((r) => r.task.origin === "KRK" && r.offers.length)
+        .map((r) => [r.task.month, r.offers.map((o) => `${o.departDate}/${o.returnDate}`)]),
+    );
+    expect(byTask).toEqual({
+      "2026-12": ["2026-12-05/2026-12-20"],
+      "2027-03": ["2027-03-10/2027-03-28"],
+      "2027-10": ["2027-10-01/2027-10-16"],
+    });
+
+    // Cache keys stay per task (month window), so a second run makes no request at all.
+    const keys = new Set(plan.tasks.map(taskCacheKey));
+    expect(keys.size).toBe(plan.tasks.length);
+    expect([...keys][0]).toBe(
+      'task:travelpayouts:KRK:city-TYO:2026-11-16:2026-11-30:{"kind":"length","minDays":14,"maxDays":21}::PLN',
+    );
+    const before = fetchImpl.calls.length;
+    const second = await run();
+    expect(second.results.every((r) => r.cached)).toBe(true);
+    expect(fetchImpl.calls.length).toBe(before);
+    expect(second.offers.length).toBe(first.offers.length);
+  });
+
+  it("strict mode over a year: 4 latest requests in total instead of 52", async () => {
+    const fetchImpl = tokyoFetch();
+    const src = tpSource(fetchImpl);
+    const r = await searchDestinations(
+      { ...yearQuery, filters: { maxPriceAgeHours: 48, allowUnknownPriceAge: false } },
+      { places: tyo, sources: [src], ctx: ctx(), limits },
+    );
+    expect(r.errors).toEqual([]);
+    expect(fetchImpl.calls.map((u) => u.pathname)).toEqual(Array(4).fill(LATEST_PRICES_PATH));
+    expect(r.offers.map((o) => o.departDate)).toContain("2027-10-01");
+    expect(r.offers.some((o) => o.departDate === "2028-01-10")).toBe(false);
+  });
+
+  it("short spans (< 6 months) and separate runs keep per-month requests", async () => {
+    const fetchImpl = tokyoFetch();
+    const src = tpSource(fetchImpl, { mode: "latest48h" });
+    const spring: SearchQuery = {
+      ...yearQuery,
+      origins: [{ kind: "airport", code: "KRK" }],
+      dates: { ...yearQuery.dates, departFrom: "2027-01-01", departTo: "2027-05-31" },
+    };
+    const plan = planSearch(spring, { places: tyo, sources: [src], today: "2026-11-02" });
+    expect(plan.tasks[0]?.spanMonths).toHaveLength(5);
+    await runTasks(plan.tasks, { sources: [src], ctx: ctx(), limits });
+    const periods = fetchImpl.of(LATEST_PRICES_PATH).map((u) => u.searchParams.get("period_type"));
+    expect(periods).toEqual(Array(5).fill("month"));
+
+    // A span is shared within one run (one context) only.
+    const year = planSearch(
+      { ...yearQuery, origins: [{ kind: "airport", code: "KRK" }] },
+      { places: tyo, sources: [src], today: "2026-11-02" },
+    );
+    fetchImpl.calls.length = 0;
+    await runTasks(year.tasks, { sources: [src], ctx: ctx(), limits });
+    await runTasks(year.tasks.slice(0, 1), { sources: [src], ctx: ctx(), limits });
+    expect(fetchImpl.of(LATEST_PRICES_PATH)).toHaveLength(2);
+  });
+
+  it("a failed span request fails its waiting tasks and is retried by later ones", async () => {
+    let fail = true;
+    const inner = tokyoFetch();
+    const fetchImpl = Object.assign(
+      vi.fn(async (input: string) => {
+        if (fail && new URL(input).pathname === LATEST_PRICES_PATH) {
+          return new Response("boom", { status: 500 });
+        }
+        return inner(input);
+      }),
+      { calls: inner.calls, of: inner.of },
+    );
+    const src = tpSource(fetchImpl, { mode: "latest48h" });
+    const plan = planSearch(
+      { ...yearQuery, origins: [{ kind: "airport", code: "KRK" }] },
+      { places: tyo, sources: [src], today: "2026-11-02" },
+    );
+    const c = ctx();
+    await expect(src.search(plan.tasks[0]!, c)).rejects.toThrow(/HTTP 500/);
+    fail = false;
+    const offers = await src.search(plan.tasks[1]!, c); // 2026-12
+    expect(offers.map((o) => o.departDate)).toEqual(["2026-12-05"]);
   });
 });

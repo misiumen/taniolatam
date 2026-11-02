@@ -32,7 +32,7 @@ interface Props {
   stay: { min: number; max: number } | null;
 }
 
-function LinkRow({ links, label }: { links: VerifyLink[]; label?: string }) {
+export function LinkRow({ links, label }: { links: VerifyLink[]; label?: string }) {
   if (links.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -49,6 +49,25 @@ function LinkRow({ links, label }: { links: VerifyLink[]; label?: string }) {
         </a>
       ))}
     </div>
+  );
+}
+
+/** "na żywo" / "znaleziona 5 h temu" badge, tinted by how old the price is. */
+export function PriceAgeChip({ offer }: { offer: ApiOffer }) {
+  const age = priceAge(offer);
+  return (
+    <span
+      data-testid="price-age"
+      className={`rounded-full px-2 py-0.5 font-medium ${
+        age.tone === "live"
+          ? "bg-good-bg text-good"
+          : age.tone === "recent"
+            ? "bg-surface-2 text-fg"
+            : "bg-warn-bg text-warn-fg"
+      }`}
+    >
+      {age.label}
+    </span>
   );
 }
 
@@ -125,7 +144,6 @@ export function DestinationCard({
   const { summary } = view;
   const offer = summary.cheapest;
   const affiliateEnv = useAffiliateEnv();
-  const age = priceAge(offer);
   const price = describePrice(offer);
   const carriers = carrierLabel(offer);
   const duration = formatDuration(offer.durationMinutes);
@@ -172,7 +190,7 @@ export function DestinationCard({
   }
 
   const place = [
-    view.country ?? "—",
+    view.country ?? "",
     view.groupAirports.length > 1
       ? `lotniska ${view.groupAirports.join(", ")}`
       : legs
@@ -246,18 +264,7 @@ export function DestinationCard({
       {legs && <OpenJawLegs offer={offer} legs={legs} nameOf={carriers.nameOf} />}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-        <span
-          data-testid="price-age"
-          className={`rounded-full px-2 py-0.5 font-medium ${
-            age.tone === "live"
-              ? "bg-good-bg text-good"
-              : age.tone === "recent"
-                ? "bg-surface-2 text-fg"
-                : "bg-warn-bg text-warn-fg"
-          }`}
-        >
-          {age.label}
-        </span>
+        <PriceAgeChip offer={offer} />
         {webOffer.timesUnknown === true && (
           <span
             data-testid="times-unknown-chip"
@@ -271,7 +278,7 @@ export function DestinationCard({
           <span
             data-testid="stale-chip"
             className="rounded-full bg-warn-bg px-2 py-0.5 font-medium text-warn-fg"
-            title="Cena jest starsza niż okno aktualności — sprawdź ją w serwisie"
+            title="Cena jest starsza niż okno aktualności, sprawdź ją w serwisie"
           >
             może być nieaktualna
           </span>

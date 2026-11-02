@@ -75,6 +75,7 @@ export class MockSource implements FlightSource {
     live: false,
     multicity: false,
     countryDestination: true,
+    cityDestination: true,
   };
   // Local and free: effectively unlimited.
   readonly rateLimit = { rps: 1000, burst: 100, concurrency: 16 };
@@ -107,7 +108,9 @@ export class MockSource implements FlightSource {
         ? this.anywhereDestinations(task.origin, task.month)
         : dest.kind === "country"
           ? this.places.resolve({ kind: "country", code: dest.code })
-          : [dest.code];
+          : dest.kind === "city"
+            ? this.places.cityAirports(dest.code) // the whole city, like a real API
+            : [dest.code];
     const offers: Offer[] = [];
     for (const code of destinations) {
       if (code === task.origin) continue;

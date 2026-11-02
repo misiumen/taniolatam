@@ -66,14 +66,38 @@ export function formatDateRange(depart: string, ret?: string): string {
   if (!ret) return `${formatDay(depart)} ${depart.slice(0, 4)} (w jedną stronę)`;
   const sameYear = depart.slice(0, 4) === ret.slice(0, 4);
   return sameYear
-    ? `${formatDay(depart)} – ${formatDay(ret)} ${ret.slice(0, 4)}`
-    : `${formatDay(depart)} ${depart.slice(0, 4)} – ${formatDay(ret)} ${ret.slice(0, 4)}`;
+    ? `${formatDay(depart)} - ${formatDay(ret)} ${ret.slice(0, 4)}`
+    : `${formatDay(depart)} ${depart.slice(0, 4)} - ${formatDay(ret)} ${ret.slice(0, 4)}`;
 }
 
 export function stayDays(depart: string, ret: string): number {
   return Math.round(
     (Date.parse(`${ret}T00:00:00Z`) - Date.parse(`${depart}T00:00:00Z`)) / 86_400_000,
   );
+}
+
+const WEEKDAYS_SHORT = ["nd", "pn", "wt", "śr", "cz", "pt", "sb"];
+
+/** "2027-03-12" → "pt" (computed in UTC, so no timezone surprises). */
+export function formatWeekday(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return WEEKDAYS_SHORT[new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1)).getUTCDay()]!;
+}
+
+/** "pt 12 mar - nd 21 mar 2027"; one-way: "pt 12 mar 2027". */
+export function formatTripDates(depart: string, ret?: string): string {
+  const day = (iso: string) => `${formatWeekday(iso)} ${formatDay(iso)}`;
+  if (!ret) return `${day(depart)} ${depart.slice(0, 4)}`;
+  return depart.slice(0, 4) === ret.slice(0, 4)
+    ? `${day(depart)} - ${day(ret)} ${ret.slice(0, 4)}`
+    : `${day(depart)} ${depart.slice(0, 4)} - ${day(ret)} ${ret.slice(0, 4)}`;
+}
+
+/** Length of stay: "1 dzień", "9 dni"; "w jedną stronę" without a return date. */
+export function formatStay(depart: string, ret?: string): string {
+  if (!ret) return "w jedną stronę";
+  const days = stayDays(depart, ret);
+  return `${days} ${plural(days, "dzień", "dni", "dni")}`;
 }
 
 export function formatStops(stops: number): string {

@@ -1,0 +1,79 @@
+{
+  "_comment": "PRZYKŁAD. Skopiuj do config/charter-feeds.json (albo wskaż plik zmienną CHARTER_FEEDS_FILE) i podmień adresy oraz mapowanie na dane z panelu programu partnerskiego. Adresy example.invalid są fikcyjne, a oba wpisy mają enabled: false. Sekrety tylko jako NAZWY zmiennych środowiskowych (valueEnv, {env:NAZWA}). Opis pól: packages/core/src/sources/charters/README.md.",
+  "aliases": {
+    "Riwiera Turecka": "AYT"
+  },
+  "feeds": [
+    {
+      "id": "example-travellead-xml",
+      "name": "PRZYKŁAD: feed XML w stylu TravelLead",
+      "operator": "Przykładowy Touroperator",
+      "network": "travellead",
+      "url": "https://feeds.example.invalid/travellead/oferty.xml",
+      "format": "xml",
+      "encoding": "utf-8",
+      "auth": { "query": { "name": "token", "valueEnv": "TRAVELLEAD_FEED_TOKEN" } },
+      "mapping": {
+        "records": "oferty.oferta",
+        "fields": {
+          "externalId": "@id",
+          "kind": { "path": "@typ", "transform": "map:lot=seat-only,wczasy=package,*=package" },
+          "origin": "wylot.lotnisko",
+          "departDate": { "path": "wylot.data", "transform": "date:DD.MM.YYYY" },
+          "departTime": "wylot.godzina",
+          "destination": "cel.miejsce",
+          "returnDate": { "path": "powrot.data", "transform": "date:DD.MM.YYYY" },
+          "nights": { "path": "noce", "transform": "int" },
+          "price": { "path": "cena", "transform": "number" },
+          "currency": "cena.@waluta",
+          "carrier": "przewoznik",
+          "seatsLeft": { "path": "miejsca", "transform": "int" },
+          "url": "url"
+        },
+        "deepLink": "https://www.example.invalid/oferta/{externalId}?partner={env:TRAVELLEAD_PARTNER_ID}",
+        "defaults": { "currency": "PLN", "kind": "seat-only" }
+      },
+      "refreshMinutes": 360,
+      "graceMinutes": 720,
+      "enabled": false
+    },
+    {
+      "id": "example-tradedoubler-csv",
+      "name": "PRZYKŁAD: feed produktowy CSV w stylu Tradedoubler",
+      "operator": "Przykładowe Biuro Podróży",
+      "network": "tradedoubler",
+      "url": "https://feeds.example.invalid/tradedoubler/{env:TRADEDOUBLER_FEED_ID}.csv",
+      "format": "csv",
+      "auth": { "header": { "name": "Authorization", "valueEnv": "TRADEDOUBLER_FEED_AUTH" } },
+      "mapping": {
+        "csv": { "delimiter": ";", "header": true },
+        "fields": {
+          "externalId": "productId",
+          "kind": {
+            "path": "categories",
+            "transform": ["split:,", "index:1", "map:lot=seat-only,pakiet=package"]
+          },
+          "origin": { "path": "extraInfo", "transform": "regex:wylot=([^|]+):1" },
+          "destination": { "path": "extraInfo", "transform": "regex:cel=([^|]+):1" },
+          "departDate": {
+            "path": "extraInfo",
+            "transform": ["regex:termin=([^|]+):1", "date:DD.MM.YYYY"]
+          },
+          "returnDate": {
+            "path": "extraInfo",
+            "transform": ["regex:powrot=([^|]+):1", "date:DD.MM.YYYY"]
+          },
+          "nights": { "path": "extraInfo", "transform": ["regex:noce=(\\d+):1", "int"] },
+          "price": { "path": "price", "transform": "number" },
+          "currency": "currency",
+          "carrier": "airline",
+          "url": "productUrl"
+        },
+        "deepLink": "{raw:url}",
+        "defaults": { "currency": "PLN" }
+      },
+      "refreshMinutes": 720,
+      "enabled": false
+    }
+  ]
+}

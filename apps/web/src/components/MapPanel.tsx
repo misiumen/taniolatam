@@ -729,7 +729,7 @@ export default function MapPanel({
       )}
       {mode === "loading" && (
         <p className="absolute inset-0 grid place-items-center text-sm text-muted">
-          Ładowanie mapy…
+          Ładowanie mapy
         </p>
       )}
       {mode === "fallback" && (
@@ -738,7 +738,7 @@ export default function MapPanel({
           data-testid="map-offline-note"
           className="absolute bottom-2 left-2 right-2 z-[6000] rounded-md bg-warn-bg px-3 py-1.5 text-xs text-warn-fg"
         >
-          Mapa niedostępna offline — pokazujemy trasy i ceny na uproszczonym planie. Lista działa
+          Mapa niedostępna offline. Pokazujemy trasy i ceny na uproszczonym planie. Lista działa
           normalnie.
         </p>
       )}

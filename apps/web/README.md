@@ -10,7 +10,7 @@ Z katalogu głównego repozytorium (Node 22, `npm install` raz):
 
 ```bash
 cp .env.example .env        # SOURCE_MOCK=1 działa bez żadnych kluczy
-npm run dev                 # http://localhost:3000  → przekierowuje na /szukaj
+npm run dev                 # http://localhost:3000  → strona główna, wyszukiwarka pod /szukaj
 npm run build && npm run start:standalone -w @gdziepolece/web   # wersja produkcyjna jak w Dockerze
 npm run e2e -w @gdziepolece/web                      # Playwright na `next dev` (poza `npm run check`)
 npm run build && npm run e2e:prod -w @gdziepolece/web   # ten sam zestaw na buildzie produkcyjnym
@@ -56,12 +56,53 @@ kopiuje `data/` i ustawia `GDZIEPOLECE_DATA_DIR=/app/data`, `CACHE_PATH=/app/.ca
 | `SOURCE_TRAVELPAYOUTS`, `TRAVELPAYOUTS_TOKEN`, `TRAVELPAYOUTS_MARKER` | wyłączone                                      | adapter Travelpayouts (gdy dostępny w `@gdziepolece/core`)                                                                    |
 | `CACHE_DRIVER`                                                        | `sqlite`                                       | `sqlite` lub `memory`; bez natywnego `better-sqlite3` automatycznie `memory`                                                  |
 | `CACHE_PATH`                                                          | `.cache/gdziepolece.sqlite`                    | plik cache SQLite (względem katalogu uruchomienia)                                                                            |
-| `SEARCH_MAX_TASKS`                                                    | `300`                                          | twardy limit zapytań do źródeł na jedno wyszukiwanie                                                                          |
+| `SEARCH_MAX_TASKS`                                                    | `500`                                          | twardy limit zapytań do źródeł na jedno wyszukiwanie                                                                          |
 | `GDZIEPOLECE_DATA_DIR`                                                | `<repo>/data`                                  | katalog z `airports.json`, `regions.json`, `place-groups.json`                                                                |
+| `PUBLIC_SITE_URL` | `https://gdziepolece.pl` | adres kanoniczny (origin, bez ścieżki): `metadataBase`, canonical, `sitemap.xml`, `robots.txt`; żądania na inny host dostają `noindex` (sekcja „SEO”) |
 | `MAP_STYLE_URL`                                                       | `https://tiles.openfreemap.org/styles/liberty` | styl MapLibre (URL `style.json`), czytany w czasie działania przez `GET /api/v1/config`; pusta/niepoprawna wartość = domyślny |
 | `NEXT_PUBLIC_MAP_STYLE_URL`                                           | —                                              | dawna nazwa, nadal honorowana, gdy `MAP_STYLE_URL` nie jest ustawione                                                         |
 
 Bez żadnego włączonego źródła `POST /api/v1/search` zwraca 503 z komunikatem po polsku.
+
+## SEO
+
+Strona główna `/` i strony prawne to statyczne komponenty serwerowe (bez MapLibre; mapa tylko w `/szukaj`).
+Wspólne klocki: `src/components/site/` (nagłówek, stopka, tabela tras, JSON-LD), te same tokeny i czcionki co `/szukaj`.
+
+- **Adres kanoniczny i host.** `PUBLIC_SITE_URL` (domyślnie `https://gdziepolece.pl`) czytany jest w czasie
+  działania (`src/lib/site.ts`). `src/middleware.ts`: gdy host żądania (`X-Forwarded-Host` albo `Host`, bez portu)
+  jest inny niż kanoniczny (np. `gdziepolece.onrender.com`, `127.0.0.1`), każda odpowiedź dostaje
+  `X-Robots-Tag: noindex`, a `/robots.txt` zwraca `Disallow: /`. Nic nie jest przekierowywane. Uwaga: strony
+  renderowane podczas `next build` (home, `/szukaj`, prawne) mają adres kanoniczny zapisany w HTML-u z chwili
+  builda, więc ustaw `PUBLIC_SITE_URL` także w buildzie, jeśli ma być inny niż domyślny (Dockerfile nie przekazuje
+  zmiennych do builda; domyślna wartość jest wartością produkcyjną). `robots.txt`, `sitemap.xml`, strony tras
+  (ISR przy pierwszym wejściu) i middleware czytają zmienną przy starcie procesu.
+- **`/robots.txt`** (`app/robots.ts`): `Allow: /`, `Disallow: /api/`, `Sitemap: <PUBLIC_SITE_URL>/sitemap.xml`.
+  **`/sitemap.xml`** (`app/sitemap.ts`): `/`, `/szukaj` i wszystkie strony tras (15 `z` + 43 `do`).
+- **Strony tras** (`src/lib/seo-routes.ts`, slugi = polskie nazwy bez ogonków): `/loty/z/[origin]` (każde polskie
+  lotnisko jako miasto, plus `polska`) i `/loty/do/[destination]` (kraje, regiony, miasta). Każda uruchamia po stronie
+  serwera `searchDestinations` (okno 6 miesięcy, pobyty 7-21 dni, `maxTasks` 60, `src/server/seo-search.ts`) i pokazuje
+  H1, akapit z najtańszą ceną, terminem i wiekiem ceny, tabelę top 20 (kierunki albo miasta wylotu) z linkiem do
+  `/szukaj` z wypełnionym formularzem (daty jako preset, więc linki się nie starzeją), linki pokrewne, JSON-LD
+  (`BreadcrumbList`, `ItemList`). **ISR:** `revalidate = 21600` (6 h). `generateStaticParams` zwraca `[]` celowo:
+  build nie ma źródeł ani sieci, więc strony zbudowane przy buildzie byłyby puste i serwowane przez godziny; zamiast
+  tego każda strona powstaje przy pierwszym wejściu na działającym serwerze (z prawdziwymi źródłami i cache) i jest
+  odświeżana w tle co 6 h. Bez cen (źródło testowe `mock`, brak włączonego źródła, brak ofert) strona pokazuje
+  neutralne wyjaśnienie, nigdy zmyślonych cen, i dostaje `robots: noindex, follow`. Gdy wszystkie zapytania do
+  źródeł zawiodą, render rzuca błąd (500, nic nie trafia do cache ISR; przy odświeżaniu zostaje poprzednia wersja).
+- **Metadane:** `layout.tsx` (`metadataBase`, szablon tytułu), każda strona ma `canonical`, Open Graph i Twitter
+  (`src/lib/seo-meta.ts`). `/szukaj` ma canonical `/szukaj` niezależnie od parametrów. Obrazy OG:
+  `app/opengraph-image.tsx` (wszystkie strony bez własnego) i `opengraph-image.tsx` przy obu trasach (tytuł strony,
+  `src/server/og.tsx`).
+- **Strona główna:** `WebSite` + `SearchAction` (szablon: `/szukaj?o=country:PL:Polska&d=country:{kod_kraju}:`,
+  wypełnia formularz dla kraju o danym kodzie ISO).
+- **Styl tekstów:** w polskich tekstach nie używamy „…”, „—” ani „–”, tylko zwykłego „-” (pilnują tego testy
+  `src/app/pages.test.tsx`, `src/lib/seo-routes.test.ts` i `e2e/seo.spec.ts`). Adres kontaktowy w polityce
+  prywatności, regulaminie i `/kontakt` to placeholder `[ADRES E-MAIL]`, do podmiany przez właściciela.
+- **Testy:** `e2e/seo.spec.ts` (robots, sitemap, nagłówek `noindex` dla `Host: gdziepolece.onrender.com` przez
+  `extraHTTPHeaders`, canonical, OG, strona główna, strony tras (tabela albo stan neutralny), prawne, brak MapLibre
+  w JS strony głównej i tras, brak przewijania poziomego); tabela i stan neutralny strony trasy są dodatkowo
+  pokryte testem renderu w `src/lib/route-data.test.tsx` (e2e używa źródła testowego, więc widzi stan neutralny).
 
 ## API (`src/app/api/v1/`)
 
@@ -79,8 +120,10 @@ uzupełnia lokalnie `@gdziepolece/api-client` (`ApiSearchFilters`, `ApiOffer`).
 
 Okna godzin: `filters.departTime` i `filters.arriveTime` = `{ from, to }` w minutach od północy
 czasu lokalnego lotniska (0–1440, oba końce włącznie, `from > to` = okno przez północ, np.
-22:00–02:00). `validate.ts` przyjmuje tylko liczby całkowite 0–1440 (400 z polskim komunikatem w
-przeciwnym razie). Oferty niosą `departTimeLocal` / `arriveTimeLocal` („HH:MM”, także w `legs[]`) i
+22:00–02:00) albo lista 1–4 takich okien (LUB: odcinek przechodzi, gdy mieści się w którymkolwiek;
+pusta lista albo okno na całą dobę = bez filtra; `activeTimeWindows` w `@gdziepolece/core`).
+`validate.ts` przyjmuje tylko liczby całkowite 0–1440 i listy 1–4 okien (400 z polskim komunikatem
+w przeciwnym razie). Oferty niosą `departTimeLocal` / `arriveTimeLocal` („HH:MM”, także w `legs[]`) i
 `timesUnknown`, odpowiedź opcjonalnie `timeWindows: { dropped }`. Typy tych pól, dopóki pakiety ich
 nie eksportują, uzupełnia `src/lib/api-extensions.ts` (TODO: usunąć po aktualizacji pakietów).
 
@@ -118,11 +161,17 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   `input type=range`, bez biblioteki, obsługa klawiaturą). Chipy i suwak są zsynchronizowane:
   przesunięcie suwaka na zakres równy presetowi zaznacza chip, inny zakres odznacza wszystkie.
   „Dokładne daty” zastępuje suwak dwoma polami dat. Preset zawsze oznacza „dziś … dziś + N miesięcy”.
-- „Godzina wylotu” i „Godzina przylotu” (w sekcji Termin): dwa suwaki z dwoma uchwytami jak suwak
-  miesięcy (`DualRange`), 00:00–24:00 co 30 min, etykieta „06:00 – 22:30”, pełna doba = „dowolnie”
-  i wtedy do API nie trafia nic. Inaczej `filters.departTime` / `filters.arriveTime` w minutach, w
-  URL `dt=360-1350` / `at=0-1380` (brak parametru = pełna doba; niepoprawny = pełna doba). Podpowiedź:
-  „Dotyczy każdego odcinka. Oferty bez znanej godziny są pokazywane i oznaczone.”
+- „Godzina wylotu” i „Godzina przylotu” (w sekcji Termin), każde osobno: cztery przełączniki
+  (przyciski z `aria-pressed`) „Rano” 05:00–11:59, „Popołudnie” 12:00–16:59, „Wieczór” 17:00–20:59,
+  „Noc” 21:00–04:59 (przez północ). Wielokrotny wybór: każde kliknięcie (zwykłe i z Ctrl/Cmd, także
+  dotyk) przełącza tylko ten jeden przycisk. Nic nie wybrane = „dowolnie” i do API nie trafia nic;
+  obok etykiety wynik („rano, wieczór”). Sąsiednie pory łączą się w jedno okno (noc + rano →
+  21:00–11:59), niesąsiednie dają listę okien (rano + wieczór → dwa okna), wszystkie cztery = cała
+  doba (nic nie jest wysyłane). Pod przyciskami zwinięty link „Dokładny zakres…” z dwoma listami
+  „od” / „do” (co 30 min, 00:00–24:00; „od” późniejsze niż „do” = przez północ) — wybór zakresu
+  odznacza pory i odwrotnie. URL: `dt=rano,wieczor` / `at=…` dla pór, `dt=360-1350` dla dokładnego
+  zakresu (stare linki z liczbami działają nadal; brak lub niepoprawny parametr = dowolnie).
+  Podpowiedź: „Dotyczy każdego odcinka. Oferty bez znanej godziny są pokazywane i oznaczone.”
 - Filtry: „Pomiń kierunki w kraju wylotu” (domyślnie włączone; do API trafia
   `filters.excludeOriginCountries: false` tylko po odznaczeniu), „Maks. czas lotu”
   (`filters.maxDurationMinutes`), Open-jaw (`filters.allowOpenJaw`); Multicity jest jeszcze wyłączone.
@@ -135,9 +184,10 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
 - „Aktualność cen”: „do 7 dni” (domyślnie; do API nie trafia nic) albo „tylko do 48 h”
   (`filters.maxPriceAgeHours: 48` + `allowUnknownPriceAge: false`; URL: `pa=48h`).
 - Nad wynikami linia podsumowania wykonanego wyszukiwania (`src/lib/search-summary.ts`), np.
-  „Polska → gdziekolwiek · pół roku · 7–21 dni · wylot 06:00–12:00 · przylot do 23:00 · max 1
-  przesiadka · ceny do 7 dni” — filtry z wartością domyślną są pomijane (okno od północy: „do 23:00”,
-  do północy: „od 18:00”). Pod nią liczba kierunków i sortowanie: najtańsze, najkrótsze, bez
+  „Polska → gdziekolwiek · pół roku · 7–21 dni · wylot rano lub wieczorem · przylot 06:00–12:00 ·
+  max 1 przesiadka · ceny do 7 dni” — filtry z wartością domyślną są pomijane (pory: „rano”, „po
+  południu”, „wieczorem”, „w nocy” złączone „lub”; dokładny zakres od północy: „do 23:00”, do
+  północy: „od 18:00”). Pod nią liczba kierunków i sortowanie: najtańsze, najkrótsze, bez
   przesiadek, najświeższe ceny (na żywo, potem najmłodsza cena z cache według `cacheAgeHours`,
   nieznany wiek na końcu). Lista pokazuje 40 kierunków, dalej „Pokaż więcej”.
 - Pusty stan: krótkie wyjaśnienie i przykładowe wyszukiwania jako chipy („Polska → Azja, pół roku”,
@@ -232,8 +282,9 @@ Kod: `src/components/` (UI), `src/lib/` (stan formularza ↔ URL, formatowanie, 
 - `npm run e2e -w @gdziepolece/web` — Playwright: uruchamia `next dev` z `SOURCE_MOCK=1`, wysyła
   domyślny formularz, sprawdza kartę kierunku, kalendarz, pole „Dokąd”, daty (chipy, suwak, dokładne daty), filtr linii
   (na odpowiedzi z doklejonym `carrierFacet`), aktualność cen, nowe filtry i stan w URL;
-  okna godzin (suwaki z klawiatury → `filters.departTime`/`arriveTime`, `dt`/`at` w URL, powrót do
-  „dowolnie”), godziny i chip „godziny nieznane” na kartach;
+  okna godzin (pory „Rano” + „Wieczór” zostają obie zaznaczone i dają dwa okna, Ctrl/Cmd+klik działa
+  tak samo, pora z klawiatury, dokładny zakres odznacza pory i odwrotnie, `dt`/`at` w URL, stare
+  liczbowe linki, powrót do „dowolnie”), godziny i chip „godziny nieznane” na kartach;
   `e2e/layout.spec.ts` — sekcje formularza i przyklejony „Szukaj”, przykładowe wyszukiwania, łuki
   na mapie (warstwa lub SVG), proporcje kolumn i brak ucinania tekstu przy 1280/1440/1920 px, zakładki
   na tablecie, arkusz na telefonie oraz prawdziwy tryb MapLibre na lokalnym stylu z przechwyconych
@@ -241,7 +292,8 @@ Kod: `src/components/` (UI), `src/lib/` (stan formularza ↔ URL, formatowanie, 
   warstwa symboli bez znaczników DOM, klastry przy małym zoomie i przybliżanie kliknięciem, pigułki
   miast przy średnim, klik zaznacza kartę, zaznaczenie/najechanie w źródle aktywnym).
   Zrzuty do przeglądu (poza zestawem): `E2E_SCREENS=1 npm run e2e -w @gdziepolece/web -- screens`
-  → `test-results/screens/` (1440 px: klastry, miasta, najechanie, plan, tryb ciemny; telefon 390 px).
+  → `test-results/screens/` (1440 px: klastry, miasta, najechanie, plan, tryb ciemny; telefon 390 px;
+  sekcja Termin z porami i dokładnym zakresem przy 1440 i 390 px).
   Port: `E2E_PORT` (domyślnie 3100). Testy nie sięgają do zewnętrznych hostów (bez dostępu do
   kafelków mapa przechodzi na uproszczony plan; test trybu MapLibre podstawia własny styl). Własna przeglądarka: `PW_CHROMIUM_PATH=/ścieżka/do/chromium`; w przeciwnym razie
   `npx playwright install chromium`.
