@@ -85,3 +85,17 @@ Named groups of airport IATA codes (curated, used verbatim; codes are uppercased
 
 The short form `{ "WAW-city": ["WAW", "WMI"] }` is accepted as well (names omitted).
 Referenced as `{ "kind": "group", "id": "WAW-city" }`.
+
+`<CODE>-city` groups also back `PlaceIndex.cityAirports(code)`: the airports behind an IATA city
+(metro) code returned by APIs that answer with cities (Travelpayouts `/v2/prices/latest`). It
+returns the group's known airports with scheduled service, else the airport with that code, else
+`[]`. Offers keep a city code (and `destinationIsCity: true`) unless it maps to exactly one
+airport, so add a `<CODE>-city` group for every multi-airport city you want filtered by country
+or region.
+
+## `data/airlines.json` (optional)
+
+`{ "W6": { "name": "Wizz Air", "type": "lowcost", "country": "HU" } }` — IATA airline code →
+name, type (`scheduled` | `lowcost` | `charter`) and optional home country. Loaded by
+`loadAirlineIndex()` from `@gdziepolece/core/node` (missing file = empty index). `AirlineIndex`
+gives `name(code)`, `type(code)` (falls back to `classifyCarrier`) and `names(codes)`.

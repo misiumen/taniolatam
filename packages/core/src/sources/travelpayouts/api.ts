@@ -6,8 +6,12 @@
 export const TRAVELPAYOUTS_API_BASE = "https://api.travelpayouts.com";
 export const PRICES_FOR_DATES_PATH = "/aviasales/v3/prices_for_dates";
 export const GROUPED_PRICES_PATH = "/aviasales/v3/grouped_prices";
-/** Documented max for `limit` on prices_for_dates. */
+/** Data API v2: cheapest tickets found by Aviasales users during the last 48 hours. */
+export const LATEST_PRICES_PATH = "/v2/prices/latest";
+/** Documented max for `limit` on prices_for_dates and /v2/prices/latest. */
 export const TP_MAX_PAGE_SIZE = 1000;
+/** Every request asks for PLN; the pipeline converts anything else (see README). */
+export const TP_CURRENCY = "pln";
 
 /** One price from `prices_for_dates` (`data[]`) or `grouped_prices` (`data[date]`). */
 export interface TpPriceEntry {
@@ -38,6 +42,35 @@ export interface TpPriceEntry {
   found_at?: string;
 }
 
+/**
+ * One price from `/v2/prices/latest` (`data[]`). Codes are CITY codes (LON, WAW), there is no
+ * airline, and dates are plain `YYYY-MM-DD` (documented shape; unverified with a live token).
+ */
+export interface TpLatestEntry {
+  /** Price in the response `currency`. */
+  value?: number;
+  /** 0 = economy. */
+  trip_class?: number;
+  show_to_affiliates?: boolean;
+  /** IATA city code. */
+  origin?: string;
+  destination?: string;
+  /** Agency the price was found at (not used). */
+  gate?: string;
+  depart_date?: string;
+  /** Empty/absent/null for one-way. */
+  return_date?: string | null;
+  number_of_changes?: number;
+  /** ISO date-time when an Aviasales user's search found the price. */
+  found_at?: string;
+  /** Minutes (unverified: one direction or both). */
+  duration?: number;
+  /** Kilometres. */
+  distance?: number;
+  /** False when Aviasales considers the price outdated. */
+  actual?: boolean;
+}
+
 export interface TpResponse<T> {
   success?: boolean;
   data?: T | null;
@@ -48,6 +81,7 @@ export interface TpResponse<T> {
 
 export type TpPricesForDatesResponse = TpResponse<TpPriceEntry[]>;
 export type TpGroupedPricesResponse = TpResponse<Record<string, TpPriceEntry>>;
+export type TpLatestPricesResponse = TpResponse<TpLatestEntry[]>;
 
 export type TpParams = Record<string, string | number | boolean | undefined>;
 

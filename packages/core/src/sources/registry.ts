@@ -1,3 +1,4 @@
+import type { AirlineIndex } from "../airlines/airline-index.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 import { MockSource } from "./mock/mock-source.ts";
 import { TravelpayoutsSource } from "./travelpayouts/travelpayouts-source.ts";
@@ -32,12 +33,15 @@ export class SourceRegistry {
 
 export interface DefaultSourceDeps {
   places: PlaceIndex;
+  /** `data/airlines.json` (see `loadAirlineIndex`); optional. */
+  airlines?: AirlineIndex;
 }
 
 /** All built-in sources. New adapters add one line here (each gates itself via `isEnabled`). */
 export function createDefaultRegistry(deps: DefaultSourceDeps): SourceRegistry {
   return new SourceRegistry([
     new MockSource({ places: deps.places }),
-    new TravelpayoutsSource({ places: deps.places }), // SOURCE_TRAVELPAYOUTS=1 + TRAVELPAYOUTS_TOKEN
+    // SOURCE_TRAVELPAYOUTS=1 + TRAVELPAYOUTS_TOKEN; TRAVELPAYOUTS_MODE picks the endpoint(s).
+    new TravelpayoutsSource({ places: deps.places, airlines: deps.airlines }),
   ]);
 }

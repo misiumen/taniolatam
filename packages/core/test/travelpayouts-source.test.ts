@@ -29,6 +29,8 @@ const env = {
   SOURCE_TRAVELPAYOUTS: "1",
   TRAVELPAYOUTS_TOKEN: TOKEN,
   TRAVELPAYOUTS_MARKER: "12345",
+  // These tests cover prices_for_dates; latest / "both" are covered in travelpayouts-latest.test.ts.
+  TRAVELPAYOUTS_MODE: "prices7d",
 };
 const ctx = (over: Partial<SourceContext> = {}): SourceContext => ({
   env,
@@ -301,10 +303,11 @@ describe("TravelpayoutsSource.search", () => {
       }),
       ctx(),
     );
+    // Always PLN, whatever the task currency (the pipeline converts).
     expect(params(fetchImpl.calls[0]!.url)).toMatchObject({
       departure_at: "2027-03-20",
       direct: "true",
-      currency: "eur",
+      currency: "pln",
     });
     expect(offers.map((o) => o.destination)).toEqual(["BCN"]);
     // Currency comes from the response body.

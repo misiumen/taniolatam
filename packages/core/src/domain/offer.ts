@@ -54,6 +54,32 @@ export interface Offer {
   /** For cached prices: how old the price was at the source when fetched. */
   cacheAgeHours?: number;
   /**
+   * ISO date-time when the source last saw this price (Travelpayouts `found_at`). When present,
+   * the pipeline derives the price age from it (see `priceAgeHours`).
+   */
+  foundAt?: string;
+  /**
+   * The source flags the price as no longer current (Travelpayouts `/v2/prices/latest`:
+   * `actual: false`). Undefined = the source does not say.
+   */
+  stale?: boolean;
+  /** Short Polish note for the UI about the price's provenance, e.g. "cache do 7 dni". */
+  note?: string;
+  /**
+   * `origin` / `destination` is an IATA city (metro) code with several airports (LON, WAW as the
+   * city), not one airport. Sources that only know cities (Travelpayouts latest prices) set it;
+   * `PlaceIndex.cityAirports(code)` lists the airports.
+   */
+  originIsCity?: boolean;
+  destinationIsCity?: boolean;
+  /** Price was converted to the query currency (NBP mid rate); see `originalPrice`. */
+  converted?: boolean;
+  /** Price and ISO-4217 currency as the source reported them, set on converted offers. */
+  originalPrice?: number;
+  originalCurrency?: string;
+  /** Airline names parallel to `carriers` (code when the name is unknown). */
+  carrierNames?: string[];
+  /**
    * Where the user verifies / books the price. Empty string for open-jaw offers combined from two
    * one-ways: there is no single booking link, each leg carries its own (`legs[].deepLink`) and
    * `allLinks()` builds per-leg verification links.

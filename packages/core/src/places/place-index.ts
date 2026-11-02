@@ -106,6 +106,27 @@ export class PlaceIndex {
     return a && { kind: "city", name: airportCityEn(a), countryCode: a.countryCode };
   }
 
+  /**
+   * Airports behind an IATA city (metro) code, as used by APIs that answer with cities
+   * (Travelpayouts latest prices): the known airports with scheduled service of the curated
+   * "<CODE>-city" group (LON → LHR, LGW, …; WAW → WAW, WMI) when there is one, otherwise the
+   * airport with that code (POZ → [POZ]). Unknown codes (no group, no airport) → [].
+   */
+  cityAirports(code: string): string[] {
+    const c = code.trim().toUpperCase();
+    const group = this.groups[`${c}-city`];
+    if (group) {
+      const members = new Set<string>();
+      for (const m of group.airports) {
+        const a = this.airport(m);
+        if (a?.scheduledService) members.add(a.iata);
+      }
+      if (members.size) return [...members];
+    }
+    const a = this.airport(c);
+    return a ? [a.iata] : [];
+  }
+
   /** ISO country codes covered by a country/subregion/continent place. */
   countryCodes(place: Place): string[] {
     switch (place.kind) {

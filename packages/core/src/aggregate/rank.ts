@@ -25,8 +25,18 @@ export function priceHistogram(prices: number[], buckets = 6): HistogramBucket[]
   return out;
 }
 
+/** An airport, or for a city code (LON) its first airport, to place the city/country. */
+function locateDestination(iata: string, places: PlaceIndex | undefined) {
+  if (!places) return undefined;
+  const loc = places.locate(iata);
+  if (loc) return loc;
+  const first = places.cityAirports(iata)[0];
+  return first ? places.locate(first) : undefined;
+}
+
 function destinationPlace(iata: string, opts: SummarizeOptions): Place {
-  const loc = opts.groupBy && opts.groupBy !== "airport" ? opts.places?.locate(iata) : undefined;
+  const loc =
+    opts.groupBy && opts.groupBy !== "airport" ? locateDestination(iata, opts.places) : undefined;
   if (loc && opts.groupBy === "city")
     return {
       kind: "city",

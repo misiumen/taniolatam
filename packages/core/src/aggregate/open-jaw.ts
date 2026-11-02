@@ -89,10 +89,25 @@ function combine(out: Offer, back: Offer): Offer {
     sources: [...new Set([out.source, back.source])].sort(),
     fetchedAt: older.fetchedAt,
     freshness: out.freshness === "live" && back.freshness === "live" ? "live" : "cached",
+    // Age of the older leg; unknown when either leg's age is unknown.
     cacheAgeHours:
-      out.cacheAgeHours === undefined && back.cacheAgeHours === undefined
+      out.cacheAgeHours === undefined || back.cacheAgeHours === undefined
         ? undefined
-        : Math.max(out.cacheAgeHours ?? 0, back.cacheAgeHours ?? 0),
+        : Math.max(out.cacheAgeHours, back.cacheAgeHours),
+    foundAt:
+      out.foundAt === undefined || back.foundAt === undefined
+        ? undefined
+        : out.foundAt < back.foundAt
+          ? out.foundAt
+          : back.foundAt,
+    stale:
+      out.stale || back.stale
+        ? true
+        : out.stale === false || back.stale === false
+          ? false
+          : undefined,
+    note: out.note ?? back.note,
+    converted: out.converted || back.converted ? true : undefined,
     // No single booking link: legs are booked separately (`allLinks` builds per-leg links).
     deepLink: "",
     legs: [

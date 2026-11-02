@@ -4,6 +4,7 @@
  */
 import type {
   TpGroupedPricesResponse,
+  TpLatestPricesResponse,
   TpPricesForDatesResponse,
 } from "../src/sources/travelpayouts/index.ts";
 
@@ -173,3 +174,119 @@ export const pozBcnCalendar: TpGroupedPricesResponse = {
 
 export const unauthorized = { success: false, data: null, error: "Unauthorized" };
 export const emptyData: TpPricesForDatesResponse = { success: true, data: [], currency: "pln" };
+
+/**
+ * POZ → anywhere, one-way, March 2027 (`/v2/prices/latest`). City codes, no airline, `found_at`
+ * relative to the tests' NOW (2026-11-02T10:00:00Z).
+ */
+export const pozAnywhereLatest: TpLatestPricesResponse = {
+  success: true,
+  currency: "pln",
+  data: [
+    {
+      value: 99,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin: "POZ",
+      // City code with two known airports (WAW-city: WAW + WMI): kept as the city.
+      destination: "WAW",
+      gate: "LOT",
+      depart_date: "2027-03-05",
+      return_date: null,
+      number_of_changes: 0,
+      found_at: "2026-11-02T08:00:00Z",
+      duration: 55,
+      distance: 280,
+      actual: true,
+    },
+    {
+      value: 189,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin: "POZ",
+      // London: no airport of LON-city in the fixture index → kept as a city code.
+      destination: "LON",
+      gate: "Ryanair",
+      depart_date: "2027-03-12",
+      number_of_changes: 0,
+      found_at: "2026-11-02T04:00:00Z",
+      duration: 135,
+      distance: 1000,
+      actual: true,
+    },
+    {
+      value: 249,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin: "POZ",
+      // City with one known airport (BCN): resolved to the airport. Flagged as outdated.
+      destination: "BCN",
+      gate: "Kiwi",
+      depart_date: "2027-03-20",
+      return_date: "",
+      number_of_changes: 1,
+      found_at: "2026-11-01T10:00:00+00:00",
+      duration: 300,
+      distance: 1900,
+      actual: false,
+    },
+    {
+      value: 150,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin: "POZ",
+      destination: "PRG",
+      depart_date: "2027-03-15",
+      number_of_changes: 2,
+      found_at: "2026-11-02T09:00:00Z",
+      actual: true,
+    },
+    // Skipped: no price, business class, hidden from affiliates, departure outside the window.
+    { value: 0, origin: "POZ", destination: "BER", depart_date: "2027-03-09" },
+    { value: 900, trip_class: 1, origin: "POZ", destination: "BER", depart_date: "2027-03-09" },
+    {
+      value: 80,
+      show_to_affiliates: false,
+      origin: "POZ",
+      destination: "BER",
+      depart_date: "2027-03-09",
+    },
+    { value: 70, origin: "POZ", destination: "BER", depart_date: "2027-02-27" },
+  ],
+};
+
+/** WAW → BKK round trips (`/v2/prices/latest`, one_way=false). */
+export const wawBkkLatestRound: TpLatestPricesResponse = {
+  success: true,
+  currency: "pln",
+  data: [
+    {
+      value: 2100,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin: "WAW",
+      destination: "BKK",
+      depart_date: "2027-03-12",
+      return_date: "2027-03-26",
+      number_of_changes: 1,
+      found_at: "2026-11-01T22:00:00Z",
+      duration: 1500,
+      actual: true,
+    },
+    {
+      // 30-day stay: outside 7–21.
+      value: 1800,
+      trip_class: 0,
+      show_to_affiliates: true,
+      origin: "WAW",
+      destination: "BKK",
+      depart_date: "2027-03-15",
+      return_date: "2027-04-14",
+      number_of_changes: 1,
+      found_at: "2026-11-01T22:00:00Z",
+      actual: true,
+    },
+  ],
+};
+
+export const emptyLatest: TpLatestPricesResponse = { success: true, data: [], currency: "pln" };

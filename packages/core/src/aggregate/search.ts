@@ -1,10 +1,21 @@
+import type { AirlineIndex } from "../airlines/airline-index.ts";
 import type { Cache } from "../cache/types.ts";
+import type { NbpRates } from "../currency/nbp.ts";
 import { addDays, type DateWindow, type IsoDate } from "../domain/dates.ts";
 import type { DestinationSummary, Offer } from "../domain/offer.ts";
-import type { SearchQuery } from "../domain/query.ts";
+import type { SearchFilters, SearchQuery } from "../domain/query.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 import type { FlightSource, RateLimit, SearchTask, SourceContext } from "../sources/types.ts";
-import { applyFilters, type FilterContext } from "./filters.ts";
+import { convertOffers } from "./currency.ts";
+import { carrierFacet, type CarrierFacetEntry } from "./facet.ts";
+import {
+  applyFilters,
+  carrierSet,
+  DEFAULT_MAX_PRICE_AGE_HOURS,
+  hasExcludedCarrier,
+  priceAgeHours,
+  type FilterContext,
+} from "./filters.ts";
 import { dedupeOffers } from "./merge.ts";
 import { combineOpenJaw } from "./open-jaw.ts";
 import { planSearch, type SearchPlan } from "./planner.ts";
@@ -28,6 +39,33 @@ export interface SearchDeps {
   openJawDestinations?: number;
   /** Cap on open-jaw return-leg tasks. Default `maxTasks` (300). */
   openJawMaxTasks?: number;
+  /**
+   * NBP rates (e.g. `new NbpRates({ cache })`) for converting offers priced in another currency
+   * than `query.currency`. Without it such offers are dropped and a warning is added.
+   */
+  rates?: Pick<NbpRates, "convert">;
+  /** Airline names for `Offer.carrierNames` and `carrierFacet[].name`. */
+  airlines?: Pick<AirlineIndex, "name" | "names">;
+  /** Receives the pipeline's warnings (currency conversion) as they happen. */
+  logger?: Pick<Console, "warn">;
+}
+
+export interface PriceAgeReport {
+  /** Effective `filters.maxPriceAgeHours`. */
+  maxHours: number;
+  /** Effective `filters.allowUnknownPriceAge`. */
+  allowUnknown: boolean;
+  /** Offers that passed every other filter but were older than `maxHours`. */
+  droppedTooOld: number;
+  /** Offers that passed every other filter but had an unknown age. */
+  droppedUnknown: number;
+}
+
+export interface CurrencyReport {
+  /** Offers converted to `query.currency` with NBP rates. */
+  converted: number;
+  /** Offers dropped because they could not be converted. */
+  unconverted: number;
 }
 
 export interface OpenJawReport {
@@ -56,6 +94,14 @@ export interface SearchResult {
   errors: { taskId: string; sourceId: string; message: string }[];
   /** Present when the open-jaw phases ran (`filters.allowOpenJaw` with a round trip). */
   openJaw?: OpenJawReport;
+  /**
+   * Airlines in the result before `filters.excludeCarriers` (so excluded ones stay listed),
+   * cheapest first. Offers with unknown carriers are not counted.
+   */
+  carrierFacet: CarrierFacetEntry[];
+  /** What the price-age filter removed (round trips and open-jaw combinations). */
+  priceAge: PriceAgeReport;
+  currency: CurrencyReport;
 }
 
 export const DEFAULT_OPEN_JAW_DESTINATIONS = 40;
@@ -80,8 +126,26 @@ function returnRange(
   return undefined;
 }
 
+/** The price-age filter's effective settings (`maxPriceAgeHours` defaults to 48). */
+function ageFilters(
+  f: SearchFilters,
+): Pick<SearchFilters, "maxPriceAgeHours" | "allowUnknownPriceAge"> {
+  return {
+    maxPriceAgeHours: f.maxPriceAgeHours ?? DEFAULT_MAX_PRICE_AGE_HOURS,
+    allowUnknownPriceAge: f.allowUnknownPriceAge === true,
+  };
+}
+
 /**
- * plan → run → filter → dedupe → rank. The one call the API layer needs.
+ * plan → run → convert currency → filter (incl. price age) → carrier facet → exclude carriers →
+ * dedupe → rank. The one call the API layer needs.
+ *
+ * - Offers priced in another currency than `query.currency` are converted with `deps.rates`
+ *   (NBP), keeping `originalPrice`/`originalCurrency`; without rates they are dropped with a
+ *   warning in `plan.warnings`.
+ * - `filters.maxPriceAgeHours` defaults to 48 (`DEFAULT_MAX_PRICE_AGE_HOURS`); offers with an
+ *   unknown age are dropped unless `filters.allowUnknownPriceAge`. Counts in `priceAge`.
+ * - `carrierFacet` lists airlines before `filters.excludeCarriers` is applied.
  *
  * With `filters.allowOpenJaw` and a round trip (`length` / `fixedReturn`), two more phases run:
  * 1. alongside the round-trip plan, one-way outbound tasks (origins → destinations);
@@ -95,7 +159,8 @@ export async function searchDestinations(
   query: SearchQuery,
   deps: SearchDeps,
 ): Promise<SearchResult> {
-  const today = deps.ctx.now().toISOString().slice(0, 10);
+  const now = deps.ctx.now();
+  const today = now.toISOString().slice(0, 10);
   const planOpts = { places: deps.places, sources: deps.sources, maxTasks: deps.maxTasks, today };
   const plan = planSearch(query, planOpts);
   const trip = query.dates.trip;
@@ -113,9 +178,33 @@ export async function searchDestinations(
     limits: deps.limits,
     onTaskDone: deps.onTaskDone,
   };
+  const currencyReport: CurrencyReport = { converted: 0, unconverted: 0 };
+  const convert = async (offers: Offer[]): Promise<Offer[]> => {
+    const r = await convertOffers(offers, query.currency, deps.rates);
+    currencyReport.converted += r.converted;
+    currencyReport.unconverted += r.unconverted;
+    for (const w of r.warnings) {
+      plan.warnings.push(w);
+      deps.logger?.warn(w);
+    }
+    return r.offers;
+  };
+
   const runs: RunResult[] = [];
   const phase1 = await runTasks([...plan.tasks, ...outTasks], runOpts);
   runs.push(phase1);
+
+  const age = ageFilters(query.filters);
+  // Round trips: every filter but age and carrier exclusion, which are counted / faceted below.
+  const baseFilters: SearchFilters = {
+    ...query.filters,
+    maxPriceAgeHours: undefined,
+    allowUnknownPriceAge: undefined,
+    excludeCarriers: undefined,
+  };
+  const excluded = carrierSet(query.filters.excludeCarriers);
+  const notExcluded = (offers: Offer[]) =>
+    excluded.size ? offers.filter((o) => !hasExcludedCarrier(o, excluded)) : offers;
 
   const filterCtx: FilterContext = {
     window: query.dates,
@@ -123,24 +212,51 @@ export async function searchDestinations(
     currency: query.currency,
     excludeCountries: new Set(plan.excludedCountries),
     places: deps.places,
+    now,
   };
   const outIds = new Set(outTasks.map((t) => t.id));
-  const roundOffers = phase1.results.filter((r) => !outIds.has(r.task.id)).flatMap((r) => r.offers);
-  const candidates = applyFilters(roundOffers, query.filters, filterCtx);
+  const roundRaw = phase1.results.filter((r) => !outIds.has(r.task.id)).flatMap((r) => r.offers);
+  const outRaw = phase1.results.filter((r) => outIds.has(r.task.id)).flatMap((r) => r.offers);
+  const converted1 = await convert([...roundRaw, ...outRaw]);
+  const roundOffers = converted1.slice(0, roundRaw.length);
+  const outOffers = converted1.slice(roundRaw.length);
+
+  const priceAge: PriceAgeReport = {
+    maxHours: age.maxPriceAgeHours!,
+    allowUnknown: age.allowUnknownPriceAge === true,
+    droppedTooOld: 0,
+    droppedUnknown: 0,
+  };
+  const keepFresh = (offers: Offer[]) =>
+    offers.filter((o) => {
+      const h = priceAgeHours(o, now);
+      if (h === undefined) {
+        if (priceAge.allowUnknown) return true;
+        priceAge.droppedUnknown++;
+        return false;
+      }
+      if (h <= priceAge.maxHours) return true;
+      priceAge.droppedTooOld++;
+      return false;
+    });
+
+  // Before carrier exclusion: feeds the carrier facet.
+  const listed = keepFresh(applyFilters(roundOffers, baseFilters, filterCtx));
+  const candidates = notExcluded(listed);
 
   let report: OpenJawReport | undefined;
   if (outPlan) {
-    // Legs are checked on their own (no price cap: it applies to the sum).
-    const legFilters = { ...query.filters, maxPrice: undefined };
-    const outLegs = applyFilters(
-      phase1.results.filter((r) => outIds.has(r.task.id)).flatMap((r) => r.offers),
-      legFilters,
-      { ...filterCtx, window: { ...query.dates, trip: { kind: "oneway" } } },
-    );
+    // Legs are checked on their own (no price cap: it applies to the sum); an old leg makes the
+    // combination old, so the age limit applies per leg.
+    const legFilters = { ...baseFilters, ...age, maxPrice: undefined };
+    const outLegs = applyFilters(outOffers, legFilters, {
+      ...filterCtx,
+      window: { ...query.dates, trip: { kind: "oneway" } },
+    });
 
     // Phase 2: return legs for the cheapest destinations only.
     const byDestination = new Map<string, { price: number; dates: IsoDate[] }>();
-    for (const o of outLegs) {
+    for (const o of notExcluded(outLegs)) {
       const d = byDestination.get(o.destination) ?? { price: o.price, dates: [] };
       d.price = Math.min(d.price, o.price);
       d.dates.push(o.departDate);
@@ -180,19 +296,27 @@ export async function searchDestinations(
 
     const home = new Set(plan.origins);
     const backLegs = applyFilters(
-      phase2.offers,
+      await convert(phase2.offers),
       {
         directOnly: query.filters.directOnly,
         maxStops: query.filters.maxStops,
         carrierTypes: query.filters.carrierTypes,
+        ...age,
       },
-      { destinations: home, currency: query.currency },
+      { destinations: home, currency: query.currency, places: deps.places, now },
     );
-    const combos = applyFilters(
-      combineOpenJaw(outLegs, backLegs, { returnAirports: home, trip }),
-      query.filters,
-      filterCtx,
-    );
+    const combine = (outs: Offer[], backs: Offer[]) =>
+      applyFilters(
+        combineOpenJaw(outs, backs, { returnAirports: home, trip }),
+        baseFilters,
+        filterCtx,
+      );
+    const combosListed = combine(outLegs, backLegs);
+    // Excluding per leg (not per combination) keeps the next-best pairs of other airlines.
+    const combos = excluded.size
+      ? combine(notExcluded(outLegs), notExcluded(backLegs))
+      : combosListed;
+    listed.push(...combosListed);
     candidates.push(...combos);
 
     const truncated = requested > backTasks.length;
@@ -210,9 +334,20 @@ export async function searchDestinations(
     };
   }
 
-  const offers = dedupeOffers(candidates).sort(
-    (a, b) => a.price - b.price || a.id.localeCompare(b.id),
-  );
+  if (priceAge.droppedUnknown > 0) {
+    plan.warnings.push(
+      `Pominięto ${priceAge.droppedUnknown} ofert z ceną o nieznanym wieku (cache do 7 dni). Włącz ceny „do 7 dni”, aby je zobaczyć.`,
+    );
+  }
+  if (priceAge.droppedTooOld > 0) {
+    plan.warnings.push(
+      `Pominięto ${priceAge.droppedTooOld} ofert z ceną starszą niż ${priceAge.maxHours} h.`,
+    );
+  }
+
+  const offers = dedupeOffers(candidates)
+    .map((o) => finalizeOffer(o, now, deps.airlines))
+    .sort((a, b) => a.price - b.price || a.id.localeCompare(b.id));
   return {
     summaries: summarizeByDestination(offers, { groupBy: deps.groupBy, places: deps.places }),
     offers,
@@ -227,5 +362,23 @@ export async function searchDestinations(
       })),
     ),
     openJaw: report,
+    carrierFacet: carrierFacet(listed, deps.airlines),
+    priceAge,
+    currency: currencyReport,
   };
+}
+
+/**
+ * Output touches: `cacheAgeHours` brought up to date (task results may come from our cache) and
+ * `carrierNames` from the airline index. Returns a new object only when something changes.
+ */
+function finalizeOffer(o: Offer, now: Date, airlines?: Pick<AirlineIndex, "names">): Offer {
+  const patch: Partial<Offer> = {};
+  if (o.freshness === "cached" && (o.foundAt !== undefined || o.cacheAgeHours !== undefined)) {
+    const h = priceAgeHours(o, now);
+    const hours = h === undefined ? undefined : Math.floor(h);
+    if (hours !== undefined && hours !== o.cacheAgeHours) patch.cacheAgeHours = hours;
+  }
+  if (airlines && o.carriers.length) patch.carrierNames = airlines.names(o.carriers);
+  return Object.keys(patch).length ? { ...o, ...patch } : o;
 }

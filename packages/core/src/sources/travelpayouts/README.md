@@ -1,7 +1,9 @@
 # Travelpayouts / Aviasales Data API — adapter
 
 `TravelpayoutsSource` (id `travelpayouts`) czyta ceny z cache wyszukiwań Aviasales przez
-**Data API v3**. Darmowe, wymaga tokenu partnera. Ceny są **orientacyjne** (cache 2–7 dni).
+**Data API**: domyślnie `/v2/prices/latest` (ceny znalezione w ostatnich **48 godzinach**),
+zapasowo `/aviasales/v3/prices_for_dates` (cache do 7 dni). Darmowe, wymaga tokenu partnera.
+Ceny są **orientacyjne**.
 
 Adapter powstał **bez dostępu do api.travelpayouts.com** (host niedostępny z sesji agenta).
 Zbudowany według publicznej dokumentacji i przetestowany na ręcznie napisanych fixture'ach
@@ -14,22 +16,88 @@ tokenem (lista na końcu).
 SOURCE_TRAVELPAYOUTS=1
 TRAVELPAYOUTS_TOKEN=...   # panel partnera → API → token
 TRAVELPAYOUTS_MARKER=...  # panel partnera → marker (id afiliacyjny), dodawany do linków Aviasales
+TRAVELPAYOUTS_MODE=both   # latest48h | prices7d | both (domyślnie both)
 ```
 
 `isEnabled(env)`: flaga `SOURCE_TRAVELPAYOUTS` **i** niepusty `TRAVELPAYOUTS_TOKEN`. Bez markera
 adapter działa, ale linki nie niosą afiliacji (patrz "Uwagi prawne").
 
-Opcje konstruktora: `places` (PlaceIndex do mapowania kodów miast), `fetchImpl` (wstrzykiwany
-`fetch`, testy), `baseUrl`, `linkBaseUrl` (host Aviasales), `market` (domyślnie `pl`),
-`pageSize` (domyślnie i maks. 1000), `maxPages` (domyślnie 3), `token`/`marker` (nadpisują env),
-`onRateLimit`, `logger`, `lowRemainingThreshold` (domyślnie 20).
+Opcje konstruktora: `places` (PlaceIndex do mapowania kodów miast), `airlines` (AirlineIndex
+z `data/airlines.json`: typ przewoźnika i `carrierNames`), `mode` (nadpisuje
+`TRAVELPAYOUTS_MODE`), `latestRateLimit` (domyślnie 4 zapytania/s, burst 4), `fetchImpl`
+(wstrzykiwany `fetch`, testy), `baseUrl`, `linkBaseUrl` (host Aviasales), `market` (domyślnie
+`pl`), `pageSize` (domyślnie i maks. 1000), `maxPages` (domyślnie 3), `token`/`marker`
+(nadpisują env), `onRateLimit`, `logger`, `lowRemainingThreshold` (domyślnie 20).
+
+## Tryby (`mode` / `TRAVELPAYOUTS_MODE`)
+
+| Tryb | `search()` |
+|---|---|
+| `latest48h` | tylko `/v2/prices/latest` |
+| `prices7d` | tylko `prices_for_dates` (zachowanie sprzed fali 4); oferty z `note: "cache do 7 dni"` |
+| `both` (domyślny) | najpierw `/v2/prices/latest`; **dopiero gdy zadanie nie da żadnej oferty** (po lokalnym filtrze dat), zapytanie `prices_for_dates`. Oferty zapasowe mają `cacheAgeHours: undefined`, `foundAt: undefined`, `stale: undefined`, `note: "cache do 7 dni"`. Błąd `latest` (poza 401/403/429 i przerwaniem) też uruchamia zapas, z ostrzeżeniem w `logger` |
+
+Pipeline (`searchDestinations`) domyślnie odrzuca ceny starsze niż 48 h **i ceny o nieznanym
+wieku** (`filters.maxPriceAgeHours`, domyślnie 48). Oferty zapasowe z `prices_for_dates` są więc
+widoczne tylko z `filters.allowUnknownPriceAge: true` (w UI tryb "do 7 dni").
+
+## Waluta
+
+Każde zapytanie (`latest`, `prices_for_dates`, `grouped_prices`) wysyła **`currency=pln`**,
+niezależnie od waluty zadania. Walutę oferty bierzemy z pola `currency` odpowiedzi (wielkimi
+literami; brak pola = PLN). Jeśli mimo to przyjdzie inna waluta, `searchDestinations` przelicza
+ją kursem średnim NBP (`deps.rates`), zaokrągla do pełnych złotych i zapisuje
+`originalPrice` / `originalCurrency` / `converted: true`. Bez `deps.rates` takie oferty
+odpadają (filtr waluty), a w `plan.warnings` pojawia się ostrzeżenie.
 
 ## Endpointy
 
 Baza: `https://api.travelpayouts.com`. Token wysyłany jako nagłówek `X-Access-Token` **oraz**
 parametr `token` (obie formy są w dokumentacji). Token nigdy nie trafia do treści błędów.
 
-### `GET /aviasales/v3/prices_for_dates` → `search(task)`
+### `GET /v2/prices/latest` → `search(task)` (tryby `latest48h` i `both`)
+
+"Najtańsze bilety znalezione przez użytkowników Aviasales w ciągu ostatnich 48 godzin".
+Limit: 300 zapytań/min; adapter ma na ten endpoint osobny token bucket (`latestRateLimit`,
+4/s), bo runner liczy zadania, a jedno zadanie może wysłać kilka zapytań (strony, zapas).
+
+| Parametr | Wartość |
+|---|---|
+| `currency` | `pln` |
+| `origin` | IATA lotniska z zadania (API przyjmuje lotnisko lub miasto ⚠️) |
+| `destination` | IATA lotniska dla kubełka lotniska; **pomijany** dla "gdziekolwiek" **i dla kubełka kraju** (endpoint zna tylko miasta; miasta kraju wybieramy lokalnie przez `places`, nieznane miasta odpadają) |
+| `beginning_of_period` | `YYYY-MM-01` miesiąca zadania albo `YYYY-MM-DD`, gdy okno to jeden dzień |
+| `period_type` | `month`, albo `day` dla jednego dnia ⚠️ |
+| `one_way` | `true` dla `oneway`, inaczej `false` |
+| `limit` / `page` | jak w `prices_for_dates` (1000, kolejna strona tylko po pełnej) |
+| `show_to_affiliates` | `true` |
+| `sorting` | `price` |
+| `trip_class` | `0` (ekonomiczna) |
+| `trip_duration` | **nie wysyłamy** (jednostka niepewna: dni czy tygodnie ⚠️); długość pobytu filtrujemy lokalnie |
+
+Bez parametru `direct`: "tylko bezpośrednie" filtrujemy lokalnie (`number_of_changes === 0`).
+
+Odpowiedź: `{ success, data: [ { value, trip_class, show_to_affiliates, origin, destination,
+gate, depart_date, return_date, number_of_changes, found_at, duration, distance, actual } ],
+currency }`. **Kody `origin`/`destination` to kody MIAST**, nie lotnisk; **brak linii lotniczej**.
+
+| Offer | Źródło (`latest`) |
+|---|---|
+| `price` | `value` |
+| `origin` / `destination` | kod miasta → `PlaceIndex.cityAirports(kod)`: dokładnie jedno lotnisko z ruchem rozkładowym → to lotnisko (POZ, BCN; BKK, gdy DMK nieznane); inaczej **kod miasta bez zmian** i `originIsCity` / `destinationIsCity: true` (LON; WAW = WAW + WMI; miasto nieznane indeksowi; zawsze bez `places`) |
+| `departDate` / `returnDate` | `depart_date` / `return_date` (`null`, `""` lub brak = w jedną stronę) |
+| `stops` | `number_of_changes` |
+| `durationMinutes` | `duration` tylko dla lotów w jedną stronę ⚠️ |
+| `carriers` / `carrierType` | `[]` / `"scheduled"` (zastępczo; filtr `carrierTypes` przepuszcza oferty bez przewoźnika, wykluczanie linii też) |
+| `foundAt` / `cacheAgeHours` | `found_at` (ISO) / pełne godziny od `found_at` do chwili pobrania |
+| `stale` | `!actual` (brak `actual` = `undefined`) |
+| `deepLink` | `aviasalesLink()` z **kodami miast z odpowiedzi** i markerem, np. `https://www.aviasales.com/search/POZ1203LON1?marker=…` |
+| `legs` | wylot (i powrót) z datą, bez przewoźnika |
+
+Pomijane: `value` ≤ 0, brak `depart_date` lub kodów, kod niebędący 3-znakowym IATA,
+`trip_class` ≠ 0, `show_to_affiliates: false`, cel równy wylotowi, daty poza oknem.
+
+### `GET /aviasales/v3/prices_for_dates` → `search(task)` (tryb `prices7d` i zapas w `both`)
 
 | Parametr | Wartość |
 |---|---|
@@ -39,7 +107,7 @@ parametr `token` (obie formy są w dokumentacji). Token nigdy nie trafia do tre�
 | `return_at` | tylko dla `fixedReturn`: dokładna data, gdy `returnFrom === returnTo`, inaczej osobne zapytanie na każdy miesiąc zakresu (maks. 3) |
 | `one_way` | `true` dla `oneway`, `false` dla `length` i `fixedReturn` |
 | `direct` | `task.directOnly` |
-| `currency` | `task.currency` małymi literami, np. `pln` |
+| `currency` | zawsze `pln` |
 | `market` | `pl` ⚠️ |
 | `limit` | 1000 (maks. wg dokumentacji) |
 | `page` | 1…`maxPages`; kolejna strona tylko, gdy poprzednia była pełna |
@@ -53,8 +121,9 @@ duration_to, duration_back, link } ], currency }`.
 ### `GET /aviasales/v3/grouped_prices` → `calendar(origin, destination, month)`
 
 Parametry: `origin`, `destination`, `departure_at=YYYY-MM`, `group_by=departure_at`,
-`one_way` ⚠️, `return_at` (jak wyżej, tylko pierwsza wartość), `currency`, `market`.
+`one_way` ⚠️, `return_at` (jak wyżej, tylko pierwsza wartość), `currency=pln`, `market`.
 Odpowiedź: `data` to obiekt `{ "YYYY-MM-DD": <ten sam kształt co wyżej> }`. Wynik sortowany po dacie.
+Bez `found_at`: każda oferta kalendarza ma `note: "cache do 7 dni"` (wiek nieznany).
 
 ### Kraj jako cel (`capabilities.countryDestination = true`)
 
@@ -75,7 +144,9 @@ z wypełnionym `destination_airport`. Jeśli API odrzuci kod kraju, wystarczy us
 | `stops` | `max(transfers, return_transfers)` (Offer trzyma maks. przesiadek w dowolnym kierunku) |
 | `durationMinutes` | `duration_to`; dla lotu w jedną stronę zapasowo `duration`. Dla powrotnych **nie** bierzemy `duration`, bo to (wg dokumentacji) suma obu kierunków ⚠️ |
 | `carriers` | `[airline]` |
-| `carrierType` | klasyfikacja z `carriers.ts` (lista IATA tanich linii i czarterów; reszta `scheduled`) |
+| `carrierType` | `AirlineIndex.type()` z `data/airlines.json` (opcja `airlines`); kodów spoza pliku (i bez opcji) dotyczy klasyfikacja z `carriers.ts` (lista IATA tanich linii i czarterów; reszta `scheduled`) |
+| `carrierNames` | z opcją `airlines`: nazwy równoległe do `carriers` (kod, gdy nazwy brak); pipeline uzupełnia je też z `deps.airlines` |
+| `note` | `"cache do 7 dni"` w trybie `prices7d` i dla ofert zapasowych w `both` |
 | `currency` | `currency` z odpowiedzi, wielkimi literami (zapasowo waluta zadania) |
 | `freshness` / `cacheAgeHours` | `cached`; wiek nieznany (`undefined`) — v3 nie zwraca daty znalezienia ceny. Jeśli odpowiedź zawiera `found_at` (było w starszych wersjach API), wiek liczymy z niego ⚠️ |
 | `deepLink` | `AVIASALES_BASE_URL + link`, potem `marker` doklejany przez `&` (link z API ma już `?`) albo `?`. Gdy brak `link`, budujemy `aviasalesLink()` |
@@ -98,8 +169,9 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
 
 ## Limity i błędy
 
-- Dokumentacja: 600 zapytań/min dla `prices_for_dates` i `grouped_prices`. Adapter deklaruje
-  `rateLimit = { rps: 5, burst: 2, concurrency: 4 }` (≈ 300/min, połowa limitu).
+- Dokumentacja: 600 zapytań/min dla `prices_for_dates` i `grouped_prices`, 300/min dla
+  `/v2/prices/latest`. Adapter deklaruje `rateLimit = { rps: 5, burst: 2, concurrency: 4 }`
+  (≈ 300 zadań/min) oraz osobny limit 4/s dla zapytań `latest` (`latestRateLimit`).
 - Nagłówki `X-Rate-Limit`, `X-Rate-Limit-Remaining`, `X-Rate-Limit-Reset` ⚠️ są czytane po każdej
   odpowiedzi: `source.lastRateLimit`, callback `onRateLimit`, ostrzeżenie w `logger` przy
   `remaining ≤ lowRemainingThreshold`.
@@ -128,10 +200,32 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
 13. Czy cena jest za jednego dorosłego i za całą podróż (tam i z powrotem) dla lotów powrotnych.
 14. Czy `destination=<kod kraju>` (np. `TH`) działa w `prices_for_dates` i zwraca ceny do różnych
     miast kraju (z `destination_airport`), oraz czy łączy się z `unique=false` i `limit=1000`.
+15. `/v2/prices/latest`: czy `origin` przyjmuje kod **lotniska** (WMI, LGW), czy tylko miasta, oraz
+    czy odpowiedź dla lotniska zwraca `origin` jako kod miasta (WAW dla WMI).
+16. `/v2/prices/latest`: czy `period_type=day` istnieje (dokumentacja wymienia na pewno `year`
+    i `month`), oraz czy `beginning_of_period=YYYY-MM-01` z `period_type=month` zwraca cały miesiąc.
+17. `/v2/prices/latest`: czy pominięcie `destination` daje ceny do wielu miast (jak "gdziekolwiek")
+    i czy `limit=1000`, `page` działają jak w v3 (kolejna strona po pełnej).
+18. `/v2/prices/latest`: format `found_at` (ISO z `Z`/offsetem czy bez strefy — bez strefy
+    `Date.parse` przyjmie czas lokalny serwera), oraz czy rzeczywiście wszystkie ceny mają
+    `found_at` ≤ 48 h (inaczej filtr wieku je odrzuci).
+19. `/v2/prices/latest`: znaczenie `actual` (czy `false` oznacza nieaktualną cenę) i jednostka
+    `duration` (minuty? jeden kierunek czy suma dla lotów powrotnych).
+20. `/v2/prices/latest`: postać `return_date` dla lotów w jedną stronę (`null`, `""`, brak) i czy
+    `one_way=true` wyklucza loty powrotne.
+21. `/v2/prices/latest`: czy `trip_duration` jest w dniach czy tygodniach (dziś nie wysyłamy) i czy
+    pozwoli przenieść filtr długości pobytu do API.
+22. Czy link `https://www.aviasales.com/search/POZ1203LON1?marker=…` z **kodem miasta** otwiera
+    wyszukiwanie (powinien: Aviasales szuka po miastach) i czy marker jest naliczany.
+23. Czy `currency=pln` jest respektowane przez wszystkie trzy endpointy (zgłoszenie z produkcji:
+    ceny przychodziły mieszane PLN/USD). Jeśli pole `currency` odpowiedzi bywa puste przy cenach
+    w USD, mapowanie przyjmie PLN — wtedy trzeba porównać ceny z Aviasales ręcznie.
+24. `show_to_affiliates=true`: czy ogranicza wyniki do cen, które wolno pokazywać partnerom
+    (zakładamy, że tak; wpisy z `false` i tak odrzucamy).
 
 ## Uwagi prawne
 
-- Ceny pochodzą z cache Aviasales i mają **2–7 dni**. UI musi pokazywać, że cena jest
+- Ceny pochodzą z cache Aviasales (`latest`: do 48 h, `prices_for_dates`: do 7 dni). UI musi pokazywać, że cena jest
   orientacyjna i jaki ma wiek (gdy znany), oraz dawać link do weryfikacji.
 - Regulamin Travelpayouts wymaga, by wyniki z Data API prowadziły do Aviasales przez link
   partnerski z **markerem** (`TRAVELPAYOUTS_MARKER`). Bez markera nie publikować wyników.

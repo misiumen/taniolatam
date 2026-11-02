@@ -9,6 +9,7 @@
  *   `"allowImportingTsExtensions": true` (fine with `noEmit`, which Next uses).
  */
 export * from "./aggregate/index.ts";
+export * from "./airlines/index.ts";
 export * from "./cache/index.ts";
 export * from "./calendar/index.ts";
 export * from "./currency/index.ts";

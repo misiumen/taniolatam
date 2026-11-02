@@ -7,6 +7,8 @@ import {
   type TripSpec,
 } from "../../domain/dates.ts";
 import { offerKey, type Leg, type Offer } from "../../domain/offer.ts";
+import { TokenBucket } from "../../aggregate/rate-limit.ts";
+import type { AirlineIndex } from "../../airlines/airline-index.ts";
 import { AVIASALES_BASE_URL, aviasalesLink, withMarker } from "../../links/deep-links.ts";
 import type { PlaceIndex } from "../../places/place-index.ts";
 import {
@@ -19,12 +21,15 @@ import {
 } from "../types.ts";
 import {
   GROUPED_PRICES_PATH,
+  LATEST_PRICES_PATH,
+  TP_CURRENCY,
   TP_MAX_PAGE_SIZE,
   PRICES_FOR_DATES_PATH,
   TRAVELPAYOUTS_API_BASE,
   TravelpayoutsError,
   tpGet,
   type FetchLike,
+  type TpLatestEntry,
   type TpParams,
   type TpPriceEntry,
   type TpRateLimitInfo,
@@ -33,9 +38,43 @@ import { classifyCarrier } from "./carriers.ts";
 
 export const TRAVELPAYOUTS_SOURCE_ID = "travelpayouts";
 
+/**
+ * Which Data API endpoint `search()` uses:
+ * - `latest48h`: `/v2/prices/latest` only (prices found during the last 48 hours);
+ * - `prices7d`: `/aviasales/v3/prices_for_dates` only (cache up to 7 days, age unknown);
+ * - `both` (default): latest first; a task that yields no offer (or whose latest request fails
+ *   with anything but 401/403/429/abort) falls back to prices_for_dates, marked
+ *   `note: "cache do 7 dni"` with unknown age.
+ */
+export type TravelpayoutsMode = "latest48h" | "prices7d" | "both";
+
+export const TRAVELPAYOUTS_MODES: readonly TravelpayoutsMode[] = ["latest48h", "prices7d", "both"];
+export const DEFAULT_TRAVELPAYOUTS_MODE: TravelpayoutsMode = "both";
+
+/** `Offer.note` on prices_for_dates / grouped_prices offers (age unknown, up to 7 days). */
+export const TP_CACHE_7D_NOTE = "cache do 7 dni";
+
+/** `TRAVELPAYOUTS_MODE` value → mode; undefined for empty or unknown values. */
+export function parseTravelpayoutsMode(value: string | undefined): TravelpayoutsMode | undefined {
+  const v = value?.trim().toLowerCase();
+  return TRAVELPAYOUTS_MODES.find((m) => m.toLowerCase() === v);
+}
+
 export interface TravelpayoutsSourceOptions {
-  /** Resolves city codes (LON) to an airport when the response lacks `*_airport`. */
+  /**
+   * Resolves city codes (LON) to an airport when the response lacks `*_airport`, and the city
+   * codes of `/v2/prices/latest` (one scheduled airport → that airport, else kept as a city).
+   */
   places?: PlaceIndex;
+  /** Carrier types (and `carrierNames`) from `data/airlines.json`; default `classifyCarrier`. */
+  airlines?: AirlineIndex;
+  /** Endpoint choice; overrides `TRAVELPAYOUTS_MODE` from the context env. Default "both". */
+  mode?: TravelpayoutsMode;
+  /**
+   * Client-side limit for `/v2/prices/latest` (documented 300 req/min). Default 4 rps, burst 4.
+   * The runner's per-source limit counts tasks, not requests (pages, fallbacks), hence this one.
+   */
+  latestRateLimit?: { rps: number; burst?: number };
   /** Injected for tests; defaults to global `fetch`. */
   fetchImpl?: FetchLike;
   /** Default https://api.travelpayouts.com. */
@@ -80,6 +119,32 @@ export interface MapEntryOptions {
   marker?: string;
   linkBaseUrl?: string;
   places?: PlaceIndex;
+  airlines?: AirlineIndex;
+}
+
+const hoursSince = (iso: string | undefined, now: Date): number | undefined => {
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(t) ? Math.max(0, Math.floor((now.getTime() - t) / 3_600_000)) : undefined;
+};
+
+const isoOrUndefined = (s: string | undefined): string | undefined => {
+  const t = s ? Date.parse(s) : NaN;
+  return Number.isFinite(t) ? new Date(t).toISOString() : undefined;
+};
+
+/**
+ * One side of a `/v2/prices/latest` price (always an IATA city code): the city's only scheduled
+ * airport when PlaceIndex knows exactly one (POZ, or a `<CODE>-city` group with one known
+ * airport), otherwise the city code itself with `isCity: true` (LON, WAW = WAW + WMI, or a city
+ * the index does not know).
+ */
+export function resolveCityCode(
+  code: string,
+  places?: Pick<PlaceIndex, "cityAirports">,
+): { code: string; isCity: boolean } {
+  const c = code.trim().toUpperCase();
+  const airports = places?.cityAirports(c) ?? [];
+  return airports.length === 1 ? { code: airports[0]!, isCity: false } : { code: c, isCity: true };
 }
 
 /**
@@ -126,10 +191,7 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
         { marker: o.marker, baseUrl: o.linkBaseUrl },
       );
 
-  const foundAt = e.found_at ? Date.parse(e.found_at) : NaN;
-  const cacheAgeHours = Number.isFinite(foundAt)
-    ? Math.max(0, Math.floor((o.fetchedAt.getTime() - foundAt) / 3_600_000))
-    : undefined;
+  const cacheAgeHours = hoursSince(e.found_at, o.fetchedAt);
 
   const legs: Leg[] = [
     {
@@ -156,12 +218,80 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
     currency: o.currency,
     stops,
     durationMinutes: durationMinutes === undefined ? undefined : Math.round(durationMinutes),
-    carrierType: classifyCarrier(airline),
+    carrierType: o.airlines ? o.airlines.type(airline) : classifyCarrier(airline),
+    ...(o.airlines ? { carrierNames: o.airlines.names(carriers) } : {}),
     source: TRAVELPAYOUTS_SOURCE_ID,
     fetchedAt: o.fetchedAt.toISOString(),
     freshness: "cached",
     // Data API prices are 2–7 days old; the age is not in the v3 response (see README).
     cacheAgeHours,
+    ...(cacheAgeHours === undefined ? {} : { foundAt: isoOrUndefined(e.found_at) }),
+    deepLink,
+    legs,
+  };
+}
+
+/**
+ * Maps one `/v2/prices/latest` price to an `Offer`; undefined for entries missing essentials,
+ * non-economy or not shown to affiliates. No airline in this endpoint: `carriers: []`.
+ */
+export function mapTravelpayoutsLatestEntry(
+  e: TpLatestEntry,
+  o: MapEntryOptions,
+): Offer | undefined {
+  const price = positive(e.value);
+  const departDate = datePart(e.depart_date);
+  const returnDate = datePart(e.return_date ?? undefined);
+  const rawOrigin = e.origin?.trim().toUpperCase();
+  const rawDestination = e.destination?.trim().toUpperCase();
+  if (price === undefined || !departDate || !rawOrigin || !rawDestination) return undefined;
+  if (e.show_to_affiliates === false) return undefined;
+  if (typeof e.trip_class === "number" && e.trip_class !== 0) return undefined;
+
+  // Aviasales searches accept city codes, so the link keeps the codes the price was found for.
+  let deepLink: string;
+  try {
+    deepLink = aviasalesLink(
+      { origin: rawOrigin, destination: rawDestination, departDate, returnDate },
+      { marker: o.marker, baseUrl: o.linkBaseUrl },
+    );
+  } catch {
+    return undefined; // not an IATA code or a malformed date
+  }
+
+  const from = resolveCityCode(rawOrigin, o.places);
+  const to = resolveCityCode(rawDestination, o.places);
+  const fields = {
+    origin: from.code,
+    destination: to.code,
+    departDate,
+    returnDate,
+    carriers: [] as string[],
+  };
+  const foundAt = isoOrUndefined(e.found_at);
+  const legs: Leg[] = [{ origin: from.code, destination: to.code, departAt: departDate }];
+  if (returnDate) legs.push({ origin: to.code, destination: from.code, departAt: returnDate });
+  // `duration` is reported as minutes; for round trips it may cover both directions (unverified).
+  const duration = returnDate ? undefined : positive(e.duration);
+
+  return {
+    id: offerKey(fields),
+    ...fields,
+    price,
+    currency: o.currency,
+    stops: nonNegInt(e.number_of_changes),
+    durationMinutes: duration === undefined ? undefined : Math.round(duration),
+    // Unknown carrier: the type is a placeholder; `carrierTypes` filters let `carriers: []` pass.
+    carrierType: classifyCarrier(undefined),
+    ...(o.airlines ? { carrierNames: [] } : {}),
+    source: TRAVELPAYOUTS_SOURCE_ID,
+    fetchedAt: o.fetchedAt.toISOString(),
+    freshness: "cached",
+    foundAt,
+    cacheAgeHours: hoursSince(foundAt, o.fetchedAt),
+    stale: typeof e.actual === "boolean" ? !e.actual : undefined,
+    ...(from.isCity ? { originIsCity: true } : {}),
+    ...(to.isCity ? { destinationIsCity: true } : {}),
     deepLink,
     legs,
   };
@@ -187,12 +317,17 @@ function dedupeById(offers: Offer[]): Offer[] {
   return [...byId.values()];
 }
 
+/** Latest-prices errors that a prices_for_dates fallback would hit too (auth, rate limit). */
+const NO_FALLBACK_STATUS = new Set([401, 403, 429]);
+
 /**
- * Travelpayouts / Aviasales Data API v3: prices from Aviasales' search cache (2–7 days old).
- * Free with a partner token; offers link to Aviasales with the partner marker.
+ * Travelpayouts / Aviasales Data API: prices from Aviasales' search cache. Free with a partner
+ * token; offers link to Aviasales with the partner marker.
  *
- * Endpoints: `prices_for_dates` for `search()`, `grouped_prices` (group_by=departure_at) for
- * `calendar()`. See ./README.md for parameters and what still needs a live-token check.
+ * Endpoints: `/v2/prices/latest` (last 48 h) and/or `prices_for_dates` (up to 7 days) for
+ * `search()`, depending on `mode`; `grouped_prices` (group_by=departure_at) for `calendar()`.
+ * Every request asks for PLN. See ./README.md for parameters and what still needs a live-token
+ * check.
  */
 export class TravelpayoutsSource implements FlightSource {
   readonly id = TRAVELPAYOUTS_SOURCE_ID;
@@ -205,16 +340,28 @@ export class TravelpayoutsSource implements FlightSource {
     // `destination` accepts a country code (docs; unverified with a live token, see README).
     countryDestination: true,
   };
-  // Documented: 600 req/min for prices_for_dates and grouped_prices. We stay at half of that.
+  // Documented: 600 req/min for prices_for_dates and grouped_prices, 300 req/min for
+  // /v2/prices/latest. Tasks run at half of the former; latest requests also pass through
+  // `latestRateLimit` (4 rps), since one task can make several requests (pages, fallback).
   readonly rateLimit = { rps: 5, burst: 2, concurrency: 4 };
 
   private readonly opts: TravelpayoutsSourceOptions;
   private readonly fetchImpl: FetchLike;
+  private readonly latestBucket: TokenBucket;
   private rateLimitInfo: TpRateLimitInfo | undefined;
 
   constructor(opts: TravelpayoutsSourceOptions = {}) {
     this.opts = opts;
     this.fetchImpl = opts.fetchImpl ?? ((input, init) => fetch(input, init));
+    const latest = opts.latestRateLimit ?? { rps: 4, burst: 4 };
+    this.latestBucket = new TokenBucket(latest.rps, latest.burst ?? 1);
+  }
+
+  /** `opts.mode`, else `TRAVELPAYOUTS_MODE` from env, else "both". */
+  modeFor(env: Env): TravelpayoutsMode {
+    return (
+      this.opts.mode ?? parseTravelpayoutsMode(env.TRAVELPAYOUTS_MODE) ?? DEFAULT_TRAVELPAYOUTS_MODE
+    );
   }
 
   /** Rate-limit headers of the most recent response, if any. */
@@ -227,6 +374,98 @@ export class TravelpayoutsSource implements FlightSource {
   }
 
   async search(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
+    const mode = this.modeFor(ctx.env);
+    if (mode === "prices7d") {
+      return (await this.searchPricesForDates(task, ctx)).map((o) => ({
+        ...o,
+        note: TP_CACHE_7D_NOTE,
+      }));
+    }
+    let latest: Offer[] = [];
+    try {
+      latest = await this.searchLatest(task, ctx);
+    } catch (err) {
+      const status = err instanceof TravelpayoutsError ? err.status : undefined;
+      const fallback =
+        mode === "both" &&
+        err instanceof TravelpayoutsError &&
+        !(status !== undefined && NO_FALLBACK_STATUS.has(status)) &&
+        !ctx.signal?.aborted;
+      if (!fallback) throw err;
+      this.opts.logger?.warn(
+        `Travelpayouts ${LATEST_PRICES_PATH}: ${err.message}; falling back to prices_for_dates`,
+      );
+    }
+    if (mode === "latest48h" || latest.length > 0) return latest;
+    // Nothing found in the last 48 h: 7-day cache, age unknown (v3 has no found_at).
+    return (await this.searchPricesForDates(task, ctx)).map((o) => ({
+      ...o,
+      cacheAgeHours: undefined,
+      foundAt: undefined,
+      stale: undefined,
+      note: TP_CACHE_7D_NOTE,
+    }));
+  }
+
+  /** `/v2/prices/latest` for one task; filtered locally like prices_for_dates. */
+  private async searchLatest(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
+    const dest = task.destination;
+    const singleDay = task.departFrom === task.departTo;
+    const base: TpParams = {
+      currency: TP_CURRENCY,
+      origin: task.origin,
+      // Country buckets: the endpoint takes cities only, so ask for anywhere and keep the
+      // country's cities locally (needs `places`).
+      destination: dest.kind === "airport" ? dest.code : undefined,
+      beginning_of_period: singleDay ? task.departFrom : `${task.month}-01`,
+      period_type: singleDay ? "day" : "month",
+      one_way: task.trip.kind === "oneway",
+      limit: this.pageSize,
+      show_to_affiliates: true,
+      sorting: "price",
+      trip_class: 0,
+    };
+
+    const offers: Offer[] = [];
+    for (let page = 1; page <= this.maxPages; page++) {
+      ctx.signal?.throwIfAborted();
+      await this.latestBucket.take();
+      ctx.signal?.throwIfAborted();
+      const body = await this.get<TpLatestEntry[]>(LATEST_PRICES_PATH, { ...base, page }, ctx);
+      const entries = Array.isArray(body.data) ? body.data : [];
+      const opts = this.mapOptions((body.currency ?? TP_CURRENCY).toUpperCase(), ctx);
+      for (const e of entries) {
+        const o = e && typeof e === "object" ? mapTravelpayoutsLatestEntry(e, opts) : undefined;
+        if (o) offers.push(o);
+      }
+      if (entries.length < this.pageSize) break;
+    }
+
+    const places = this.opts.places;
+    const inCountry = (o: Offer): boolean => {
+      if (dest.kind !== "country" || !places) return true;
+      const airports = o.destinationIsCity ? places.cityAirports(o.destination) : [o.destination];
+      // Unknown cities cannot be placed: dropped rather than shown under a wrong country.
+      return airports.some((a) => places.airport(a)?.countryCode === dest.code);
+    };
+    return this.clip(offers.filter(inCountry), task);
+  }
+
+  /** Window, direct-only and origin = destination checks, then dedupe. */
+  private clip(offers: Offer[], task: SearchTask): Offer[] {
+    const window = { departFrom: task.departFrom, departTo: task.departTo, trip: task.trip };
+    return dedupeById(
+      offers.filter(
+        (o) =>
+          o.destination !== o.origin &&
+          (!task.directOnly || o.stops === 0) &&
+          matchesWindow(window, o.departDate, o.returnDate),
+      ),
+    );
+  }
+
+  /** `prices_for_dates` for one task (the pre-48 h behaviour). */
+  private async searchPricesForDates(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
     const dest = task.destination;
     const anywhere = dest.kind === "anywhere";
     const base: TpParams = {
@@ -237,7 +476,7 @@ export class TravelpayoutsSource implements FlightSource {
       departure_at: task.departFrom === task.departTo ? task.departFrom : task.month,
       one_way: task.trip.kind === "oneway",
       direct: task.directOnly,
-      currency: task.currency.toLowerCase(),
+      currency: TP_CURRENCY,
       market: this.market,
       limit: this.pageSize,
       sorting: "price",
@@ -257,21 +496,12 @@ export class TravelpayoutsSource implements FlightSource {
           ctx,
         );
         const entries = Array.isArray(body.data) ? body.data : [];
-        const currency = (body.currency ?? task.currency).toUpperCase();
+        const currency = (body.currency ?? TP_CURRENCY).toUpperCase();
         offers.push(...this.mapAll(entries, currency, ctx));
         if (entries.length < this.pageSize) break;
       }
     }
-
-    const window = { departFrom: task.departFrom, departTo: task.departTo, trip: task.trip };
-    return dedupeById(
-      offers.filter(
-        (o) =>
-          o.destination !== o.origin &&
-          (!task.directOnly || o.stops === 0) &&
-          matchesWindow(window, o.departDate, o.returnDate),
-      ),
-    );
+    return this.clip(offers, task);
   }
 
   async calendar(
@@ -291,7 +521,7 @@ export class TravelpayoutsSource implements FlightSource {
         return_at: returnAtValues(trip)[0],
         group_by: "departure_at",
         one_way: trip.kind === "oneway",
-        currency: opts.currency.toLowerCase(),
+        currency: TP_CURRENCY,
         market: this.market,
       },
       ctx,
@@ -300,14 +530,16 @@ export class TravelpayoutsSource implements FlightSource {
     const entries = Object.values(data).filter(
       (e): e is TpPriceEntry => e !== null && typeof e === "object",
     );
-    const currency = (body.currency ?? opts.currency).toUpperCase();
+    const currency = (body.currency ?? TP_CURRENCY).toUpperCase();
     const { first, last } = monthRange(month);
     const window = { departFrom: first, departTo: last, trip };
     return dedupeById(
       this.mapAll(entries, currency, ctx).filter((o) =>
         matchesWindow(window, o.departDate, o.returnDate),
       ),
-    ).sort((a, b) => a.departDate.localeCompare(b.departDate) || a.price - b.price);
+    )
+      .sort((a, b) => a.departDate.localeCompare(b.departDate) || a.price - b.price)
+      .map((o) => ({ ...o, note: TP_CACHE_7D_NOTE })); // grouped_prices has no found_at
   }
 
   private get market(): string {
@@ -328,14 +560,19 @@ export class TravelpayoutsSource implements FlightSource {
     return t ? t : undefined;
   }
 
-  private mapAll(entries: TpPriceEntry[], currency: string, ctx: SourceContext): Offer[] {
-    const opts: MapEntryOptions = {
+  private mapOptions(currency: string, ctx: SourceContext): MapEntryOptions {
+    return {
       currency,
       fetchedAt: ctx.now(),
       marker: (this.opts.marker ?? ctx.env.TRAVELPAYOUTS_MARKER)?.trim() || undefined,
       linkBaseUrl: this.opts.linkBaseUrl,
       places: this.opts.places,
+      airlines: this.opts.airlines,
     };
+  }
+
+  private mapAll(entries: TpPriceEntry[], currency: string, ctx: SourceContext): Offer[] {
+    const opts = this.mapOptions(currency, ctx);
     return entries.flatMap((e) => {
       const o = e && typeof e === "object" ? mapTravelpayoutsEntry(e, opts) : undefined;
       return o ? [o] : [];
