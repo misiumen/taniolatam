@@ -44,9 +44,14 @@ Legenda: ✅ legalne i dostępne od ręki · 🟡 legalne, ale wymaga zgody/part
 | **Skyscanner Partners API** | 🟡 | pełny search, "everywhere" | 0 zł dla zaakceptowanych partnerów | Umowa komercyjna, oczekiwany ruch rzędu 100k/mies. Na później. Teraz: deep-link do Skyscannera. |
 | **Google Flights** | ❌ API / ✅ deep-link | brak oficjalnego API (QPX zamknięte 2018) | — | Scraping (SerpApi, Apify) narusza regulamin Google; Google pozwało SerpApi (XII 2025). Używamy wyłącznie deep-linków do weryfikacji ceny. |
 | **Amadeus Self-Service** | ❌ | — | — | Zamknięte 17.07.2026. Enterprise: ~5–20 tys. USD/rok. Odpada. |
-| **Ryanair / Wizz Air endpointy fare-finder** | 🟡 | ceny tanich linii | 0 | Nieoficjalne endpointy; Ryanair ma program licencyjny API dla porównywarek (umowa). Bez umowy nie korzystamy. Deep-linki tak. |
+| **Ryanair / Wizz Air endpointy fare-finder** | 🟡 | ceny tanich linii | 0 | Nieoficjalne endpointy; bez umowy nie korzystamy. Ryanair prowadzi program "Approved OTA" dla sprzedawców i agregatorów (Travelfusion, Atlas, Paxport); warunków dla czystych porównywarek nie znaleziono, do wyjaśnienia u Ryanair w fazie 4. Deep-linki tak. |
+| **Kayak / Momondo** | 🟡 | deep-linki afiliacyjne, drugi link weryfikacyjny obok Google Flights | 0 | Ręczna akceptacja w sieci afiliacyjnej Kayak. Faza 2. API dopiero przy dużym ruchu. |
+| **eSky.pl** | 🟡 | polski OTA, deep-link z PLN i BLIK | 0 | Program CPS przez Admitad; brak API dla afiliantów. Faza 2. |
+| **Marki w koncie Travelpayouts** (WayAway, Trip.com, Omio, Expedia UK) | ✅ | deep-linki afiliacyjne bez nowej integracji | 0 | To samo konto co Aviasales. Faza 1–2. |
+| **tanie-loty.com.pl, Secret Flying** | 🟡 | okazje redakcyjne | 0 | Tylko tytuł + link do źródła, po pisemnej zgodzie redakcji. Faza 2. |
+| **Święta i dni mostowe PL, kursy NBP** | ✅ | podpowiedzi "długi weekend", przeliczanie EUR/USD na PLN | 0 | Święta liczone lokalnie, NBP Web API bez klucza. Faza 1. |
 | **fly4free.pl** | 🟡 | okazje redakcyjne | 0 | Tylko przez publiczny RSS, jeśli go udostępnia i robots.txt pozwala; zawsze z tytułem, linkiem do źródła i bez kopiowania treści. Nie zweryfikowano feedu (host zablokowany w tej sesji sieciowo). Jeśli brak RSS, zapytać redakcję o zgodę. |
-| **Czartery** | 🟡 | miejsca czarterowe, "same loty" | 0 (afiliacja) | Brak otwartego API. Drogi: TravelLead (wakacje.pl) — pliki XML + afiliacja; Flightbox Specials; feedy produktowe touroperatorów w sieciach afiliacyjnych (Awin, TradeDoubler). Wymaga rejestracji wydawcy. Faza 3. |
+| **Czartery** | 🟡 | miejsca czarterowe, "same loty" | 0 (afiliacja) | Brak otwartego API. Drogi: TravelLead (wakacje.pl) — pliki XML + afiliacja; Flightbox Specials; Itaka przez Tradedoubler; pozostali touroperatorzy do sprawdzenia w panelach Awin/Tradedoubler/Admitad. Wymaga rejestracji wydawcy. Faza 3. |
 | **Mapa** | ✅ | kafelki | 0 zł | MapLibre GL + OpenFreeMap (bez klucza) lub Protomaps. |
 | **Lotniska / regiony** | ✅ | słownik lotnisk, współrzędne, kraje, kontynenty | 0 zł | OurAirports (domena publiczna) + własne mapowanie regionów. |
 
@@ -95,8 +100,8 @@ Zasady:
 
 ## 5. Fazy
 
-1. **Szkielet + Travelpayouts + mapa** — działająca wyszukiwarka "skąd → dokąd → kiedy" z filtrami, listą i mapą, deep-linki do weryfikacji. Użytek własny.
-2. **Okazje + live** — RSS okazji (po potwierdzeniu feedów/zgody), Duffel za flagą, kalendarz cen, multicity/open-jaw w rankingu, alerty e-mail.
+1. **Szkielet + Travelpayouts + mapa** — działająca wyszukiwarka "skąd → dokąd → kiedy" z filtrami, listą i mapą, deep-linki do weryfikacji (Google Flights, Skyscanner, Kiwi, Aviasales). Kalendarz świąt i dni mostowych PL, kursy NBP. Użytek własny.
+2. **Okazje + live** — RSS okazji po pisemnej zgodzie (fly4free, tanie-loty.com.pl, Secret Flying), deep-linki Kayak/Momondo i eSky, Duffel za flagą, kalendarz cen, multicity/open-jaw w rankingu, alerty e-mail.
 3. **Czartery + mobile** — feedy afiliacyjne touroperatorów; aplikacja mobilna (Expo) na tym samym API.
 4. **Komercjalizacja** — konta, płatności, wnioski partnerskie (Skyscanner, Kiwi, Aviasales live), Postgres, monitoring, polityka prywatności.
 
@@ -104,4 +109,6 @@ Zasady:
 
 - Rejestracja konta Travelpayouts i wklejenie tokenu do `.env` (jedyny krok, którego nie zrobi agent).
 - Czy w fazie 2 płacić za Duffel (scenariusz B), czy czekać na partnerstwa.
-- Czy kontaktować się z fly4free w sprawie zgody na wykorzystanie feedu.
+- Czy kontaktować się z fly4free, tanie-loty.com.pl i Secret Flying w sprawie zgody na wykorzystanie feedów.
+
+Pełna ocena dodatkowych źródeł, w tym odrzuconych: `docs/SOURCES.md`.
