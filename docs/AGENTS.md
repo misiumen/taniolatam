@@ -29,3 +29,10 @@ pracuje w **osobnym katalogu**, żeby nie nadpisywać cudzych plików. Fable sca
 4. Klucze API wyłącznie z `.env`; w repo tylko `.env.example`.
 5. Komunikaty commitów po angielsku, UI po polsku (i18n gotowe na angielski).
 6. Po skończeniu: `npm run check` (typecheck + lint + test) musi przechodzić.
+
+## Przepływ wdrożeń (zasada stała, decyzja właściciela z 2026-11-02)
+
+1. Każda zmiana trafia najpierw na gałąź roboczą (`claude/...`) po przejściu `npm run check`, buildu i e2e.
+2. Właściciel ogląda efekt (zrzuty ekranu, opis zmian) i zatwierdza.
+3. Dopiero po zatwierdzeniu gałąź robocza jest wypychana na `main`, co uruchamia wdrożenie w Render na gdziepolece.pl.
+4. Nigdy nie wypycha się na `main` bez zatwierdzenia, także poprawek, żeby nie wyłączyć działającej strony.
