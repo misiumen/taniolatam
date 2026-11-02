@@ -12,12 +12,15 @@ export interface VerifyLink {
  * Outbound verification links (Google Flights, Skyscanner, Kiwi, Aviasales and the source's own
  * link) from the shared builders in `@gdziepolece/core`. We never call these sites, only link.
  *
- * Runs in the browser, so only public env is available: the Aviasales/Kiwi affiliate markers
- * (server-side `TRAVELPAYOUTS_MARKER`, `KIWI_AFFILIATE_ID`) are not applied here; links that
- * come from the Travelpayouts adapter (`offer.deepLink`) already carry the marker.
+ * Runs in the browser; `env` carries the public affiliate identifiers from `/api/v1/config`
+ * (`TRAVELPAYOUTS_MARKER`, `KIWI_AFFILIATE_ID`, see `useAffiliateEnv`). Links that come from the
+ * Travelpayouts adapter (`offer.deepLink`) already carry the marker.
  */
-export function verifyLinks(offer: Offer): VerifyLink[] {
-  return allLinks(offer, {}).map((l) => {
+export function verifyLinks(
+  offer: Offer,
+  env: Record<string, string | undefined> = {},
+): VerifyLink[] {
+  return allLinks(offer, env).map((l) => {
     const leg = l.label.endsWith("(wylot)")
       ? "out"
       : l.label.endsWith("(powrót)")

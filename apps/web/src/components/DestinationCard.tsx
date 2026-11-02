@@ -15,6 +15,7 @@ import {
   sourceName,
 } from "../lib/format";
 import { openJawLegs, verifyLinks, type OpenJawLeg, type VerifyLink } from "../lib/links";
+import { useAffiliateEnv } from "../lib/use-public-config";
 import { CalendarPanel } from "./CalendarPanel";
 
 interface Props {
@@ -68,7 +69,8 @@ function OpenJawLegs({
   legs: [OpenJawLeg, OpenJawLeg];
   nameOf: (code: string) => string;
 }) {
-  const links = verifyLinks(offer);
+  const affiliateEnv = useAffiliateEnv();
+  const links = verifyLinks(offer, affiliateEnv);
   const legHrefs = new Set(legs.map((l) => l.deepLink));
   const general = links.filter((l) => !l.leg && !legHrefs.has(l.href));
   return (
@@ -116,6 +118,7 @@ export function DestinationCard({
 }: Props) {
   const { summary } = view;
   const offer = summary.cheapest;
+  const affiliateEnv = useAffiliateEnv();
   const age = priceAge(offer);
   const price = describePrice(offer);
   const carriers = carrierLabel(offer);
@@ -264,7 +267,7 @@ export function DestinationCard({
 
       {!legs && (
         <div className="mt-2 text-[13px]">
-          <LinkRow links={verifyLinks(offer)} label="Sprawdź cenę:" />
+          <LinkRow links={verifyLinks(offer, affiliateEnv)} label="Sprawdź cenę:" />
         </div>
       )}
 

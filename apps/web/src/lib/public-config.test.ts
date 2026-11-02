@@ -29,4 +29,15 @@ describe("publicConfig", () => {
     const urls = publicConfig({ MAP_STYLE_URL: MAP_STYLE_FALLBACKS[0] }).mapStyleUrls;
     expect(urls).toEqual([...MAP_STYLE_FALLBACKS]);
   });
+
+  it("exposes only non-empty affiliate identifiers", () => {
+    expect(publicConfig({}).affiliates).toEqual({});
+    expect(
+      publicConfig({
+        TRAVELPAYOUTS_MARKER: " 799559 ",
+        KIWI_AFFILIATE_ID: "",
+        TRAVELPAYOUTS_TOKEN: "x",
+      }).affiliates,
+    ).toEqual({ TRAVELPAYOUTS_MARKER: "799559" });
+  });
 });

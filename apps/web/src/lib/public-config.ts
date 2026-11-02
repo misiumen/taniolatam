@@ -6,6 +6,11 @@
 export interface PublicConfig {
   /** MapLibre styles to try in order; the map falls back to the flat plan after the last one. */
   mapStyleUrls: string[];
+  /**
+   * Public affiliate identifiers the browser appends to outbound verification links. These are
+   * not secrets (they appear in every tracked URL); the API token never comes here.
+   */
+  affiliates: { TRAVELPAYOUTS_MARKER?: string; KIWI_AFFILIATE_ID?: string };
 }
 
 export const DEFAULT_MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -41,5 +46,10 @@ export function publicConfig(env: Record<string, string | undefined>): PublicCon
   const configured = [env["MAP_STYLE_URL"], env["NEXT_PUBLIC_MAP_STYLE_URL"]].find((v) =>
     isHttpUrl(v?.trim()),
   );
-  return { mapStyleUrls: mapStyleChain(configured) };
+  const affiliates: PublicConfig["affiliates"] = {};
+  const marker = env["TRAVELPAYOUTS_MARKER"]?.trim();
+  const kiwi = env["KIWI_AFFILIATE_ID"]?.trim();
+  if (marker) affiliates.TRAVELPAYOUTS_MARKER = marker;
+  if (kiwi) affiliates.KIWI_AFFILIATE_ID = kiwi;
+  return { mapStyleUrls: mapStyleChain(configured), affiliates };
 }
