@@ -1,0 +1,30 @@
+{
+  "name": "@taniolatam/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@taniolatam/api-client": "*",
+    "@taniolatam/core": "*",
+    "maplibre-gl": "^6.16.0",
+    "next": "^15.5.28",
+    "react": "^19.1.10",
+    "react-dom": "^19.1.10"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.63.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3"
+  }
+}

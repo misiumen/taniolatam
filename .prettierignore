@@ -6,3 +6,6 @@ package-lock.json
 data
 docs
 *.md
+next-env.d.ts
+test-results
+playwright-report

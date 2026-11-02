@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --border: #d9dde5;
+  --text: #14171f;
+  --muted: #5b6475;
+  --accent: #0b6bcb;
+  --accent-contrast: #ffffff;
+  --accent-soft: #e3effc;
+  --good: #0f7a4d;
+  --warn-bg: #fff4d6;
+  --warn-text: #6b4a00;
+  --danger: #b3261e;
+  --map-bg: #dfe6ee;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1218;
+    --surface: #181c25;
+    --surface-2: #212633;
+    --border: #2d3445;
+    --text: #e8ebf2;
+    --muted: #9aa3b5;
+    --accent: #5aa7ff;
+    --accent-contrast: #07121f;
+    --accent-soft: #14283f;
+    --good: #4cc38a;
+    --warn-bg: #3a2f0e;
+    --warn-text: #f3d98b;
+    --danger: #ff8a80;
+    --map-bg: #1b2230;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-contrast);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-fg: var(--warn-text);
+  --color-danger: var(--danger);
+  --color-map: var(--map-bg);
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Price pins on the map (shared by MapLibre and the offline fallback). */
+.price-pin {
+  transform: translate(-50%, -50%);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: inherit;
+}
