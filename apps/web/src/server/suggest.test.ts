@@ -27,7 +27,7 @@ describe("PlaceSuggester", () => {
 
   it("finds continents, groups and cities", () => {
     expect(suggester.suggest("azja").some((s) => s.kind === "continent")).toBe(true);
-    expect(suggester.suggest("warszawa").some((s) => s.kind === "group")).toBe(true);
+    expect(suggester.suggest("warszawa").some((s) => s.kind === "city")).toBe(true);
     expect(suggester.suggest("bangkok").some((s) => s.kind === "city")).toBe(true);
   });
 

@@ -28,7 +28,11 @@ export function priceHistogram(prices: number[], buckets = 6): HistogramBucket[]
 function destinationPlace(iata: string, opts: SummarizeOptions): Place {
   const loc = opts.groupBy && opts.groupBy !== "airport" ? opts.places?.locate(iata) : undefined;
   if (loc && opts.groupBy === "city")
-    return { kind: "city", name: loc.airport.city, countryCode: loc.airport.countryCode };
+    return {
+      kind: "city",
+      name: loc.airport.cityEn ?? loc.airport.city,
+      countryCode: loc.airport.countryCode,
+    };
   if (loc && opts.groupBy === "country") return { kind: "country", code: loc.airport.countryCode };
   return { kind: "airport", code: iata };
 }

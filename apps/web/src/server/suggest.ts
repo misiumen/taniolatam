@@ -1,3 +1,4 @@
+import { airportCityEn, airportCityPl } from "@taniolatam/core";
 import type { Airport, Place, PlaceData, PlaceKind } from "@taniolatam/core";
 import type { PlaceSuggestion } from "@taniolatam/api-client";
 
@@ -74,7 +75,7 @@ export class PlaceSuggester {
     }
     const countryCodes = new Set(data.regions.countries.map((c) => c.code));
     const cityNames = new Set(
-      data.airports.filter((a) => a.scheduledService).map((a) => normalize(a.city)),
+      data.airports.filter((a) => a.scheduledService).map((a) => normalize(airportCityPl(a))),
     );
     for (const [id, g] of Object.entries(data.groups)) {
       // "PL" is the group form of the country entry above.
@@ -85,18 +86,28 @@ export class PlaceSuggester {
       add({ kind: "group", id }, label, [label, g.nameEn, id], g.airports.join(", "));
     }
 
-    const cities = new Map<string, { name: string; countryCode: string; airports: Airport[] }>();
+    const cities = new Map<
+      string,
+      { name: string; nameEn: string; countryCode: string; airports: Airport[] }
+    >();
     for (const a of data.airports) {
       if (!a.scheduledService) continue;
-      const key = `${a.countryCode}|${normalize(a.city)}`;
-      const city = cities.get(key) ?? { name: a.city, countryCode: a.countryCode, airports: [] };
+      const cityPl = airportCityPl(a);
+      const cityEn = airportCityEn(a);
+      const key = `${a.countryCode}|${normalize(cityEn)}`;
+      const city = cities.get(key) ?? {
+        name: cityPl,
+        nameEn: cityEn,
+        countryCode: a.countryCode,
+        airports: [],
+      };
       city.airports.push(a);
       cities.set(key, city);
       const country = countryName.get(a.countryCode) ?? a.countryCode;
       add(
         { kind: "airport", code: a.iata },
-        `${a.city} (${a.iata})`,
-        [a.iata, a.city, a.name],
+        `${cityPl} (${a.iata})`,
+        [a.iata, cityPl, cityEn, a.city, a.name],
         `${a.name}, ${country}`,
         AIRPORT_TYPE_PRIORITY[a.type],
       );
@@ -104,9 +115,9 @@ export class PlaceSuggester {
     for (const city of cities.values()) {
       const country = countryName.get(city.countryCode) ?? city.countryCode;
       add(
-        { kind: "city", name: city.name, countryCode: city.countryCode },
+        { kind: "city", name: city.nameEn, countryCode: city.countryCode },
         city.name,
-        [city.name],
+        [city.name, city.nameEn],
         `${country}, lotniska: ${city.airports.map((a) => a.iata).join(", ")}`,
         Math.min(...city.airports.map((a) => AIRPORT_TYPE_PRIORITY[a.type])),
       );

@@ -27,7 +27,7 @@ export function describeDestinations(
   return summaries.map((summary) => {
     const dest = airports[summary.cheapest.destination];
     const d = summary.destination;
-    const title = d.kind === "city" ? d.name : (dest?.city ?? summary.cheapest.destination);
+    const title = dest?.city ?? (d.kind === "city" ? d.name : summary.cheapest.destination);
     return {
       key: placeKey(d),
       summary,

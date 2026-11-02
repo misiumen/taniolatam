@@ -40,7 +40,7 @@ export async function runSearch(
     airports[iata] = {
       iata: a.iata,
       name: a.name,
-      city: a.city,
+      city: a.cityPl ?? a.city,
       countryCode: a.countryCode,
       countryName: ctx.places.country(a.countryCode)?.namePl,
       lat: a.lat,
