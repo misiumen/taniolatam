@@ -7,7 +7,10 @@ import type {
   SearchQuery,
 } from "@taniolatam/core";
 
-/** `POST /api/v1/search` body: exactly the core `SearchQuery`, as JSON. */
+/**
+ * `POST /api/v1/search` body: exactly the core `SearchQuery`, as JSON. `filters.excludeOriginCountries`
+ * is optional (the server treats a missing value as "on"), so clients send only `false`.
+ */
 export type SearchRequest = SearchQuery;
 
 export interface SearchMeta {
@@ -39,6 +42,11 @@ export interface AirportInfo {
 export interface SearchResponse {
   /** One row per destination city, cheapest first. */
   destinations: DestinationSummary[];
+  /**
+   * Additive and optional: IATA codes of every airport behind a destination group, keyed by
+   * `placeKey(destination)`. Lets the UI show "WAW, WMI" for a multi-airport city.
+   */
+  groupAirports?: Record<string, string[]>;
   /** Additive to the contract: airports referenced by `destinations` (origin and destination IATA). */
   airports: Record<string, AirportInfo>;
   meta: SearchMeta;

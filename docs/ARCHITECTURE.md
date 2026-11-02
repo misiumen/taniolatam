@@ -47,10 +47,11 @@ flowchart TB
 ## Przepływ zapytania "Polska → Azja, najbliższe 8 miesięcy"
 
 1. Klient wysyła `SearchQuery`: origins=[country:PL], destinations=[continent:AS], window=8 miesięcy, filtry.
-2. Resolver rozwija PL na lotniska z ruchem rozkładowym (ok. 14) i AS na listę krajów (ok. 50).
-3. Planner buduje siatkę zadań i ją ogranicza: dla "gdziekolwiek" pyta źródła per kraj docelowy, nie per lotnisko; łączy miesiące w jedno zapytanie, gdy źródło to wspiera. Twardy limit zadań na zapytanie (konfigurowalny).
+2. Resolver rozwija PL na lotniska z ruchem rozkładowym (15) i AS na listę krajów (49). Domyślnie (`filters.excludeOriginCountries`) cele w kraju wylotu odpadają: w planie i w filtrach wyników "gdziekolwiek"; wyjątek: zapytanie w całości krajowe (Kraków → Gdańsk).
+3. Planner buduje siatkę (źródło × lotnisko wylotu × kubełek celu × miesiąc) z twardym limitem zadań (`SEARCH_MAX_TASKS`, domyślnie 300). Kubełki per źródło: do 3 lotnisk docelowych — po jednym na lotnisko; więcej — po jednym na cały kraj (źródła z `countryDestination`), o ile siatka mieści się w udziale źródła w limicie; inaczej jeden kubełek "gdziekolwiek" filtrowany lokalnie. PL → AS na 8 miesięcy: 15 × 49 × 9 = 6615 zadań per kraj, więc Travelpayouts dostaje "gdziekolwiek" (135 zadań); PL → JP + KR: 270 zadań per kraj.
 4. Runner wykonuje zadania równolegle z limitem na źródło (token bucket), najpierw sprawdzając cache.
-5. Merge dedupluje oferty (ten sam origin, cel, daty, przewoźnik), zostawia najtańszą, zapamiętuje wszystkie źródła.
+   Open-jaw (`allowOpenJaw` przy podróży w obie strony) dodaje dwie fazy: (1) razem z planem głównym loty w jedną stronę lotniska wylotu → cele; (2) dla 40 najtańszych lotnisk docelowych z fazy 1 loty w jedną stronę cel → lotniska wylotu w datach zgodnych z długością pobytu (osobny limit zadań). Pary A→X + X→B (B ≠ A) łączy `combineOpenJaw`; oferta ma dwa `legs` z osobnymi linkami, pusty `deepLink` i konkuruje w rankingu z lotami w obie strony.
+5. Merge dedupluje oferty (ten sam origin, cel, data wylotu i powrotu, lotnisko powrotu; bez względu na przewoźnika), zostawia najtańszą, zapamiętuje wszystkie źródła w `sources`.
 6. Filtry i ranking budują listę `DestinationSummary`: cel, najtańsza oferta, liczba ofert, histogram cen.
 7. API odsyła wynik; klient pokazuje listę, mapę i kalendarz. Każda oferta ma wiek ceny i deep-link do weryfikacji.
 

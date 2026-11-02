@@ -13,10 +13,23 @@ interface Props {
   api: ApiClient;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Destination mode: "Gdziekolwiek" is offered as a suggestion (also for an empty, focused
+   * field). It replaces every other chip, and picking a concrete place removes it.
+   */
+  anywhere?: boolean;
 }
 
 /** Multi-value place picker: chips + autocomplete backed by GET /api/v1/places. */
-export function PlaceInput({ label, chips, onChange, api, placeholder, disabled }: Props) {
+export function PlaceInput({
+  label,
+  chips,
+  onChange,
+  api,
+  placeholder,
+  disabled,
+  anywhere = false,
+}: Props) {
   const uid = useId();
   const listId = `${uid}-list`;
   const [text, setText] = useState("");
@@ -28,36 +41,48 @@ export function PlaceInput({ label, chips, onChange, api, placeholder, disabled 
 
   useEffect(() => {
     const q = text.trim();
-    if (q === "") {
+    if (q === "" && !anywhere) {
       setItems([]);
       setFailed(false);
       return;
     }
     const ac = new AbortController();
-    const timer = setTimeout(() => {
-      api
-        .places(q, { signal: ac.signal })
-        .then((res) => {
-          setItems(res.results);
-          setActive(0);
-          setFailed(false);
-        })
-        .catch((err: unknown) => {
-          if (ac.signal.aborted) return;
-          void err;
-          setItems([]);
-          setFailed(true);
-        });
-    }, 180);
+    const timer = setTimeout(
+      () => {
+        api
+          .places(q, { signal: ac.signal, anywhere })
+          .then((res) => {
+            setItems(res.results);
+            setActive(0);
+            setFailed(false);
+          })
+          .catch((err: unknown) => {
+            if (ac.signal.aborted) return;
+            void err;
+            setItems([]);
+            setFailed(true);
+          });
+      },
+      q === "" ? 0 : 180,
+    );
     return () => {
       clearTimeout(timer);
       ac.abort();
     };
-  }, [text, api]);
+  }, [text, api, anywhere]);
+
+  // With an empty field, do not offer what is already a chip (e.g. "Gdziekolwiek" twice).
+  const visible =
+    text.trim() === ""
+      ? items.filter((s) => !chips.some((c) => placeKey(c.place) === placeKey(s.place)))
+      : items;
 
   const add = (s: PlaceSuggestion) => {
-    if (!chips.some((c) => placeKey(c.place) === placeKey(s.place))) {
-      onChange([...chips, { place: s.place, label: s.label }]);
+    const chip = { place: s.place, label: s.label };
+    if (anywhere && s.place.kind === "anywhere") {
+      onChange([chip]);
+    } else if (!chips.some((c) => placeKey(c.place) === placeKey(s.place))) {
+      onChange([...(anywhere ? chips.filter((c) => c.place.kind !== "anywhere") : chips), chip]);
     }
     setText("");
     setItems([]);
@@ -69,12 +94,12 @@ export function PlaceInput({ label, chips, onChange, api, placeholder, disabled 
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setOpen(true);
-      setActive((i) => Math.min(i + 1, items.length - 1));
+      setActive((i) => Math.min(i + 1, visible.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
-      const s = items[active];
+      const s = visible[active];
       if (open && s) {
         e.preventDefault();
         add(s);
@@ -86,7 +111,10 @@ export function PlaceInput({ label, chips, onChange, api, placeholder, disabled 
     }
   };
 
-  const showList = open && text.trim() !== "" && (items.length > 0 || failed);
+  const showList =
+    open &&
+    (text.trim() !== "" || anywhere) &&
+    (visible.length > 0 || (failed && text.trim() !== ""));
 
   return (
     <div className="relative">
@@ -124,7 +152,7 @@ export function PlaceInput({ label, chips, onChange, api, placeholder, disabled 
           aria-expanded={showList}
           aria-controls={listId}
           aria-autocomplete="list"
-          aria-activedescendant={showList && items[active] ? `${uid}-opt-${active}` : undefined}
+          aria-activedescendant={showList && visible[active] ? `${uid}-opt-${active}` : undefined}
           autoComplete="off"
           disabled={disabled}
           value={text}
@@ -148,7 +176,7 @@ export function PlaceInput({ label, chips, onChange, api, placeholder, disabled 
           {failed && (
             <li className="px-3 py-2 text-sm text-danger">Nie udało się pobrać podpowiedzi.</li>
           )}
-          {items.map((s, i) => (
+          {visible.map((s, i) => (
             <li
               key={placeKey(s.place)}
               id={`${uid}-opt-${i}`}

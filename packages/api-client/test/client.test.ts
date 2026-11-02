@@ -38,6 +38,16 @@ describe("createApiClient", () => {
     expect(JSON.parse(calls[0]!.init?.body as string)).toEqual(query);
   });
 
+  it("asks for the anywhere entry only when requested", async () => {
+    const empty = { query: "", results: [] };
+    const withAnywhere = recorder(json(empty));
+    await createApiClient("", withAnywhere.fetchImpl).places("", { anywhere: true });
+    expect(withAnywhere.calls[0]!.url).toBe("/api/v1/places?q=&anywhere=1");
+    const plain = recorder(json(empty));
+    await createApiClient("", plain.fetchImpl).places("pl");
+    expect(plain.calls[0]!.url).toBe("/api/v1/places?q=pl");
+  });
+
   it("encodes the places query", async () => {
     const { calls, fetchImpl } = recorder(json({ query: "", results: [] }));
     await createApiClient("", fetchImpl).places("Nowy Jork & co");

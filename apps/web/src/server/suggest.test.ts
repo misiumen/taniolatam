@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadPlaceData } from "@taniolatam/core/node";
 import { findDataDir } from "./context";
-import { MAX_SUGGESTIONS, PlaceSuggester } from "./suggest";
+import { ANYWHERE_SUGGESTION, MAX_SUGGESTIONS, PlaceSuggester } from "./suggest";
 
 let suggester: PlaceSuggester;
 
@@ -35,6 +35,22 @@ describe("PlaceSuggester", () => {
     const kinds = suggester.suggest("bangkok").map((s) => s.kind);
     expect(kinds).toContain("city");
     expect(kinds).not.toContain("group");
+  });
+
+  it("offers Gdziekolwiek only on request: for an empty query and for matching words", () => {
+    expect(suggester.suggest("", undefined, { anywhere: true })).toEqual([ANYWHERE_SUGGESTION]);
+    expect(suggester.suggest("")).toEqual([]);
+    for (const q of ["gdzie", "dowol", "anywhere", "Gdziekolwiek"]) {
+      expect(suggester.suggest(q, undefined, { anywhere: true })[0]).toMatchObject({
+        kind: "anywhere",
+        detail: "Dowolny kierunek na świecie",
+      });
+      expect(suggester.suggest(q).some((s) => s.kind === "anywhere")).toBe(false);
+    }
+    // Ordinary queries are unaffected, and the entry does not hijack them.
+    const r = suggester.suggest("polsk", undefined, { anywhere: true });
+    expect(r[0]?.kind).toBe("country");
+    expect(r.some((s) => s.kind === "anywhere")).toBe(false);
   });
 
   it("caps the result list", () => {

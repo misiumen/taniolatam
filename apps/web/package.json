@@ -10,7 +10,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "e2e": "playwright test",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "start:standalone": "node scripts/start-standalone.mjs",
+    "e2e:prod": "playwright test -c playwright.prod.config.ts"
   },
   "dependencies": {
     "@taniolatam/api-client": "*",

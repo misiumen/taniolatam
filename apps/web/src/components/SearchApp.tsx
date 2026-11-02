@@ -8,6 +8,7 @@ import {
   defaultFormState,
   formToParams,
   hasSearchParams,
+  isAnywhere,
   paramsToForm,
   toSearchQuery,
   validateForm,
@@ -23,7 +24,9 @@ type Tab = "list" | "map";
 
 function summarize(s: FormState): string {
   const from = s.origins.map((c) => c.label).join(", ") || "—";
-  const to = s.anywhere ? "gdziekolwiek" : s.destinations.map((c) => c.label).join(", ");
+  const to = isAnywhere(s.destinations)
+    ? "gdziekolwiek"
+    : s.destinations.map((c) => c.label).join(", ");
   return `${from} → ${to} · ${formatDay(s.departFrom)} – ${formatDay(s.departTo)}`;
 }
 
@@ -97,7 +100,11 @@ export function SearchApp() {
   const views = useMemo(
     () =>
       status.kind === "done"
-        ? describeDestinations(status.response.destinations, status.response.airports)
+        ? describeDestinations(
+            status.response.destinations,
+            status.response.airports,
+            status.response.groupAirports,
+          )
         : [],
     [status],
   );

@@ -25,13 +25,25 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+export interface PlacesOptions extends RequestOptions {
+  /** Also offer the "Gdziekolwiek" entry (kind "anywhere"), even for an empty query. */
+  anywhere?: boolean;
+}
+
 export interface ApiClient {
   search(query: SearchRequest, opts?: RequestOptions): Promise<SearchResponse>;
-  places(q: string, opts?: RequestOptions): Promise<PlacesResponse>;
+  places(q: string, opts?: PlacesOptions): Promise<PlacesResponse>;
   calendar(req: CalendarRequest, opts?: RequestOptions): Promise<CalendarResponse>;
 }
 
 const list = (v: string | string[]) => (Array.isArray(v) ? v.join(",") : v);
+
+/** Query string for `GET /places`; exported for tests. */
+export function placesQuery(q: string, anywhere?: boolean): string {
+  const p = new URLSearchParams({ q });
+  if (anywhere) p.set("anywhere", "1");
+  return p.toString();
+}
 
 /** Query string for `GET /calendar`; exported for tests. */
 export function calendarQuery(req: CalendarRequest): string {
@@ -79,7 +91,7 @@ export function createApiClient(baseUrl = "", fetchImpl?: FetchLike): ApiClient 
         signal: opts?.signal,
       }),
     places: (q, opts) =>
-      request<PlacesResponse>(`places?${new URLSearchParams({ q }).toString()}`, {
+      request<PlacesResponse>(`places?${placesQuery(q, opts?.anywhere)}`, {
         signal: opts?.signal,
       }),
     calendar: (req, opts) =>

@@ -48,6 +48,14 @@ describe("MockSource", () => {
     expect(bkk).toContainEqual(fromAnywhere);
   });
 
+  it("answers country buckets with that country's airports only", async () => {
+    const mock = new MockSource({ places });
+    expect(mock.capabilities.countryDestination).toBe(true);
+    const th = await mock.search(task({ destination: { kind: "country", code: "TH" } }), ctx);
+    expect(new Set(th.map((o) => o.destination))).toEqual(new Set(["BKK", "HKT"]));
+    expect(th).toHaveLength(2 * 3); // all dates, like an airport bucket
+  });
+
   it("generates well-formed offers within the requested window", async () => {
     const offers = await new MockSource({ places }).search(task(), ctx);
     for (const o of offers) {

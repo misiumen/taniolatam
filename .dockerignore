@@ -16,3 +16,4 @@
 docs
 Dockerfile
 .dockerignore
+**/playwright-report-prod

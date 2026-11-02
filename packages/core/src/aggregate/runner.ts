@@ -1,6 +1,12 @@
 import type { Offer } from "../domain/offer.ts";
 import type { Cache } from "../cache/types.ts";
-import type { FlightSource, RateLimit, SearchTask, SourceContext } from "../sources/types.ts";
+import {
+  bucketKey,
+  type FlightSource,
+  type RateLimit,
+  type SearchTask,
+  type SourceContext,
+} from "../sources/types.ts";
 import { Semaphore, TokenBucket } from "./rate-limit.ts";
 
 export interface TaskResult {
@@ -34,12 +40,11 @@ const DEFAULT_TTL_SECONDS = 6 * 3600;
 
 /** Cache key: everything that changes a source's answer. */
 export function taskCacheKey(t: SearchTask): string {
-  const dest = t.destination.kind === "anywhere" ? "*" : t.destination.code;
   return [
     "task",
     t.sourceId,
     t.origin,
-    dest,
+    bucketKey(t.destination),
     t.departFrom,
     t.departTo,
     JSON.stringify(t.trip),

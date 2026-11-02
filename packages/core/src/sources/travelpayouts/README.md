@@ -34,7 +34,7 @@ parametr `token` (obie formy są w dokumentacji). Token nigdy nie trafia do tre�
 | Parametr | Wartość |
 |---|---|
 | `origin` | IATA lotniska z zadania (API przyjmuje kod lotniska lub miasta) |
-| `destination` | IATA celu; **pomijany** dla "gdziekolwiek" |
+| `destination` | IATA celu; dla kubełka kraju (`{ kind: "country" }`) **kod kraju ISO** (np. `TH`) ⚠️; **pomijany** dla "gdziekolwiek" |
 | `departure_at` | `YYYY-MM` (miesiąc zadania) albo `YYYY-MM-DD`, gdy okno to jeden dzień |
 | `return_at` | tylko dla `fixedReturn`: dokładna data, gdy `returnFrom === returnTo`, inaczej osobne zapytanie na każdy miesiąc zakresu (maks. 3) |
 | `one_way` | `true` dla `oneway`, `false` dla `length` i `fixedReturn` |
@@ -44,7 +44,7 @@ parametr `token` (obie formy są w dokumentacji). Token nigdy nie trafia do tre�
 | `limit` | 1000 (maks. wg dokumentacji) |
 | `page` | 1…`maxPages`; kolejna strona tylko, gdy poprzednia była pełna |
 | `sorting` | `price` |
-| `unique` | `true` dla "gdziekolwiek" (najtańsza cena per cel), inaczej `false` |
+| `unique` | `true` dla "gdziekolwiek" (najtańsza cena per cel), inaczej `false` (także dla kraju: wszystkie daty i miasta kraju, do `limit` × `maxPages` cen) |
 
 Odpowiedź: `{ success, data: [ { origin, destination, origin_airport, destination_airport, price,
 airline, flight_number, departure_at, return_at, transfers, return_transfers, duration,
@@ -55,6 +55,16 @@ duration_to, duration_back, link } ], currency }`.
 Parametry: `origin`, `destination`, `departure_at=YYYY-MM`, `group_by=departure_at`,
 `one_way` ⚠️, `return_at` (jak wyżej, tylko pierwsza wartość), `currency`, `market`.
 Odpowiedź: `data` to obiekt `{ "YYYY-MM-DD": <ten sam kształt co wyżej> }`. Wynik sortowany po dacie.
+
+### Kraj jako cel (`capabilities.countryDestination = true`)
+
+**Założenie (niezweryfikowane ⚠️):** dokumentacja `prices_for_dates` opisuje `origin`/`destination`
+jako kod IATA miasta/lotniska **albo kod kraju** (2–3 znaki). Planner wysyła więc jedno zapytanie
+na (lotnisko wylotu × kraj docelowy × miesiąc) zamiast jednego na lotnisko docelowe, gdy cel
+obejmuje całe kraje (np. "Azja"), a siatka mieści się w limicie zadań; inaczej używa
+"gdziekolwiek". Zakładamy, że odpowiedź dla kraju zawiera ceny do wielu miast tego kraju
+z wypełnionym `destination_airport`. Jeśli API odrzuci kod kraju, wystarczy ustawić
+`countryDestination: false` — planner wróci do "gdziekolwiek" / lotnisk.
 
 ## Mapowanie na `Offer`
 
@@ -116,6 +126,8 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
     `min_trip_duration`/`max_trip_duration` pozwolą przenieść filtr długości pobytu do API.
 12. Kształt odpowiedzi błędu (np. 401 przy złym tokenie: `{ success: false, error }` czy inny).
 13. Czy cena jest za jednego dorosłego i za całą podróż (tam i z powrotem) dla lotów powrotnych.
+14. Czy `destination=<kod kraju>` (np. `TH`) działa w `prices_for_dates` i zwraca ceny do różnych
+    miast kraju (z `destination_airport`), oraz czy łączy się z `unique=false` i `limit=1000`.
 
 ## Uwagi prawne
 

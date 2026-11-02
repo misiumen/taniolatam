@@ -17,6 +17,11 @@ export interface SourceCapabilities {
   live: boolean;
   /** Can price multi-city itineraries natively. */
   multicity: boolean;
+  /**
+   * Accepts a whole country (ISO-3166-1 alpha-2) as the destination of one request, so the
+   * planner can send one task per destination country instead of one per airport.
+   */
+  countryDestination?: boolean;
 }
 
 export interface RateLimit {
@@ -28,11 +33,27 @@ export interface RateLimit {
   concurrency: number;
 }
 
-export type DestinationBucket = { kind: "anywhere" } | { kind: "airport"; code: string };
+export type DestinationBucket =
+  | { kind: "anywhere" }
+  | { kind: "airport"; code: string }
+  /** Every airport of one country (ISO-3166-1 alpha-2); needs `capabilities.countryDestination`. */
+  | { kind: "country"; code: string };
+
+/** Short stable form of a bucket for task ids and cache keys: "*", "BKK", "country-TH". */
+export function bucketKey(b: DestinationBucket): string {
+  switch (b.kind) {
+    case "anywhere":
+      return "*";
+    case "airport":
+      return b.code;
+    case "country":
+      return `country-${b.code}`;
+  }
+}
 
 /** One cell of the fan-out grid: a single request to a single source. */
 export interface SearchTask {
-  /** `${sourceId}:${origin}:${destination}:${month}`; also used as the cache key. */
+  /** `${sourceId}:${origin}:${bucketKey(destination)}:${month}` (+ a phase suffix for open-jaw legs). */
   id: string;
   sourceId: string;
   /** IATA airport. */

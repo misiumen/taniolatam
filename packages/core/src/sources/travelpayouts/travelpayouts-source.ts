@@ -197,7 +197,14 @@ function dedupeById(offers: Offer[]): Offer[] {
 export class TravelpayoutsSource implements FlightSource {
   readonly id = TRAVELPAYOUTS_SOURCE_ID;
   readonly name = "Travelpayouts / Aviasales (ceny z cache)";
-  readonly capabilities = { anywhere: true, calendar: true, live: false, multicity: false };
+  readonly capabilities = {
+    anywhere: true,
+    calendar: true,
+    live: false,
+    multicity: false,
+    // `destination` accepts a country code (docs; unverified with a live token, see README).
+    countryDestination: true,
+  };
   // Documented: 600 req/min for prices_for_dates and grouped_prices. We stay at half of that.
   readonly rateLimit = { rps: 5, burst: 2, concurrency: 4 };
 
@@ -220,10 +227,12 @@ export class TravelpayoutsSource implements FlightSource {
   }
 
   async search(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
-    const anywhere = task.destination.kind === "anywhere";
+    const dest = task.destination;
+    const anywhere = dest.kind === "anywhere";
     const base: TpParams = {
       origin: task.origin,
-      destination: task.destination.kind === "airport" ? task.destination.code : undefined,
+      // Airport IATA, or a country code for country buckets (see README, unverified).
+      destination: dest.kind === "anywhere" ? undefined : dest.code,
       // A single-day window asks for that day; otherwise the whole month, clipped locally.
       departure_at: task.departFrom === task.departTo ? task.departFrom : task.month,
       one_way: task.trip.kind === "oneway",
@@ -232,7 +241,8 @@ export class TravelpayoutsSource implements FlightSource {
       market: this.market,
       limit: this.pageSize,
       sorting: "price",
-      // Anywhere: one cheapest price per destination.
+      // Anywhere: one cheapest price per destination. Country buckets keep every date (the page
+      // holds up to `pageSize` prices for one origin × country × month).
       unique: anywhere,
     };
 

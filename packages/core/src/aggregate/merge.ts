@@ -1,4 +1,4 @@
-import { offerKey, type Offer } from "../domain/offer.ts";
+import type { Offer } from "../domain/offer.ts";
 
 /** Better of two equally-keyed offers: cheaper, then live over cached, then fresher. */
 function better(a: Offer, b: Offer): Offer {
@@ -8,13 +8,26 @@ function better(a: Offer, b: Offer): Offer {
 }
 
 /**
- * Collapses offers for the same itinerary (origin, destination, dates, return airport, carriers)
- * reported by several sources: keeps the cheapest and records every source in `sources`.
+ * Dedupe identity: the trip as the traveller sees it — airports and dates. Carriers are not part
+ * of it (two sources pricing the same dates with different airlines are one result: the cheaper).
+ * `returnTo` is: an open-jaw combination landing elsewhere is a different trip.
+ */
+export function dedupeKey(
+  o: Pick<Offer, "origin" | "destination" | "departDate" | "returnDate" | "returnTo">,
+): string {
+  return [o.origin, o.destination, o.departDate, o.returnDate ?? "", o.returnTo ?? ""].join("|");
+}
+
+/**
+ * Collapses offers for the same trip (`dedupeKey`: origin, destination, departure and return
+ * dates, return airport) reported by one or several sources: keeps the cheapest (ties: live over
+ * cached, then fresher) and records every source that reported the trip in `sources`, sorted.
+ * The kept offer keeps its own `id`.
  */
 export function dedupeOffers(offers: Iterable<Offer>): Offer[] {
   const byKey = new Map<string, { best: Offer; sources: Set<string> }>();
   for (const o of offers) {
-    const key = offerKey(o);
+    const key = dedupeKey(o);
     const entry = byKey.get(key);
     const reported = [o.source, ...(o.sources ?? [])];
     if (!entry) {
@@ -24,9 +37,8 @@ export function dedupeOffers(offers: Iterable<Offer>): Offer[] {
       reported.forEach((s) => entry.sources.add(s));
     }
   }
-  return [...byKey.entries()].map(([key, { best, sources }]) => ({
+  return [...byKey.values()].map(({ best, sources }) => ({
     ...best,
-    id: key,
     sources: [...sources].sort(),
   }));
 }

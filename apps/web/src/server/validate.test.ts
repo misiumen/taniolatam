@@ -24,6 +24,21 @@ describe("validateSearchQuery", () => {
     }
   });
 
+  it("passes the new optional filters through and rejects non-booleans", () => {
+    const r = validateSearchQuery({
+      ...valid,
+      filters: { excludeOriginCountries: false, maxDurationMinutes: 480, allowOpenJaw: true },
+    });
+    expect(r.ok && r.value.filters).toMatchObject({
+      excludeOriginCountries: false,
+      maxDurationMinutes: 480,
+      allowOpenJaw: true,
+    });
+    expect(validateSearchQuery({ ...valid, filters: { excludeOriginCountries: "no" } }).ok).toBe(
+      false,
+    );
+  });
+
   it("defaults currency and filters", () => {
     const r = validateSearchQuery({ ...valid, currency: undefined, filters: undefined });
     expect(r.ok && r.value.currency).toBe("PLN");

@@ -16,10 +16,13 @@ export type StopsMode = "direct" | "max1" | "any";
 
 export const ALL_CARRIER_TYPES: CarrierType[] = ["scheduled", "lowcost", "charter"];
 
+/** Options of the "Maks. czas lotu" select, in hours; `""` in the form state = no limit. */
+export const MAX_DURATION_HOURS = [4, 8, 12, 16, 24] as const;
+
 export interface FormState {
   origins: PlaceChip[];
+  /** Empty, or only the `ANYWHERE_CHIP`, means "gdziekolwiek". */
   destinations: PlaceChip[];
-  anywhere: boolean;
   departFrom: string;
   departTo: string;
   oneWay: boolean;
@@ -30,7 +33,20 @@ export interface FormState {
   /** Empty string = no price cap. */
   maxPrice: string;
   carrierTypes: CarrierType[];
+  /** "Pomiń kierunki w kraju wylotu"; on by default. */
+  excludeOriginCountries: boolean;
+  /** Max outbound flight time in hours, one of `MAX_DURATION_HOURS`; empty string = no limit. */
+  maxDurationHours: string;
+  /** Allow returning to a different airport than the departure one. */
+  allowOpenJaw: boolean;
 }
+
+/** The "Gdziekolwiek" chip of the destination combobox (never serialised into the URL). */
+export const ANYWHERE_CHIP: PlaceChip = { place: { kind: "anywhere" }, label: "Gdziekolwiek" };
+
+/** No concrete destination chosen: the search runs over every destination. */
+export const isAnywhere = (chips: PlaceChip[]): boolean =>
+  chips.every((c) => c.place.kind === "anywhere");
 
 export const DEFAULT_ORIGIN: PlaceChip = {
   place: { kind: "country", code: "PL" },
@@ -52,12 +68,11 @@ function addMonthsIso(iso: string, months: number): string {
   return target.toISOString().slice(0, 10);
 }
 
-/** Defaults: from Poland, anywhere, today+14 d … +8 months, 7–21 days, any stops. */
+/** Defaults: from Poland, to anywhere (no destination chips), today+14 d … +8 months, 7–21 days, any stops. */
 export function defaultFormState(today = isoLocal(new Date())): FormState {
   return {
     origins: [DEFAULT_ORIGIN],
     destinations: [],
-    anywhere: true,
     departFrom: addDays(today, 14),
     departTo: addMonthsIso(today, 8),
     oneWay: false,
@@ -67,15 +82,15 @@ export function defaultFormState(today = isoLocal(new Date())): FormState {
     stops: "any",
     maxPrice: "",
     carrierTypes: [...ALL_CARRIER_TYPES],
+    excludeOriginCountries: true,
+    maxDurationHours: "",
+    allowOpenJaw: false,
   };
 }
 
 /** Polish error for an invalid form, or undefined when it can be submitted. */
 export function validateForm(s: FormState): string | undefined {
   if (s.origins.length === 0) return "Wybierz co najmniej jedno miejsce wylotu (Skąd).";
-  if (!s.anywhere && s.destinations.length === 0) {
-    return "Wybierz cel podróży albo zaznacz „Gdziekolwiek”.";
-  }
   if (!s.departFrom || !s.departTo) return "Podaj zakres dat wylotu.";
   if (s.departFrom > s.departTo) return "Data „od” nie może być późniejsza niż „do”.";
   if (!s.oneWay) {
@@ -86,8 +101,14 @@ export function validateForm(s: FormState): string | undefined {
   }
   if (s.maxPrice !== "" && !(Number(s.maxPrice) > 0)) return "Cena do musi być większa od zera.";
   if (s.carrierTypes.length === 0) return "Zaznacz co najmniej jeden typ linii.";
+  if (s.maxDurationHours !== "" && !isDurationOption(s.maxDurationHours)) {
+    return "Wybierz maksymalny czas lotu z listy.";
+  }
   return undefined;
 }
+
+const isDurationOption = (v: string | null): v is string =>
+  v !== null && (MAX_DURATION_HOURS as readonly number[]).includes(Number(v));
 
 export function toSearchQuery(s: FormState): SearchQuery {
   const filters: SearchQuery["filters"] = {};
@@ -99,9 +120,16 @@ export function toSearchQuery(s: FormState): SearchQuery {
   }
   if (s.maxPrice !== "") filters.maxPrice = Number(s.maxPrice);
   if (s.carrierTypes.length < ALL_CARRIER_TYPES.length) filters.carrierTypes = s.carrierTypes;
+  // Core treats a missing value as "exclude"; send only the opt-out.
+  if (!s.excludeOriginCountries) filters.excludeOriginCountries = false;
+  if (isDurationOption(s.maxDurationHours))
+    filters.maxDurationMinutes = Number(s.maxDurationHours) * 60;
+  if (s.allowOpenJaw) filters.allowOpenJaw = true;
   return {
     origins: s.origins.map((c) => c.place),
-    destinations: s.anywhere ? [{ kind: "anywhere" }] : s.destinations.map((c) => c.place),
+    destinations: isAnywhere(s.destinations)
+      ? [{ kind: "anywhere" }]
+      : s.destinations.map((c) => c.place),
     dates: {
       departFrom: s.departFrom,
       departTo: s.departTo,
@@ -169,7 +197,8 @@ const STOPS_PARAM: Record<StopsMode, string> = { direct: "0", max1: "1", any: "a
 export function formToParams(s: FormState): URLSearchParams {
   const p = new URLSearchParams();
   s.origins.forEach((c) => p.append("o", chipToken(c)));
-  if (!s.anywhere) s.destinations.forEach((c) => p.append("d", chipToken(c)));
+  // Empty destinations = anywhere, so the anywhere chip needs no parameter.
+  if (!isAnywhere(s.destinations)) s.destinations.forEach((c) => p.append("d", chipToken(c)));
   p.set("from", s.departFrom);
   p.set("to", s.departTo);
   if (s.oneWay) p.set("ow", "1");
@@ -181,6 +210,9 @@ export function formToParams(s: FormState): URLSearchParams {
   p.set("st", STOPS_PARAM[s.stops]);
   if (s.maxPrice !== "") p.set("p", s.maxPrice);
   if (s.carrierTypes.length < ALL_CARRIER_TYPES.length) p.set("ct", s.carrierTypes.join(","));
+  if (!s.excludeOriginCountries) p.set("xo", "0");
+  if (s.maxDurationHours !== "") p.set("md", s.maxDurationHours);
+  if (s.allowOpenJaw) p.set("oj", "1");
   return p;
 }
 
@@ -216,10 +248,10 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     .map(Number)
     .filter((n): n is Weekday => Number.isInteger(n) && n >= 1 && n <= 7);
   const maxPrice = p.get("p");
+  const maxDuration = p.get("md");
   return {
     origins: origins.length > 0 || p.has("o") ? origins : base.origins,
     destinations,
-    anywhere: destinations.length === 0,
     departFrom: isDate(p.get("from")) ? p.get("from")! : base.departFrom,
     departTo: isDate(p.get("to")) ? p.get("to")! : base.departTo,
     oneWay: p.get("ow") === "1",
@@ -229,5 +261,8 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     stops: stops ?? "any",
     maxPrice: maxPrice !== null && Number(maxPrice) > 0 ? maxPrice : "",
     carrierTypes: carriers.length > 0 ? carriers : [...ALL_CARRIER_TYPES],
+    excludeOriginCountries: p.get("xo") !== "0",
+    maxDurationHours: isDurationOption(maxDuration) ? String(Number(maxDuration)) : "",
+    allowOpenJaw: p.get("oj") === "1",
   };
 }

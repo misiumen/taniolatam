@@ -104,7 +104,11 @@ function Loaded({
   const [warningsOpen, setWarningsOpen] = useState(true);
   const [shown, setShown] = useState(PAGE_SIZE);
   const views = useMemo(
-    () => sortDestinations(describeDestinations(response.destinations, response.airports), sort),
+    () =>
+      sortDestinations(
+        describeDestinations(response.destinations, response.airports, response.groupAirports),
+        sort,
+      ),
     [response, sort],
   );
   const { meta } = response;

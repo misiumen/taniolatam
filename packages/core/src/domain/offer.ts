@@ -16,6 +16,8 @@ export interface Leg {
   source?: string;
   /** Per-leg booking link, when legs are booked separately (open-jaw from two one-ways). */
   deepLink?: string;
+  /** Per-leg carrier type, set on combined open-jaw offers (`carrierTypes` filters every leg). */
+  carrierType?: CarrierType;
 }
 
 export interface Offer {
@@ -39,7 +41,10 @@ export interface Offer {
   /** IATA/ICAO marketing carrier codes, outbound first. */
   carriers: string[];
   carrierType: CarrierType;
-  /** Id of the source that produced the price shown. */
+  /**
+   * Id of the source that produced the price shown. For combined open-jaw offers: the source of
+   * the outbound leg (see `legs[].source` and `sources`).
+   */
   source: string;
   /** All sources that reported this itinerary (filled by `dedupeOffers`). */
   sources?: string[];
@@ -48,7 +53,11 @@ export interface Offer {
   freshness: Freshness;
   /** For cached prices: how old the price was at the source when fetched. */
   cacheAgeHours?: number;
-  /** Where the user verifies / books the price. Always present. */
+  /**
+   * Where the user verifies / books the price. Empty string for open-jaw offers combined from two
+   * one-ways: there is no single booking link, each leg carries its own (`legs[].deepLink`) and
+   * `allLinks()` builds per-leg verification links.
+   */
   deepLink: string;
   legs?: Leg[];
 }

@@ -13,17 +13,19 @@ export interface OpenJawOptions {
 /**
  * Simple open-jaw: one-way A→X (any source) + one-way X→B (any source), B ≠ A, B in
  * `returnAirports`, stay within `trip`. Returns combined offers with `returnTo = B` and two legs,
- * each carrying its own deep link (they are booked separately).
+ * each carrying its own deep link and carrier type (they are booked separately); the offer's own
+ * `deepLink` is empty and `carrierType` is the pricier leg's. The cheapest `maxPerDestination`
+ * combinations per destination are kept.
  *
- * The planner does not schedule the inbound one-way searches yet; callers pass both lists.
- * TODO(wave 3): plan inbound X→origins tasks when `allowOpenJaw`, and true multi-city
- * (A→X, Y→B, surface segment X→Y; N-segment itineraries via sources with `capabilities.multicity`).
+ * `searchDestinations` schedules both one-way phases when `filters.allowOpenJaw` is set.
+ * TODO: true multi-city (A→X, Y→B, surface segment X→Y; N-segment itineraries via sources with
+ * `capabilities.multicity`).
  */
 export function combineOpenJaw(outbound: Offer[], inbound: Offer[], opts: OpenJawOptions): Offer[] {
   const trip = opts.trip;
   if (trip.kind === "oneway") return [];
   const allowed = new Set(opts.returnAirports);
-  const limit = opts.maxPerDestination ?? 5;
+  const limit = Math.max(1, opts.maxPerDestination ?? 5);
 
   const inboundFrom = new Map<string, Offer[]>();
   for (const o of inbound) {
@@ -32,26 +34,36 @@ export function combineOpenJaw(outbound: Offer[], inbound: Offer[], opts: OpenJa
     list.push(o);
     inboundFrom.set(o.origin, list);
   }
+  for (const list of inboundFrom.values()) list.sort((a, b) => a.price - b.price);
 
-  const byDestination = new Map<string, Offer[]>();
+  const stayOk = (out: Offer, back: Offer) => {
+    const stay = daysBetween(out.departDate, back.departDate);
+    return trip.kind === "length"
+      ? stay >= trip.minDays && stay <= trip.maxDays
+      : stay >= 0 && back.departDate >= trip.returnFrom && back.departDate <= trip.returnTo;
+  };
+
+  // Cheapest `limit` (out, back) pairs per destination, ascending; pairs are materialised only
+  // for the winners, and the price-sorted inbound list lets each scan stop early.
+  const best = new Map<string, { out: Offer; back: Offer; price: number }[]>();
   for (const out of outbound) {
     if (out.returnDate !== undefined) continue;
-    for (const back of inboundFrom.get(out.destination) ?? []) {
+    const candidates = inboundFrom.get(out.destination);
+    if (!candidates) continue;
+    const top = best.get(out.destination) ?? [];
+    for (const back of candidates) {
+      const price = out.price + back.price;
+      if (top.length >= limit && price >= top[top.length - 1]!.price) break;
       if (back.destination === out.origin || back.currency !== out.currency) continue;
-      const stay = daysBetween(out.departDate, back.departDate);
-      const ok =
-        trip.kind === "length"
-          ? stay >= trip.minDays && stay <= trip.maxDays
-          : stay >= 0 && back.departDate >= trip.returnFrom && back.departDate <= trip.returnTo;
-      if (!ok) continue;
-      const list = byDestination.get(out.destination) ?? [];
-      list.push(combine(out, back));
-      byDestination.set(out.destination, list);
+      if (!stayOk(out, back)) continue;
+      let i = top.length;
+      while (i > 0 && top[i - 1]!.price > price) i--;
+      top.splice(i, 0, { out, back, price });
+      if (top.length > limit) top.pop();
     }
+    if (top.length) best.set(out.destination, top);
   }
-  return [...byDestination.values()].flatMap((list) =>
-    list.sort((a, b) => a.price - b.price).slice(0, limit),
-  );
+  return [...best.values()].flatMap((top) => top.map(({ out, back }) => combine(out, back)));
 }
 
 function combine(out: Offer, back: Offer): Offer {
@@ -71,8 +83,8 @@ function combine(out: Offer, back: Offer): Offer {
     currency: out.currency,
     stops: Math.max(out.stops, back.stops),
     durationMinutes: out.durationMinutes,
-    // Single field by design; filters on carrierType look at the outbound carrier.
-    carrierType: out.carrierType,
+    // One field on the offer: the pricier leg's type; per-leg types are on `legs`.
+    carrierType: (back.price > out.price ? back : out).carrierType,
     source: out.source,
     sources: [...new Set([out.source, back.source])].sort(),
     fetchedAt: older.fetchedAt,
@@ -81,7 +93,8 @@ function combine(out: Offer, back: Offer): Offer {
       out.cacheAgeHours === undefined && back.cacheAgeHours === undefined
         ? undefined
         : Math.max(out.cacheAgeHours ?? 0, back.cacheAgeHours ?? 0),
-    deepLink: out.deepLink,
+    // No single booking link: legs are booked separately (`allLinks` builds per-leg links).
+    deepLink: "",
     legs: [
       {
         origin: out.origin,
@@ -89,7 +102,8 @@ function combine(out: Offer, back: Offer): Offer {
         departAt: out.departDate,
         carrier: out.carriers[0],
         source: out.source,
-        deepLink: out.deepLink,
+        deepLink: out.deepLink || undefined,
+        carrierType: out.carrierType,
       },
       {
         origin: back.origin,
@@ -97,7 +111,8 @@ function combine(out: Offer, back: Offer): Offer {
         departAt: back.departDate,
         carrier: back.carriers[0],
         source: back.source,
-        deepLink: back.deepLink,
+        deepLink: back.deepLink || undefined,
+        carrierType: back.carrierType,
       },
     ],
   };

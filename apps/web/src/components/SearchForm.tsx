@@ -2,7 +2,12 @@
 
 import type { Weekday } from "@taniolatam/core";
 import type { ApiClient } from "@taniolatam/api-client";
-import { ALL_CARRIER_TYPES, type FormState, type StopsMode } from "../lib/form-state";
+import {
+  ALL_CARRIER_TYPES,
+  MAX_DURATION_HOURS,
+  type FormState,
+  type StopsMode,
+} from "../lib/form-state";
 import { carrierTypeName } from "../lib/format";
 import { PlaceInput } from "./PlaceInput";
 import { btnPrimaryCls, inputCls, labelCls } from "./ui";
@@ -104,23 +109,14 @@ export function SearchForm({ state, onChange, onSubmit, api, loading, error }: P
       </Field>
 
       <Field label="Dokąd">
-        <label className="mb-1.5 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={state.anywhere}
-            onChange={(e) => set("anywhere", e.target.checked)}
-          />
-          Gdziekolwiek
-        </label>
-        {!state.anywhere && (
-          <PlaceInput
-            label="Dokąd"
-            chips={state.destinations}
-            onChange={(c) => set("destinations", c)}
-            api={api}
-            placeholder="Kraj, region, miasto…"
-          />
-        )}
+        <PlaceInput
+          label="Dokąd"
+          chips={state.destinations}
+          onChange={(c) => set("destinations", c)}
+          api={api}
+          anywhere
+          placeholder="Gdziekolwiek (wpisz kraj, miasto lub region)"
+        />
       </Field>
 
       <fieldset>
@@ -265,8 +261,39 @@ export function SearchForm({ state, onChange, onSubmit, api, loading, error }: P
         </div>
       </fieldset>
 
+      <Field label="Maks. czas lotu" htmlFor="max-duration">
+        <select
+          id="max-duration"
+          className={inputCls}
+          value={state.maxDurationHours}
+          onChange={(e) => set("maxDurationHours", e.target.value)}
+        >
+          <option value="">bez limitu</option>
+          {MAX_DURATION_HOURS.map((h) => (
+            <option key={h} value={String(h)}>
+              {h} h
+            </option>
+          ))}
+        </select>
+      </Field>
+
       <div className="flex flex-col gap-1.5">
-        <SoonToggle label="Open-jaw (powrót do innego lotniska)" />
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={state.excludeOriginCountries}
+            onChange={(e) => set("excludeOriginCountries", e.target.checked)}
+          />
+          Pomiń kierunki w kraju wylotu
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={state.allowOpenJaw}
+            onChange={(e) => set("allowOpenJaw", e.target.checked)}
+          />
+          Open-jaw (powrót do innego lotniska)
+        </label>
         <SoonToggle label="Multicity" />
       </div>
 

@@ -68,7 +68,13 @@ const sleep = (ms: number, signal?: AbortSignal) =>
 export class MockSource implements FlightSource {
   readonly id = "mock";
   readonly name = "Mock (dane testowe)";
-  readonly capabilities = { anywhere: true, calendar: true, live: false, multicity: false };
+  readonly capabilities = {
+    anywhere: true,
+    calendar: true,
+    live: false,
+    multicity: false,
+    countryDestination: true,
+  };
   // Local and free: effectively unlimited.
   readonly rateLimit = { rps: 1000, burst: 100, concurrency: 16 };
 
@@ -96,7 +102,11 @@ export class MockSource implements FlightSource {
     const dest = task.destination;
     const anywhere = dest.kind === "anywhere";
     const destinations =
-      dest.kind === "anywhere" ? this.anywhereDestinations(task.origin, task.month) : [dest.code];
+      dest.kind === "anywhere"
+        ? this.anywhereDestinations(task.origin, task.month)
+        : dest.kind === "country"
+          ? this.places.resolve({ kind: "country", code: dest.code })
+          : [dest.code];
     const offers: Offer[] = [];
     for (const code of destinations) {
       if (code === task.origin) continue;

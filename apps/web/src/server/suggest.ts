@@ -46,6 +46,22 @@ const AIRPORT_TYPE_PRIORITY = { large: 0, medium: 1, small: 2 } as const;
 
 export const MAX_SUGGESTIONS = 12;
 
+/** The "anywhere" entry offered by the destination combobox ("Dokąd"), never by "Skąd". */
+export const ANYWHERE_SUGGESTION: PlaceSuggestion = {
+  kind: "anywhere",
+  label: "Gdziekolwiek",
+  kindLabel: "Wszędzie",
+  detail: "Dowolny kierunek na świecie",
+  place: { kind: "anywhere" },
+};
+
+/** Normalised words that surface the anywhere entry ("gdzie", "dowol", "anywhere", "wszędzie"…). */
+const ANYWHERE_KEYS = ["gdziekolwiek", "dowolny kierunek", "dowolnie", "anywhere", "wszedzie"];
+
+function matchesAnywhere(q: string): boolean {
+  return ANYWHERE_KEYS.some((k) => k.split(/\s+/).some((w) => w.startsWith(q)) || k.startsWith(q));
+}
+
 export class PlaceSuggester {
   private readonly entries: Entry[] = [];
 
@@ -124,10 +140,21 @@ export class PlaceSuggester {
     }
   }
 
-  /** Top suggestions for a free-text query, best first. Empty query → no suggestions. */
-  suggest(query: string, limit = MAX_SUGGESTIONS): PlaceSuggestion[] {
+  /**
+   * Top suggestions for a free-text query, best first. Empty query → no suggestions, or, with
+   * `anywhere`, just the "Gdziekolwiek" entry. With `anywhere`, that entry also leads any query
+   * it matches by prefix or word prefix (min. 2 characters).
+   */
+  suggest(
+    query: string,
+    limit = MAX_SUGGESTIONS,
+    opts: { anywhere?: boolean } = {},
+  ): PlaceSuggestion[] {
     const q = normalize(query);
-    if (q === "") return [];
+    if (q === "") return opts.anywhere ? [ANYWHERE_SUGGESTION] : [];
+    if (opts.anywhere && q.length >= 2 && matchesAnywhere(q)) {
+      return [ANYWHERE_SUGGESTION, ...this.suggest(query, limit - 1)];
+    }
     const scored: { entry: Entry; score: number }[] = [];
     for (const entry of this.entries) {
       let best = Infinity;

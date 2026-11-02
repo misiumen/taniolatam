@@ -16,7 +16,6 @@ describe("dedupeOffers", () => {
       offer({ origin: "WAW", destination: "BCN", price: 300, source: "tp" }),
       offer({ origin: "WAW", destination: "BCN", price: 250, source: "kiwi" }),
       offer({ origin: "WAW", destination: "BCN", price: 250, source: "duffel", freshness: "live" }),
-      offer({ origin: "WAW", destination: "BCN", price: 200, carriers: ["W6"], source: "tp" }),
       offer({
         origin: "WAW",
         destination: "BCN",
@@ -25,11 +24,33 @@ describe("dedupeOffers", () => {
         source: "tp",
       }),
     ]);
-    expect(merged).toHaveLength(3);
-    const fr = merged.find((o) => o.carriers[0] === "FR" && o.departDate === "2027-01-10");
-    expect(fr?.price).toBe(250);
-    expect(fr?.source).toBe("duffel"); // same price: live wins
-    expect(fr?.sources).toEqual(["duffel", "kiwi", "tp"]);
+    expect(merged).toHaveLength(2);
+    const first = merged.find((o) => o.departDate === "2027-01-10");
+    expect(first?.price).toBe(250);
+    expect(first?.source).toBe("duffel"); // same price: live wins
+    expect(first?.sources).toEqual(["duffel", "kiwi", "tp"]);
+    expect(merged.find((o) => o.departDate === "2027-01-11")?.sources).toEqual(["tp"]);
+  });
+
+  it("dedupes per (origin, destination, departDate, returnDate) across carriers and sources", () => {
+    const rt = { origin: "WAW", destination: "BKK", returnDate: "2027-01-20" };
+    const merged = dedupeOffers([
+      offer({ ...rt, price: 2400, carriers: ["LO"], source: "tp" }),
+      offer({ ...rt, price: 2100, carriers: ["QR"], source: "kiwi" }),
+      offer({ ...rt, price: 2300, carriers: ["TK"], source: "mock", sources: ["mock", "old"] }),
+      // Different return date / return airport / origin: separate trips.
+      offer({ ...rt, price: 1900, returnDate: "2027-01-21", source: "tp" }),
+      offer({ ...rt, price: 1800, returnTo: "KRK", source: "tp" }),
+      offer({ ...rt, price: 1700, origin: "KRK", source: "tp" }),
+    ]);
+    expect(merged).toHaveLength(4);
+    const kept = merged.find(
+      (o) => o.returnDate === "2027-01-20" && !o.returnTo && o.origin === "WAW",
+    );
+    expect(kept).toMatchObject({ price: 2100, carriers: ["QR"], source: "kiwi" });
+    expect(kept?.id).toContain("QR"); // the kept offer keeps its own id
+    expect(kept?.sources).toEqual(["kiwi", "mock", "old", "tp"]);
+    expect(new Set(merged.map((o) => o.id)).size).toBe(4);
   });
 });
 
@@ -70,6 +91,19 @@ describe("applyFilters", () => {
       "AGP",
     ]);
     expect(ids(applyFilters(offers, { allowOpenJaw: true }))).toContain("PRG");
+  });
+
+  it("drops destinations in excluded (origin) countries and destination === origin", () => {
+    const places = new PlaceIndex(fixtureData);
+    const list = [
+      offer({ origin: "WAW", destination: "KRK", price: 99 }),
+      offer({ origin: "WAW", destination: "WAW", price: 1 }),
+      offer({ origin: "WAW", destination: "PRG", price: 199 }),
+      offer({ origin: "WAW", destination: "ZZZ", price: 299 }), // unknown airport: kept
+    ];
+    const ctx = { excludeCountries: new Set(["PL"]), places };
+    expect(ids(applyFilters(list, {}, ctx))).toEqual(["PRG", "ZZZ"]);
+    expect(ids(applyFilters(list, {}))).toEqual(["KRK", "PRG", "ZZZ"]);
   });
 
   it("filters by destination set and date window (weekday)", () => {
@@ -192,6 +226,41 @@ describe("combineOpenJaw", () => {
     expect(c.legs?.map((l) => `${l.origin}-${l.destination}`)).toEqual(["WAW-BKK", "BKK-KRK"]);
     expect(applyFilters(combos, {})).toHaveLength(0);
     expect(applyFilters(combos, { allowOpenJaw: true })).toHaveLength(1);
+  });
+
+  it("keeps the cheapest combinations per destination and marks them as per-leg bookings", () => {
+    const outs = [
+      offer({ origin: "WAW", destination: "BKK", price: 1500, departDate: "2027-02-01" }),
+      offer({ origin: "KRK", destination: "BKK", price: 1400, departDate: "2027-02-02" }),
+    ];
+    const backs = [1300, 1100, 1200, 1000].map((price, i) =>
+      offer({
+        origin: "BKK",
+        destination: i % 2 ? "WAW" : "KRK",
+        price,
+        departDate: `2027-02-1${i}`,
+        carrierType: "scheduled",
+        deepLink: `https://back.test/${i}`,
+      }),
+    );
+    const combos = combineOpenJaw(outs, backs, {
+      returnAirports: ["WAW", "KRK"],
+      trip: { kind: "length", minDays: 7, maxDays: 14 },
+      maxPerDestination: 2,
+    });
+    // KRK→BKK (1400) + BKK→WAW (1000 / 1100) are the two cheapest.
+    expect(combos.map((c) => [c.origin, c.returnTo, c.price])).toEqual([
+      ["KRK", "WAW", 2400],
+      ["KRK", "WAW", 2500],
+    ]);
+    const c = combos[0]!;
+    expect(c.deepLink).toBe("");
+    expect(c.carrierType).toBe("lowcost"); // outbound 1400 > return 1000
+    expect(c.legs?.map((l) => [l.carrierType, l.deepLink])).toEqual([
+      ["lowcost", "https://example.test/"],
+      ["scheduled", "https://back.test/3"],
+    ]);
+    expect(applyFilters(combos, { allowOpenJaw: true, carrierTypes: ["lowcost"] })).toEqual([]);
   });
 
   it("returns nothing for one-way trips", () => {

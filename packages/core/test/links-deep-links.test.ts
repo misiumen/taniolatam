@@ -147,6 +147,38 @@ describe("allLinks", () => {
     ]);
   });
 
+  it("lists each leg's own booking link for combined open-jaw offers", () => {
+    const o = offer({
+      origin: "WAW",
+      destination: "BKK",
+      returnTo: "KRK",
+      price: 3000,
+      departDate: "2027-03-01",
+      returnDate: "2027-03-20",
+      deepLink: "",
+      legs: [
+        {
+          origin: "WAW",
+          destination: "BKK",
+          departAt: "2027-03-01",
+          deepLink: "https://www.aviasales.com/search/WAW0103BKK1?marker=1",
+        },
+        { origin: "BKK", destination: "KRK", departAt: "2027-03-20", deepLink: "https://x.test/b" },
+      ],
+    });
+    const links = allLinks(o, { TRAVELPAYOUTS_MARKER: "1" });
+    expect(links.slice(0, 2)).toEqual([
+      {
+        id: "offer",
+        label: "Zobacz ofertę (wylot)",
+        url: "https://www.aviasales.com/search/WAW0103BKK1?marker=1",
+      },
+      { id: "offer", label: "Zobacz ofertę (powrót)", url: "https://x.test/b" },
+    ]);
+    expect(links.some((l) => l.id === "aviasales")).toBe(false); // own host already listed
+    expect(links.filter((l) => l.id === "google")).toHaveLength(2);
+  });
+
   it("skips builders that cannot format the offer instead of throwing", () => {
     const o = offer({ origin: "WAW", destination: "LONDON", price: 1 });
     expect(allLinks(o).map((l) => l.id)).toEqual(["offer"]);

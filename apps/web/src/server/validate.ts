@@ -185,6 +185,7 @@ function filters(v: unknown): SearchFilters {
         : num(v.maxDurationMinutes, "maksymalny czas podróży", { min: 30, max: 7200, int: true }),
     carrierTypes,
     allowOpenJaw: bool(v.allowOpenJaw, "open-jaw"),
+    excludeOriginCountries: bool(v.excludeOriginCountries, "pomiń kierunki w kraju wylotu"),
     multicity: bool(v.multicity, "multicity"),
   };
 }

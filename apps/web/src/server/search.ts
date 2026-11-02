@@ -1,11 +1,12 @@
 import type { AirportInfo, SearchResponse } from "@taniolatam/api-client";
-import { searchDestinations, type SearchQuery } from "@taniolatam/core";
+import { placeKey, searchDestinations } from "@taniolatam/core";
+import type { SearchRequest } from "@taniolatam/api-client";
 import type { ServerContext } from "./context";
 
 /** Runs one search and shapes it into the `/api/v1/search` response. */
 export async function runSearch(
   ctx: ServerContext,
-  query: SearchQuery,
+  query: SearchRequest,
   signal?: AbortSignal,
 ): Promise<SearchResponse> {
   const started = Date.now();
@@ -47,17 +48,31 @@ export async function runSearch(
       lon: a.lon,
     };
   };
+  const groupAirports: Record<string, string[]> = {};
   for (const d of result.summaries) {
-    addAirport(d.cheapest.destination);
-    addAirport(d.cheapest.origin);
+    const o = d.cheapest;
+    addAirport(o.destination);
+    addAirport(o.origin);
+    if (o.returnTo) addAirport(o.returnTo);
+    for (const leg of o.legs ?? []) {
+      addAirport(leg.origin);
+      addAirport(leg.destination);
+    }
+    try {
+      const codes = ctx.places.resolve(d.destination);
+      if (codes.length > 1) groupAirports[placeKey(d.destination)] = [...codes].sort();
+    } catch {
+      // unresolvable group: the card simply omits the airport list
+    }
   }
 
   return {
     destinations: result.summaries,
+    groupAirports,
     airports,
     meta: {
       sources: sources.map((s) => s.id),
-      tasks: result.plan.tasks.length,
+      tasks: result.taskCount,
       cacheHits: result.cacheHits,
       tookMs: Date.now() - started,
       warnings,

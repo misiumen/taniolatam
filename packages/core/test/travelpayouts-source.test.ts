@@ -79,6 +79,7 @@ describe("TravelpayoutsSource basics", () => {
       calendar: true,
       live: false,
       multicity: false,
+      countryDestination: true,
     });
     // 600 req/min documented → stay well under 10 rps.
     expect(src.rateLimit.rps * 60).toBeLessThanOrEqual(600);
@@ -173,6 +174,27 @@ describe("TravelpayoutsSource.search", () => {
       },
       { origin: "BKK", destination: "POZ", departAt: "2027-03-26T23:40:00+07:00", carrier: "LO" },
     ]);
+  });
+
+  it("sends a country bucket as the destination code, keeping every date (unique=false)", async () => {
+    const fetchImpl = fakeFetch({ body: pozBkkRoundTrips });
+    const src = new TravelpayoutsSource({ fetchImpl, places });
+    const offers = await src.search(
+      task({
+        id: "travelpayouts:POZ:country-TH:2027-03",
+        destination: { kind: "country", code: "TH" },
+      }),
+      ctx(),
+    );
+    const p = params(fetchImpl.calls[0]!.url);
+    expect(p).toMatchObject({
+      origin: "POZ",
+      destination: "TH",
+      unique: "false",
+      one_way: "false",
+    });
+    expect(offers.length).toBeGreaterThan(0);
+    expect(offers.every((o) => o.destination === "BKK")).toBe(true);
   });
 
   it("searches anywhere with unique=true, resolves city codes and skips bad entries", async () => {

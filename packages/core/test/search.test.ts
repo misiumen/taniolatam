@@ -26,7 +26,11 @@ describe("searchDestinations (mock end-to-end)", () => {
     });
     expect(result.errors).toEqual([]);
     expect(result.cacheHits).toBe(0);
-    expect(result.plan.tasks).toHaveLength(4 * 2); // anywhere buckets: 4 PL airports × 2 months
+    // Country buckets (mock supports them): 4 PL airports × {TH, JP} × 2 months.
+    expect(result.plan.strategies).toEqual({ mock: "country" });
+    expect(result.plan.tasks).toHaveLength(4 * 2 * 2);
+    expect(result.taskCount).toBe(16);
+    expect(result.openJaw).toBeUndefined();
     expect(result.summaries.length).toBeGreaterThan(0);
     const prices = result.summaries.map((s) => s.cheapest.price);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));

@@ -1,5 +1,5 @@
 import type { IsoDate } from "../domain/dates.ts";
-import type { Offer } from "../domain/offer.ts";
+import type { Leg, Offer } from "../domain/offer.ts";
 import type { Env } from "../sources/types.ts";
 
 /**
@@ -188,20 +188,30 @@ function hostOf(url: string): string | undefined {
  * Verification links for an offer, in display order: the offer's own `deepLink` first, then
  * Google Flights, Skyscanner, Kiwi.com, Aviasales. A builder whose site is already the offer's
  * own link (same host) is skipped. Open-jaw offers (`returnTo` ≠ `origin`) get one-way links
- * per leg, since the external sites' simple search URLs cannot express open-jaw.
+ * per leg, since the external sites' simple search URLs cannot express open-jaw; combined
+ * offers (empty `deepLink`) list each leg's own booking link first ("Zobacz ofertę (wylot)").
  *
  * Env: `TRAVELPAYOUTS_MARKER` (Aviasales), `KIWI_AFFILIATE_ID` (Kiwi.com).
  */
 export function allLinks(offer: Offer, env: Env = {}, opts: { adults?: number } = {}): DeepLink[] {
   const links: DeepLink[] = [];
   const seen = new Set<string>();
-  const own = offer.deepLink ? hostOf(offer.deepLink) : undefined;
-  if (offer.deepLink) {
-    links.push({ id: "offer", label: LABELS.offer, url: offer.deepLink });
-    seen.add(offer.deepLink);
-  }
+  const ownHosts = new Set<string>();
+  const addOwn = (url: string, suffix: string) => {
+    if (seen.has(url)) return;
+    links.push({ id: "offer", label: LABELS.offer + suffix, url });
+    seen.add(url);
+    const host = hostOf(url);
+    if (host) ownHosts.add(host);
+  };
+  if (offer.deepLink) addOwn(offer.deepLink, "");
 
   const openJaw = offer.returnTo !== undefined && offer.returnTo !== offer.origin;
+  if (openJaw && !offer.deepLink && offer.legs?.length === 2) {
+    const [out, back] = offer.legs as [Leg, Leg];
+    if (out.deepLink) addOwn(out.deepLink, LEG_SUFFIX.out);
+    if (back.deepLink) addOwn(back.deepLink, LEG_SUFFIX.back);
+  }
   const trips: { params: FlightLinkParams; suffix: string }[] = [];
   const base = { adults: opts.adults, currency: offer.currency };
   if (openJaw && offer.returnDate) {
@@ -250,7 +260,8 @@ export function allLinks(offer: Offer, env: Env = {}, opts: { adults?: number } 
       } catch {
         continue; // malformed offer data (non-IATA code): skip the link, never break the UI
       }
-      if (seen.has(url) || (own !== undefined && hostOf(url) === own)) continue;
+      const host = hostOf(url);
+      if (seen.has(url) || (host !== undefined && ownHosts.has(host))) continue;
       seen.add(url);
       links.push({ id, label: LABELS[id] + suffix, url });
     }
