@@ -120,10 +120,10 @@ Specyfikacja formularza: `docs/ARCHITECTURE.md`, sekcja „Wzorzec formularza”
   klienta znamy tylko najtańszą ofertę); „Szukaj” stosuje wykluczenie na serwerze i znajduje
   zamienniki. Wykluczone linie zostają na liście (odznaczone), żeby dało się je przywrócić. Przed
   pierwszym wyszukiwaniem widać tylko podpowiedź.
-- „Aktualność cen”: „do 48 godzin” (domyślnie; do API nie trafia nic) albo „do 7 dni (może być
-  nieaktualna)” (`filters.maxPriceAgeHours: 168` + `allowUnknownPriceAge: true`; URL: `pa=7d`).
+- „Aktualność cen”: „do 7 dni” (domyślnie; do API nie trafia nic) albo „tylko do 48 h”
+  (`filters.maxPriceAgeHours: 48` + `allowUnknownPriceAge: false`; URL: `pa=48h`).
 - Nad wynikami linia podsumowania wykonanego wyszukiwania (`src/lib/search-summary.ts`), np.
-  „Polska → gdziekolwiek · pół roku · 7–21 dni · max 1 przesiadka · ceny do 48 h” — filtry z wartością
+  „Polska → gdziekolwiek · pół roku · 7–21 dni · max 1 przesiadka · ceny do 7 dni” — filtry z wartością
   domyślną są pomijane. Pod nią liczba kierunków i sortowanie: najtańsze, najkrótsze, bez
   przesiadek, najświeższe ceny (na żywo, potem najmłodsza cena z cache według `cacheAgeHours`,
   nieznany wiek na końcu). Lista pokazuje 40 kierunków, dalej „Pokaż więcej”.

@@ -46,8 +46,8 @@ export interface CarrierOption {
 }
 
 const PRICE_AGE_OPTIONS: { value: PriceAgeWindow; label: string }[] = [
-  { value: "48h", label: "do 48 godzin" },
-  { value: "7d", label: "do 7 dni (może być nieaktualna)" },
+  { value: "7d", label: "do 7 dni" },
+  { value: "48h", label: "tylko do 48 h" },
 ];
 
 const WEEKDAYS: { value: Weekday; label: string; full: string }[] = [
@@ -464,7 +464,8 @@ export function SearchForm({
               ))}
             </div>
             <p className="mt-1.5 text-xs text-muted">
-              Starsze ceny dają więcej kierunków, ale częściej się zmieniają.
+              „Do 7 dni” pokazuje więcej kierunków. „Tylko do 48 h” daje świeższe ceny, ale na
+              rzadszych trasach może nic nie znaleźć.
             </p>
           </fieldset>
         </Section>

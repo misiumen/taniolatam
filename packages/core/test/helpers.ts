@@ -17,7 +17,7 @@ export function offer(
     source: "a",
     fetchedAt: NOW.toISOString(),
     freshness: "cached" as const,
-    // Known and fresh, so the pipeline's default 48 h price-age filter keeps it.
+    // Known and fresh, so the pipeline's price-age filter keeps it (strict mode too).
     cacheAgeHours: 1,
     deepLink: "https://example.test/",
     ...partial,

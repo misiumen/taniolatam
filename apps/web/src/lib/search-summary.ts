@@ -60,12 +60,12 @@ export function stopsText(s: FormState): string {
 }
 
 export function priceAgeText(s: FormState): string {
-  return s.priceAge === "7d" ? "ceny do 7 dni" : "ceny do 48 h";
+  return s.priceAge === "48h" ? "ceny do 48 h" : "ceny do 7 dni";
 }
 
 /**
  * One-line description of a search for the results header and the phone summary bar, e.g.
- * "Polska → gdziekolwiek · pół roku · 7–21 dni · max 1 przesiadka · ceny do 48 h". Default
+ * "Polska → gdziekolwiek · pół roku · 7–21 dni · max 1 przesiadka · ceny do 7 dni". Default
  * filters (any stops, no price cap, …) are left out to keep it short.
  */
 export function describeSearch(s: FormState): string[] {

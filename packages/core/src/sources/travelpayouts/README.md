@@ -1,9 +1,10 @@
 # Travelpayouts / Aviasales Data API — adapter
 
 `TravelpayoutsSource` (id `travelpayouts`) czyta ceny z cache wyszukiwań Aviasales przez
-**Data API**: domyślnie `/v2/prices/latest` (ceny znalezione w ostatnich **48 godzinach**),
-zapasowo `/aviasales/v3/prices_for_dates` (cache do 7 dni). Darmowe, wymaga tokenu partnera.
-Ceny są **orientacyjne**.
+**Data API**: domyślnie **równolegle** `/v2/prices/latest` (ceny znalezione w ostatnich
+**48 godzinach**, z datą znalezienia) i `/aviasales/v3/prices_for_dates` (cache do 7 dni, wiek
+nieznany), połączone w adapterze; w trybie ścisłym ("tylko do 48 h") tylko `/v2/prices/latest`.
+Darmowe, wymaga tokenu partnera. Ceny są **orientacyjne**.
 
 Adapter powstał **bez dostępu do api.travelpayouts.com** (host niedostępny z sesji agenta).
 Zbudowany według publicznej dokumentacji i przetestowany na ręcznie napisanych fixture'ach
@@ -24,7 +25,8 @@ adapter działa, ale linki nie niosą afiliacji (patrz "Uwagi prawne").
 
 Opcje konstruktora: `places` (PlaceIndex do mapowania kodów miast), `airlines` (AirlineIndex
 z `data/airlines.json`: typ przewoźnika i `carrierNames`), `mode` (nadpisuje
-`TRAVELPAYOUTS_MODE`), `latestRateLimit` (domyślnie 4 zapytania/s, burst 4), `fetchImpl`
+`TRAVELPAYOUTS_MODE`), `latestRateLimit` (domyślnie 4 zapytania/s, burst 4),
+`pricesRateLimit` (domyślnie 8 zapytań/s, burst 8), `fetchImpl`
 (wstrzykiwany `fetch`, testy), `baseUrl`, `linkBaseUrl` (host Aviasales), `market` (domyślnie
 `pl`), `pageSize` (domyślnie i maks. 1000), `maxPages` (domyślnie 3), `token`/`marker`
 (nadpisują env), `onRateLimit`, `logger`, `lowRemainingThreshold` (domyślnie 20).
@@ -33,13 +35,39 @@ z `data/airlines.json`: typ przewoźnika i `carrierNames`), `mode` (nadpisuje
 
 | Tryb | `search()` |
 |---|---|
-| `latest48h` | tylko `/v2/prices/latest` |
-| `prices7d` | tylko `prices_for_dates` (zachowanie sprzed fali 4); oferty z `note: "cache do 7 dni"` |
-| `both` (domyślny) | najpierw `/v2/prices/latest`; **dopiero gdy zadanie nie da żadnej oferty** (po lokalnym filtrze dat), zapytanie `prices_for_dates`. Oferty zapasowe mają `cacheAgeHours: undefined`, `foundAt: undefined`, `stale: undefined`, `note: "cache do 7 dni"`. Błąd `latest` (poza 401/403/429 i przerwaniem) też uruchamia zapas, z ostrzeżeniem w `logger` |
+| `both` (domyślny) | strategia **per zadanie**, z `task.maxPriceAgeHours` / `task.allowUnknownPriceAge` (planner kopiuje je z `query.filters`, domyślnie 168 / `true`): **ścisłe** (`maxPriceAgeHours ≤ 48` **i** `allowUnknownPriceAge: false`) → tylko `/v2/prices/latest`; **w pozostałych przypadkach** `/v2/prices/latest` i `prices_for_dates` **równolegle**, wyniki łączone (sekcja "Łączenie"). Błąd jednego endpointu trafia do `logger`, a zadanie zwraca oferty drugiego; błąd obu (lub przerwanie) = błąd zadania |
+| `latest48h` | wymuszone: tylko `/v2/prices/latest` dla każdego zadania (debugowanie) |
+| `prices7d` | wymuszone: tylko `prices_for_dates` dla każdego zadania (debugowanie); oferty z `note: "cache do 7 dni"` |
 
-Pipeline (`searchDestinations`) domyślnie odrzuca ceny starsze niż 48 h **i ceny o nieznanym
-wieku** (`filters.maxPriceAgeHours`, domyślnie 48). Oferty zapasowe z `prices_for_dates` są więc
-widoczne tylko z `filters.allowUnknownPriceAge: true` (w UI tryb "do 7 dni").
+Pipeline (`searchDestinations`) domyślnie przepuszcza ceny do **7 dni** (`filters.maxPriceAgeHours`,
+domyślnie 168 = `DEFAULT_MAX_PRICE_AGE_HOURS`) **i ceny o nieznanym wieku**
+(`filters.allowUnknownPriceAge`, domyślnie `true`) — w UI "do 7 dni", nic nie jest wysyłane.
+Tryb "tylko do 48 h" wysyła `maxPriceAgeHours: 48` (`STRICT_PRICE_AGE_HOURS`) i
+`allowUnknownPriceAge: false`; zadania dostają wtedy w id i kluczu cache sufiks `:48h`, więc oba
+tryby nie dzielą wpisów cache. Powód zmiany: dla mniej popularnych tras (np. POZ → Wietnam)
+`/v2/prices/latest` bywa pusty, a stare ustawienia ukrywały prawdziwe ceny z `prices_for_dates`.
+
+### Łączenie (`mergeLatestWithPricesForDates`, tryb `both` poza trybem ścisłym)
+
+Oba zestawy są najpierw osobno przycięte do okna dat, "tylko bezpośrednie" i kraju (kubełek kraju).
+Potem:
+
+1. **Dopasowanie**: oferta `prices_for_dates` (P) pasuje do oferty `latest` (L), gdy mają ten sam
+   `departDate` **i** `returnDate` (brak = w jedną stronę), a wylot i cel to to samo miejsce:
+   ten sam kod, **albo** strona L jest kodem miasta (`originIsCity` / `destinationIsCity`), a
+   `PlaceIndex.cityAirports(kod miasta)` zawiera lotnisko z P (L: `WAW` jako miasto = WAW + WMI
+   pasuje do P: `WMI`). Strona L rozwiązana do jedynego lotniska miasta (`POZ`, `BCN`) pasuje
+   tylko do tego samego kodu. Bez `places` porównujemy tylko kody. Przesiadki i przewoźnik nie
+   biorą udziału w dopasowaniu. Gdy P pasuje do kilku L, wybieramy najtańszą L.
+2. **Jedna oferta na L i jej dopasowania**: najtańsza dopasowana P, jeśli jej cena ≤ ceny L —
+   wtedy zostają szczegóły P (lotniska, przewoźnik, link, czasy) z ceną P oraz `foundAt`,
+   `cacheAgeHours` i `stale` z L, bez `note`; jeśli L jest **ściśle tańsza**, zostaje L bez zmian
+   (P znika). Pozostałe dopasowane P (inne linie / lotniska tego miasta) zostają osobno jako
+   niedopasowane.
+3. **Niedopasowane P**: `cacheAgeHours`, `foundAt`, `stale` = `undefined`, `note: "cache do 7 dni"`
+   (nawet jeśli odpowiedź miała `found_at`).
+4. **Niedopasowane L**: bez zmian.
+5. Kolejność: oferty z L (w kolejności L), potem pozostałe P; na końcu dedupe po `id` (najtańsza).
 
 ## Waluta
 
@@ -59,7 +87,8 @@ parametr `token` (obie formy są w dokumentacji). Token nigdy nie trafia do tre�
 
 "Najtańsze bilety znalezione przez użytkowników Aviasales w ciągu ostatnich 48 godzin".
 Limit: 300 zapytań/min; adapter ma na ten endpoint osobny token bucket (`latestRateLimit`,
-4/s), bo runner liczy zadania, a jedno zadanie może wysłać kilka zapytań (strony, zapas).
+4/s, burst 4 → maks. 244 zapytania w dowolnej minucie), bo runner liczy zadania, a jedno zadanie
+wysyła kilka zapytań (dwa endpointy, strony).
 
 | Parametr | Wartość |
 |---|---|
@@ -97,7 +126,7 @@ currency }`. **Kody `origin`/`destination` to kody MIAST**, nie lotnisk; **brak 
 Pomijane: `value` ≤ 0, brak `depart_date` lub kodów, kod niebędący 3-znakowym IATA,
 `trip_class` ≠ 0, `show_to_affiliates: false`, cel równy wylotowi, daty poza oknem.
 
-### `GET /aviasales/v3/prices_for_dates` → `search(task)` (tryb `prices7d` i zapas w `both`)
+### `GET /aviasales/v3/prices_for_dates` → `search(task)` (tryby `prices7d` i `both`)
 
 | Parametr | Wartość |
 |---|---|
@@ -146,7 +175,7 @@ z wypełnionym `destination_airport`. Jeśli API odrzuci kod kraju, wystarczy us
 | `carriers` | `[airline]` |
 | `carrierType` | `AirlineIndex.type()` z `data/airlines.json` (opcja `airlines`); kodów spoza pliku (i bez opcji) dotyczy klasyfikacja z `carriers.ts` (lista IATA tanich linii i czarterów; reszta `scheduled`) |
 | `carrierNames` | z opcją `airlines`: nazwy równoległe do `carriers` (kod, gdy nazwy brak); pipeline uzupełnia je też z `deps.airlines` |
-| `note` | `"cache do 7 dni"` w trybie `prices7d` i dla ofert zapasowych w `both` |
+| `note` | `"cache do 7 dni"` w trybie `prices7d` i dla ofert niedopasowanych do `latest` w `both` |
 | `currency` | `currency` z odpowiedzi, wielkimi literami (zapasowo waluta zadania) |
 | `freshness` / `cacheAgeHours` | `cached`; wiek nieznany (`undefined`) — v3 nie zwraca daty znalezienia ceny. Jeśli odpowiedź zawiera `found_at` (było w starszych wersjach API), wiek liczymy z niego ⚠️ |
 | `deepLink` | `AVIASALES_BASE_URL + link`, potem `marker` doklejany przez `&` (link z API ma już `?`) albo `?`. Gdy brak `link`, budujemy `aviasalesLink()` |
@@ -170,8 +199,11 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
 ## Limity i błędy
 
 - Dokumentacja: 600 zapytań/min dla `prices_for_dates` i `grouped_prices`, 300/min dla
-  `/v2/prices/latest`. Adapter deklaruje `rateLimit = { rps: 5, burst: 2, concurrency: 4 }`
-  (≈ 300 zadań/min) oraz osobny limit 4/s dla zapytań `latest` (`latestRateLimit`).
+  `/v2/prices/latest`. Zadanie w trybie `both` pyta oba endpointy, więc adapter deklaruje
+  `rateLimit = { rps: 8, burst: 2, concurrency: 6 }` dla zadań, a same zapytania przechodzą
+  przez osobne token buckety: `latestRateLimit` 4/s, burst 4 (`TP_LATEST_RATE_LIMIT`, ≤ 244/min)
+  i `pricesRateLimit` 8/s, burst 8 (`TP_PRICES_RATE_LIMIT`, ≤ 488/min, także strony i miesiące
+  powrotu). W praktyce tempo zadań w `both` wyznacza bucket `latest` (≈ 4 zadania/s).
 - Nagłówki `X-Rate-Limit`, `X-Rate-Limit-Remaining`, `X-Rate-Limit-Reset` ⚠️ są czytane po każdej
   odpowiedzi: `source.lastRateLimit`, callback `onRateLimit`, ostrzeżenie w `logger` przy
   `remaining ≤ lowRemainingThreshold`.

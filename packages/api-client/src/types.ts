@@ -15,9 +15,12 @@ import type {
  * TODO: drop once `@gdziepolece/core` exports them on `SearchFilters`.
  */
 export interface FilterExtensions {
-  /** Drop cached prices older than this many hours (default: the core default, 48 h). */
+  /**
+   * Drop cached prices older than this many hours (default: the core default, 168 h = 7 days).
+   * 48 with `allowUnknownPriceAge: false` is the strict "tylko do 48 h" mode.
+   */
   maxPriceAgeHours?: number;
-  /** Keep offers whose age is unknown even when `maxPriceAgeHours` is set. */
+  /** Keep offers whose age is unknown (core default: true). */
   allowUnknownPriceAge?: boolean;
   /** Marketing carrier codes (IATA/ICAO) whose offers are dropped. */
   excludeCarriers?: string[];

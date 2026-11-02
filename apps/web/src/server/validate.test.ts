@@ -55,6 +55,20 @@ describe("validateSearchQuery", () => {
     });
   });
 
+  it("accepts the strict 48 h window and leaves missing freshness to the core defaults", () => {
+    const strict = validateSearchQuery({
+      ...valid,
+      filters: { maxPriceAgeHours: 48, allowUnknownPriceAge: false },
+    });
+    expect(strict.ok && strict.value.filters).toMatchObject({
+      maxPriceAgeHours: 48,
+      allowUnknownPriceAge: false,
+    });
+    const loose = validateSearchQuery(valid);
+    expect(loose.ok && loose.value.filters.maxPriceAgeHours).toBeUndefined();
+    expect(loose.ok && loose.value.filters.allowUnknownPriceAge).toBeUndefined();
+  });
+
   it.each([
     ["excludeCarriers not a list", { excludeCarriers: "FR" }, "kodów linii"],
     ["excludeCarriers bad code", { excludeCarriers: ["FR", "<script>"] }, "nieprawidłowy kod"],

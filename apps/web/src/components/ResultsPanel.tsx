@@ -119,8 +119,8 @@ function EmptyState({ onExample }: { onExample: (example: ExampleSearch) => void
         ))}
       </ul>
       <p className="mt-7 text-xs text-muted">
-        Ceny pochodzą z wyszukiwań z ostatnich 48 godzin i są orientacyjne — przed zakupem sprawdź
-        je w serwisie, do którego prowadzi link przy ofercie.
+        Ceny pochodzą z wyszukiwań z ostatnich 7 dni i są orientacyjne — przed zakupem sprawdź je w
+        serwisie, do którego prowadzi link przy ofercie.
       </p>
     </div>
   );

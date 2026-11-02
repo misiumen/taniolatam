@@ -3,8 +3,54 @@ import type { Offer } from "../domain/offer.ts";
 import type { SearchFilters } from "../domain/query.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 
-/** Default `filters.maxPriceAgeHours` applied by `searchDestinations`. */
-export const DEFAULT_MAX_PRICE_AGE_HOURS = 48;
+/**
+ * Default `filters.maxPriceAgeHours` applied by `searchDestinations` (7 days: results first,
+ * freshness second).
+ */
+export const DEFAULT_MAX_PRICE_AGE_HOURS = 168;
+
+/** Default `filters.allowUnknownPriceAge` applied by `searchDestinations` / the planner. */
+export const DEFAULT_ALLOW_UNKNOWN_PRICE_AGE = true;
+
+/**
+ * The opt-in "tylko do 48 h" window. A limit at or below it with unknown ages excluded is
+ * "strict": sources may then skip endpoints whose prices are older or of unknown age.
+ */
+export const STRICT_PRICE_AGE_HOURS = 48;
+
+/** Price-age settings with the pipeline defaults applied. */
+export interface PriceAgeSettings {
+  maxHours: number;
+  allowUnknown: boolean;
+}
+
+/** `maxPriceAgeHours` / `allowUnknownPriceAge` (of filters or a task) with the defaults applied. */
+export function priceAgeSettings(f: {
+  maxPriceAgeHours?: number;
+  allowUnknownPriceAge?: boolean;
+}): PriceAgeSettings {
+  return {
+    maxHours: f.maxPriceAgeHours ?? DEFAULT_MAX_PRICE_AGE_HOURS,
+    allowUnknown: f.allowUnknownPriceAge ?? DEFAULT_ALLOW_UNKNOWN_PRICE_AGE,
+  };
+}
+
+/** At most `STRICT_PRICE_AGE_HOURS` and unknown ages excluded (defaults applied first). */
+export function isStrictPriceAge(f: {
+  maxPriceAgeHours?: number;
+  allowUnknownPriceAge?: boolean;
+}): boolean {
+  const s = priceAgeSettings(f);
+  return s.maxHours <= STRICT_PRICE_AGE_HOURS && !s.allowUnknown;
+}
+
+/**
+ * Short task-id / cache-key suffix of the price-age mode: `"48h"` (the limit in hours) when
+ * strict, otherwise `""` (the default mode keeps the plain id).
+ */
+export function priceAgeSuffix(f: { maxPriceAgeHours?: number; allowUnknownPriceAge?: boolean }) {
+  return isStrictPriceAge(f) ? `${priceAgeSettings(f).maxHours}h` : "";
+}
 
 const HOUR_MS = 3_600_000;
 

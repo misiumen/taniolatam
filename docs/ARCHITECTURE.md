@@ -83,12 +83,12 @@ jednozdaniową podpowiedzią (zwinięta sekcja pokazuje podsumowanie swoich wart
    miesięcy albo dokładne daty), długość pobytu lub lot w jedną stronę, dni tygodnia wylotu.
 3. **Lot** — przesiadki (bez / max 1 / dowolnie), maks. czas lotu, typ linii, linie lotnicze z
    wyników (odznaczenie wyklucza linię).
-4. **Cena i aktualność** — cena maksymalna w zł, dopuszczalny wiek ceny (48 h / 7 dni).
+4. **Cena i aktualność** — cena maksymalna w zł, dopuszczalny wiek ceny (domyślnie do 7 dni, opcjonalnie tylko do 48 h).
 5. **Zaawansowane** — open-jaw, multicity (wkrótce), pomijanie kierunków w kraju wylotu.
 
 Na start otwarte są Trasa i Termin; „Szukaj” jest przyklejony do dołu kolumny formularza. Nad
 wynikami stoi jednowierszowe podsumowanie wyszukiwania („Polska → gdziekolwiek · pół roku · 7–21 dni ·
-max 1 przesiadka · ceny do 48 h”, wartości domyślne pominięte). Wynik to lista posortowana po cenie
+max 1 przesiadka · ceny do 7 dni”, wartości domyślne pominięte). Wynik to lista posortowana po cenie
 obok mapy z łukami tras od lotnisk wylotu do kierunków z listy; na węższych ekranach lista i mapa są
 zakładkami, a na telefonie formularz staje się arkuszem. Pusty stan proponuje przykładowe
 wyszukiwania, które wypełniają formularz i od razu szukają. Szczegóły: `apps/web/README.md`, „Układ

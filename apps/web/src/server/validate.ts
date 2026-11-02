@@ -194,6 +194,8 @@ function filters(v: unknown): ApiSearchFilters {
     allowOpenJaw: bool(v.allowOpenJaw, "open-jaw"),
     excludeOriginCountries: bool(v.excludeOriginCountries, "pomiń kierunki w kraju wylotu"),
     multicity: bool(v.multicity, "multicity"),
+    // Freshness: missing = core defaults (168 h, unknown age allowed, "do 7 dni"); the form
+    // sends only the strict window (48 h + allowUnknownPriceAge: false).
     maxPriceAgeHours:
       v.maxPriceAgeHours === undefined
         ? undefined

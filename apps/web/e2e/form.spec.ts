@@ -179,17 +179,46 @@ test("dates: presets and the month slider drive from/to; exact dates are on dema
   );
 });
 
-test("freshness window: 48 h sends nothing, 7 days relaxes the age filters", async ({ page }) => {
-  await open(page);
+test("freshness window: 7 days sends nothing, „tylko do 48 h” is strict", async ({ page }) => {
+  // Old shared links with pa=7d open the default (and run it at once).
+  await open(page, "/szukaj?o=country:PL:Polska&pa=7d");
   await openSection(page, "Cena i aktualność");
-  await expect(page.getByRole("radio", { name: "do 48 godzin" })).toBeChecked();
-  await page.getByRole("radio", { name: /do 7 dni/ }).check();
-  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await expect(page.getByRole("radio", { name: "do 7 dni" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: "tylko do 48 h" })).not.toBeChecked();
+
+  let request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
   await page.getByRole("button", { name: "Szukaj", exact: true }).click();
-  const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
-  expect(body.filters).toMatchObject({ maxPriceAgeHours: 168, allowUnknownPriceAge: true });
+  let body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters).not.toHaveProperty("maxPriceAgeHours");
+  expect(body.filters).not.toHaveProperty("allowUnknownPriceAge");
   await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
-  expect(new URL(page.url()).searchParams.get("pa")).toBe("7d");
+  await expect.poll(() => new URL(page.url()).searchParams.has("pa")).toBe(false);
+  await expect(
+    page
+      .getByText(/ceny do 7 dni/)
+      .filter({ visible: true })
+      .first(),
+  ).toBeVisible();
+
+  await page.getByRole("radio", { name: "tylko do 48 h" }).check();
+  request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters).toMatchObject({ maxPriceAgeHours: 48, allowUnknownPriceAge: false });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => new URL(page.url()).searchParams.get("pa")).toBe("48h");
+  await expect(
+    page
+      .getByText(/ceny do 48 h/)
+      .filter({ visible: true })
+      .first(),
+  ).toBeVisible();
+
+  // The shared link restores the strict window.
+  await page.reload();
+  await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
+  await openSection(page, "Cena i aktualność");
+  await expect(page.getByRole("radio", { name: "tylko do 48 h" })).toBeChecked();
 });
 
 test("airline filter, names, age and currency on cards", async ({ page }) => {

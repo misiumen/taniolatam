@@ -7,6 +7,7 @@ import {
   type SearchTask,
   type SourceContext,
 } from "../sources/types.ts";
+import { priceAgeSuffix } from "./filters.ts";
 import { Semaphore, TokenBucket } from "./rate-limit.ts";
 
 export interface TaskResult {
@@ -38,8 +39,12 @@ export interface RunResult {
 const DEFAULT_LIMIT: RateLimit = { rps: 5, burst: 1, concurrency: 4 };
 const DEFAULT_TTL_SECONDS = 6 * 3600;
 
-/** Cache key: everything that changes a source's answer. */
+/**
+ * Cache key: everything that changes a source's answer. The strict price-age mode adds a
+ * suffix (`:48h`); the default mode keeps the plain key.
+ */
 export function taskCacheKey(t: SearchTask): string {
+  const age = priceAgeSuffix(t);
   return [
     "task",
     t.sourceId,
@@ -50,6 +55,7 @@ export function taskCacheKey(t: SearchTask): string {
     JSON.stringify(t.trip),
     t.directOnly ? "d" : "",
     t.currency,
+    ...(age ? [age] : []),
   ].join(":");
 }
 

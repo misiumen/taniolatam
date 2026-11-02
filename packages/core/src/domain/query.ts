@@ -26,13 +26,16 @@ export interface SearchFilters {
   excludeOriginCountries?: boolean;
   /**
    * Max price age in hours (from `Offer.foundAt` / `cacheAgeHours`). `searchDestinations`
-   * defaults it to 48 (`DEFAULT_MAX_PRICE_AGE_HOURS`); `applyFilters` applies it only when set.
-   * Live offers count as fresh.
+   * defaults it to 168 = 7 days (`DEFAULT_MAX_PRICE_AGE_HOURS`); `applyFilters` applies it only
+   * when set. Live offers count as fresh. ≤ 48 (`STRICT_PRICE_AGE_HOURS`) together with
+   * `allowUnknownPriceAge: false` is the strict mode: sources skip older caches (Travelpayouts
+   * then asks `/v2/prices/latest` only).
    */
   maxPriceAgeHours?: number;
   /**
    * Keep offers whose price age is unknown (e.g. Travelpayouts `prices_for_dates`, "cache do 7
-   * dni") when `maxPriceAgeHours` is set. Default false: unknown age is dropped.
+   * dni") when `maxPriceAgeHours` is set. `searchDestinations` defaults it to true; `applyFilters`
+   * treats a missing value as false.
    */
   allowUnknownPriceAge?: boolean;
   /**

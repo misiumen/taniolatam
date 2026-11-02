@@ -1,5 +1,11 @@
 import type { ApiSearchFilters, SearchRequest } from "@gdziepolece/api-client";
-import { placeKey, type CarrierType, type Place, type Weekday } from "@gdziepolece/core";
+import {
+  placeKey,
+  STRICT_PRICE_AGE_HOURS,
+  type CarrierType,
+  type Place,
+  type Weekday,
+} from "@gdziepolece/core";
 
 export interface PlaceChip {
   place: Place;
@@ -29,10 +35,13 @@ export const DEFAULT_DATE_PRESET: DatePreset = "6m";
 /** The slider spans "now" … now + 12 months in one-month steps. */
 export const SLIDER_MONTHS = 12;
 
-/** "Aktualność cen": up to 48 h (core default, nothing sent) or up to 7 days incl. unknown age. */
-export type PriceAgeWindow = "48h" | "7d";
+/**
+ * "Aktualność cen": up to 7 days incl. unknown age (core default, nothing sent, no URL param) or
+ * strictly up to 48 h (`pa=48h`).
+ */
+export type PriceAgeWindow = "7d" | "48h";
 
-export const WEEK_PRICE_AGE_HOURS = 168;
+export const DEFAULT_PRICE_AGE: PriceAgeWindow = "7d";
 
 export interface FormState {
   origins: PlaceChip[];
@@ -159,7 +168,7 @@ export function defaultFormState(today = todayIso()): FormState {
     maxDurationHours: "",
     allowOpenJaw: false,
     excludeCarriers: [],
-    priceAge: "48h",
+    priceAge: DEFAULT_PRICE_AGE,
   };
 }
 
@@ -201,10 +210,10 @@ export function toSearchQuery(s: FormState): SearchRequest {
     filters.maxDurationMinutes = Number(s.maxDurationHours) * 60;
   if (s.allowOpenJaw) filters.allowOpenJaw = true;
   if (s.excludeCarriers.length > 0) filters.excludeCarriers = [...s.excludeCarriers];
-  // The 48 h window is the engine default, so only the relaxed window is sent.
-  if (s.priceAge === "7d") {
-    filters.maxPriceAgeHours = WEEK_PRICE_AGE_HOURS;
-    filters.allowUnknownPriceAge = true;
+  // "Do 7 dni" is the engine default, so only the strict window is sent.
+  if (s.priceAge === "48h") {
+    filters.maxPriceAgeHours = STRICT_PRICE_AGE_HOURS;
+    filters.allowUnknownPriceAge = false;
   }
   return {
     origins: s.origins.map((c) => c.place),
@@ -297,7 +306,7 @@ export function formToParams(s: FormState): URLSearchParams {
   if (s.maxDurationHours !== "") p.set("md", s.maxDurationHours);
   if (s.allowOpenJaw) p.set("oj", "1");
   if (s.excludeCarriers.length > 0) p.set("xa", s.excludeCarriers.join(","));
-  if (s.priceAge === "7d") p.set("pa", "7d");
+  if (s.priceAge === "48h") p.set("pa", "48h");
   return p;
 }
 
@@ -376,6 +385,7 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     maxDurationHours: isDurationOption(maxDuration) ? String(Number(maxDuration)) : "",
     allowOpenJaw: p.get("oj") === "1",
     excludeCarriers: parseCarrierCodes(p.get("xa")),
-    priceAge: p.get("pa") === "7d" ? "7d" : "48h",
+    // Old links carry `pa=7d`: that is the default now, read like any other value.
+    priceAge: p.get("pa") === "48h" ? "48h" : DEFAULT_PRICE_AGE,
   };
 }

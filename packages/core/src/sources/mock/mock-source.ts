@@ -259,7 +259,7 @@ export class MockSource implements FlightSource {
       source: this.id,
       fetchedAt,
       freshness: "cached",
-      // Under the pipeline's default 48 h price-age limit, like Travelpayouts latest prices.
+      // Under 48 h, like Travelpayouts latest prices, so the strict mode keeps them too.
       cacheAgeHours: Math.floor(rng() * 48),
       deepLink: googleFlightsLink(origin, dest, departDate, returnDate, currency),
     };

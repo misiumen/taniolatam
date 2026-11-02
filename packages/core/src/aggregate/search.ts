@@ -11,9 +11,10 @@ import { carrierFacet, type CarrierFacetEntry } from "./facet.ts";
 import {
   applyFilters,
   carrierSet,
-  DEFAULT_MAX_PRICE_AGE_HOURS,
   hasExcludedCarrier,
+  isStrictPriceAge,
   priceAgeHours,
+  priceAgeSettings,
   type FilterContext,
 } from "./filters.ts";
 import { dedupeOffers } from "./merge.ts";
@@ -55,6 +56,8 @@ export interface PriceAgeReport {
   maxHours: number;
   /** Effective `filters.allowUnknownPriceAge`. */
   allowUnknown: boolean;
+  /** The strict mode ("tylko do 48 h": ≤ 48 h, unknown age excluded). */
+  strict: boolean;
   /** Offers that passed every other filter but were older than `maxHours`. */
   droppedTooOld: number;
   /** Offers that passed every other filter but had an unknown age. */
@@ -126,14 +129,42 @@ function returnRange(
   return undefined;
 }
 
-/** The price-age filter's effective settings (`maxPriceAgeHours` defaults to 48). */
+/** The price-age filter's effective settings (defaults: 168 h, unknown age allowed). */
 function ageFilters(
   f: SearchFilters,
-): Pick<SearchFilters, "maxPriceAgeHours" | "allowUnknownPriceAge"> {
-  return {
-    maxPriceAgeHours: f.maxPriceAgeHours ?? DEFAULT_MAX_PRICE_AGE_HOURS,
-    allowUnknownPriceAge: f.allowUnknownPriceAge === true,
-  };
+): Required<Pick<SearchFilters, "maxPriceAgeHours" | "allowUnknownPriceAge">> {
+  const s = priceAgeSettings(f);
+  return { maxPriceAgeHours: s.maxHours, allowUnknownPriceAge: s.allowUnknown };
+}
+
+/** "7 dni" for whole days above 48 h, else "N h" ("48 h"). */
+const hoursText = (h: number) => (h > 48 && h % 24 === 0 ? `${h / 24} dni` : `${h} h`);
+
+/**
+ * Polish warnings for offers the age filter removed. Nothing removed → no warning. In the strict
+ * mode the advice is to switch to "do 7 dni".
+ */
+export function priceAgeWarnings(r: PriceAgeReport): string[] {
+  const dropped = r.droppedTooOld + r.droppedUnknown;
+  if (dropped === 0) return [];
+  if (r.strict) {
+    const why =
+      r.droppedUnknown === 0
+        ? `starszą niż ${hoursText(r.maxHours)}`
+        : r.droppedTooOld === 0
+          ? "o nieznanym wieku"
+          : `starszą niż ${hoursText(r.maxHours)} lub o nieznanym wieku`;
+    return [
+      `Pominięto ${dropped} ofert z ceną ${why} (tryb „tylko do ${hoursText(r.maxHours)}”). Wybierz „do 7 dni” w „Aktualność cen”, aby je zobaczyć.`,
+    ];
+  }
+  const out: string[] = [];
+  if (r.droppedUnknown > 0)
+    out.push(`Pominięto ${r.droppedUnknown} ofert z ceną o nieznanym wieku.`);
+  if (r.droppedTooOld > 0) {
+    out.push(`Pominięto ${r.droppedTooOld} ofert z ceną starszą niż ${hoursText(r.maxHours)}.`);
+  }
+  return out;
 }
 
 /**
@@ -143,8 +174,10 @@ function ageFilters(
  * - Offers priced in another currency than `query.currency` are converted with `deps.rates`
  *   (NBP), keeping `originalPrice`/`originalCurrency`; without rates they are dropped with a
  *   warning in `plan.warnings`.
- * - `filters.maxPriceAgeHours` defaults to 48 (`DEFAULT_MAX_PRICE_AGE_HOURS`); offers with an
- *   unknown age are dropped unless `filters.allowUnknownPriceAge`. Counts in `priceAge`.
+ * - `filters.maxPriceAgeHours` defaults to 168 (`DEFAULT_MAX_PRICE_AGE_HOURS`) and
+ *   `filters.allowUnknownPriceAge` to true. Counts in `priceAge`; warnings only when something
+ *   was dropped (`priceAgeWarnings`). The planner copies both onto every task, so sources can
+ *   skip older caches in the strict mode (≤ 48 h, unknown excluded).
  * - `carrierFacet` lists airlines before `filters.excludeCarriers` is applied.
  *
  * With `filters.allowOpenJaw` and a round trip (`length` / `fixedReturn`), two more phases run:
@@ -222,8 +255,9 @@ export async function searchDestinations(
   const outOffers = converted1.slice(roundRaw.length);
 
   const priceAge: PriceAgeReport = {
-    maxHours: age.maxPriceAgeHours!,
-    allowUnknown: age.allowUnknownPriceAge === true,
+    maxHours: age.maxPriceAgeHours,
+    allowUnknown: age.allowUnknownPriceAge,
+    strict: isStrictPriceAge(query.filters),
     droppedTooOld: 0,
     droppedUnknown: 0,
   };
@@ -283,7 +317,11 @@ export async function searchDestinations(
             trip: { kind: "oneway" },
             departWeekdays: query.dates.returnWeekdays,
           },
-          filters: { directOnly: query.filters.directOnly, excludeOriginCountries: false },
+          filters: {
+            directOnly: query.filters.directOnly,
+            excludeOriginCountries: false,
+            ...age,
+          },
           currency: query.currency,
         },
         { ...planOpts, maxTasks: Math.max(0, cap - backTasks.length) },
@@ -334,16 +372,7 @@ export async function searchDestinations(
     };
   }
 
-  if (priceAge.droppedUnknown > 0) {
-    plan.warnings.push(
-      `Pominięto ${priceAge.droppedUnknown} ofert z ceną o nieznanym wieku (cache do 7 dni). Włącz ceny „do 7 dni”, aby je zobaczyć.`,
-    );
-  }
-  if (priceAge.droppedTooOld > 0) {
-    plan.warnings.push(
-      `Pominięto ${priceAge.droppedTooOld} ofert z ceną starszą niż ${priceAge.maxHours} h.`,
-    );
-  }
+  plan.warnings.push(...priceAgeWarnings(priceAge));
 
   const offers = dedupeOffers(candidates)
     .map((o) => finalizeOffer(o, now, deps.airlines))

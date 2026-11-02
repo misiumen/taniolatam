@@ -53,7 +53,10 @@ export function bucketKey(b: DestinationBucket): string {
 
 /** One cell of the fan-out grid: a single request to a single source. */
 export interface SearchTask {
-  /** `${sourceId}:${origin}:${bucketKey(destination)}:${month}` (+ a phase suffix for open-jaw legs). */
+  /**
+   * `${sourceId}:${origin}:${bucketKey(destination)}:${month}`, plus `:48h` in the strict
+   * price-age mode (`priceAgeSuffix`) and a phase suffix for open-jaw legs.
+   */
   id: string;
   sourceId: string;
   /** IATA airport. */
@@ -66,6 +69,13 @@ export interface SearchTask {
   trip: TripSpec;
   directOnly: boolean;
   currency: string;
+  /**
+   * The query's price-age limit (planner: `filters.maxPriceAgeHours`, default 168), so a source
+   * can pick endpoints. Undefined = the pipeline default.
+   */
+  maxPriceAgeHours?: number;
+  /** The query's `filters.allowUnknownPriceAge` (planner default true). */
+  allowUnknownPriceAge?: boolean;
 }
 
 export interface SourceContext {

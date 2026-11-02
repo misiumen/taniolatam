@@ -7,6 +7,7 @@ import {
   type TripSpec,
 } from "../../domain/dates.ts";
 import { offerKey, type Leg, type Offer } from "../../domain/offer.ts";
+import { isStrictPriceAge } from "../../aggregate/filters.ts";
 import { TokenBucket } from "../../aggregate/rate-limit.ts";
 import type { AirlineIndex } from "../../airlines/airline-index.ts";
 import { AVIASALES_BASE_URL, aviasalesLink, withMarker } from "../../links/deep-links.ts";
@@ -40,11 +41,12 @@ export const TRAVELPAYOUTS_SOURCE_ID = "travelpayouts";
 
 /**
  * Which Data API endpoint `search()` uses:
- * - `latest48h`: `/v2/prices/latest` only (prices found during the last 48 hours);
- * - `prices7d`: `/aviasales/v3/prices_for_dates` only (cache up to 7 days, age unknown);
- * - `both` (default): latest first; a task that yields no offer (or whose latest request fails
- *   with anything but 401/403/429/abort) falls back to prices_for_dates, marked
- *   `note: "cache do 7 dni"` with unknown age.
+ * - `both` (default): per task. Strict price age (`task.maxPriceAgeHours` ≤ 48 and
+ *   `task.allowUnknownPriceAge` false) → `/v2/prices/latest` only; otherwise latest and
+ *   `/aviasales/v3/prices_for_dates` in parallel, merged by `mergeLatestWithPricesForDates`.
+ * - `latest48h`: `/v2/prices/latest` only, for every task (debugging);
+ * - `prices7d`: `prices_for_dates` only, for every task (debugging; age unknown, noted
+ *   "cache do 7 dni").
  */
 export type TravelpayoutsMode = "latest48h" | "prices7d" | "both";
 
@@ -71,10 +73,16 @@ export interface TravelpayoutsSourceOptions {
   /** Endpoint choice; overrides `TRAVELPAYOUTS_MODE` from the context env. Default "both". */
   mode?: TravelpayoutsMode;
   /**
-   * Client-side limit for `/v2/prices/latest` (documented 300 req/min). Default 4 rps, burst 4.
-   * The runner's per-source limit counts tasks, not requests (pages, fallbacks), hence this one.
+   * Client-side limit for `/v2/prices/latest` (documented 300 req/min). Default
+   * `TP_LATEST_RATE_LIMIT` (4 rps, burst 4: ≤ 244 requests in any minute). The runner's
+   * per-source limit counts tasks, not requests (pages, two endpoints per task), hence this one.
    */
   latestRateLimit?: { rps: number; burst?: number };
+  /**
+   * Client-side limit for `prices_for_dates` (documented 600 req/min). Default
+   * `TP_PRICES_RATE_LIMIT` (8 rps, burst 8: ≤ 488 requests in any minute).
+   */
+  pricesRateLimit?: { rps: number; burst?: number };
   /** Injected for tests; defaults to global `fetch`. */
   fetchImpl?: FetchLike;
   /** Default https://api.travelpayouts.com. */
@@ -97,6 +105,11 @@ export interface TravelpayoutsSourceOptions {
   /** Default 20. */
   lowRemainingThreshold?: number;
 }
+
+/** Default `latestRateLimit`: 4 × 60 + 4 = 244 requests per minute at most (limit 300). */
+export const TP_LATEST_RATE_LIMIT = { rps: 4, burst: 4 } as const;
+/** Default `pricesRateLimit`: 8 × 60 + 8 = 488 requests per minute at most (limit 600). */
+export const TP_PRICES_RATE_LIMIT = { rps: 8, burst: 8 } as const;
 
 /** Max return months queried for a `fixedReturn` trip spanning several months. */
 const MAX_RETURN_MONTHS = 3;
@@ -317,8 +330,95 @@ function dedupeById(offers: Offer[]): Offer[] {
   return [...byId.values()];
 }
 
-/** Latest-prices errors that a prices_for_dates fallback would hit too (auth, rate limit). */
-const NO_FALLBACK_STATUS = new Set([401, 403, 429]);
+/** Unknown age, noted as the 7-day cache (prices_for_dates offers the latest feed did not see). */
+const asUnknownAge = (o: Offer): Offer => ({
+  ...o,
+  cacheAgeHours: undefined,
+  foundAt: undefined,
+  stale: undefined,
+  note: TP_CACHE_7D_NOTE,
+});
+
+/**
+ * One side of a price_for_dates offer (`code`, an airport) is the same place as one side of a
+ * latest offer (`latestCode`): equal codes, or the latest side is a city code
+ * (`latestIsCity`) whose airports (`PlaceIndex.cityAirports`) include `code`.
+ */
+function samePlace(
+  code: string,
+  latestCode: string,
+  latestIsCity: boolean | undefined,
+  places?: Pick<PlaceIndex, "cityAirports">,
+): boolean {
+  if (code === latestCode) return true;
+  return latestIsCity === true && (places?.cityAirports(latestCode).includes(code) ?? false);
+}
+
+/**
+ * Merges one task's `/v2/prices/latest` offers with its `prices_for_dates` offers (see README,
+ * "Łączenie"):
+ * - a prices_for_dates offer matches a latest offer with the same `departDate` and `returnDate`
+ *   whose origin and destination are the same places (`samePlace`: same code, or the latest
+ *   city code covers the airport); with several candidates, the cheapest latest offer;
+ * - each latest offer and its matches become ONE offer: the cheapest prices_for_dates match
+ *   (airports, carrier, link) at `min(price)` with the latest offer's `foundAt` /
+ *   `cacheAgeHours` / `stale` and no note — or the latest offer itself when it is strictly
+ *   cheaper. Further matches (other carriers / airports of the same city) stay separate with
+ *   unknown age;
+ * - unmatched prices_for_dates offers: unknown age, `note: "cache do 7 dni"`;
+ * - unmatched latest offers: unchanged.
+ * Result: latest-derived offers first (latest order), then the remaining prices_for_dates ones.
+ */
+export function mergeLatestWithPricesForDates(
+  latest: Offer[],
+  prices: Offer[],
+  places?: Pick<PlaceIndex, "cityAirports">,
+): Offer[] {
+  const byDates = new Map<string, Offer[]>();
+  const datesKey = (o: Offer) => `${o.departDate}|${o.returnDate ?? ""}`;
+  for (const l of latest) {
+    const k = datesKey(l);
+    byDates.set(k, [...(byDates.get(k) ?? []), l]);
+  }
+
+  const matches = new Map<Offer, Offer[]>();
+  const unmatched: Offer[] = [];
+  for (const p of prices) {
+    let best: Offer | undefined;
+    for (const l of byDates.get(datesKey(p)) ?? []) {
+      if (
+        samePlace(p.origin, l.origin, l.originIsCity, places) &&
+        samePlace(p.destination, l.destination, l.destinationIsCity, places) &&
+        (!best || l.price < best.price)
+      ) {
+        best = l;
+      }
+    }
+    if (best) matches.set(best, [...(matches.get(best) ?? []), p]);
+    else unmatched.push(p);
+  }
+
+  const out: Offer[] = [];
+  for (const l of latest) {
+    const group = (matches.get(l) ?? []).slice().sort((a, b) => a.price - b.price);
+    const [cheapest, ...rest] = group;
+    if (!cheapest) {
+      out.push(l);
+    } else if (cheapest.price <= l.price) {
+      out.push({
+        ...cheapest,
+        foundAt: l.foundAt,
+        cacheAgeHours: l.cacheAgeHours,
+        stale: l.stale,
+        note: undefined,
+      });
+    } else {
+      out.push(l);
+    }
+    unmatched.push(...rest);
+  }
+  return [...out, ...unmatched.map(asUnknownAge)];
+}
 
 /**
  * Travelpayouts / Aviasales Data API: prices from Aviasales' search cache. Free with a partner
@@ -341,20 +441,24 @@ export class TravelpayoutsSource implements FlightSource {
     countryDestination: true,
   };
   // Documented: 600 req/min for prices_for_dates and grouped_prices, 300 req/min for
-  // /v2/prices/latest. Tasks run at half of the former; latest requests also pass through
-  // `latestRateLimit` (4 rps), since one task can make several requests (pages, fallback).
-  readonly rateLimit = { rps: 5, burst: 2, concurrency: 4 };
+  // /v2/prices/latest. A task asks both endpoints (default mode), so tasks may start at 8/s;
+  // the requests themselves pass through per-endpoint buckets (`latestRateLimit` 4 rps,
+  // `pricesRateLimit` 8 rps), since one task can make several requests (pages, return months).
+  readonly rateLimit = { rps: 8, burst: 2, concurrency: 6 };
 
   private readonly opts: TravelpayoutsSourceOptions;
   private readonly fetchImpl: FetchLike;
   private readonly latestBucket: TokenBucket;
+  private readonly pricesBucket: TokenBucket;
   private rateLimitInfo: TpRateLimitInfo | undefined;
 
   constructor(opts: TravelpayoutsSourceOptions = {}) {
     this.opts = opts;
     this.fetchImpl = opts.fetchImpl ?? ((input, init) => fetch(input, init));
-    const latest = opts.latestRateLimit ?? { rps: 4, burst: 4 };
+    const latest = opts.latestRateLimit ?? TP_LATEST_RATE_LIMIT;
     this.latestBucket = new TokenBucket(latest.rps, latest.burst ?? 1);
+    const prices = opts.pricesRateLimit ?? TP_PRICES_RATE_LIMIT;
+    this.pricesBucket = new TokenBucket(prices.rps, prices.burst ?? 1);
   }
 
   /** `opts.mode`, else `TRAVELPAYOUTS_MODE` from env, else "both". */
@@ -373,6 +477,10 @@ export class TravelpayoutsSource implements FlightSource {
     return envFlag(env, "SOURCE_TRAVELPAYOUTS") && this.tokenFrom(env) !== undefined;
   }
 
+  /**
+   * Endpoints per task: see `TravelpayoutsMode`. In the merged path a failure of one endpoint
+   * is logged and the other's offers are returned; both failing (or an abort) throws.
+   */
   async search(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
     const mode = this.modeFor(ctx.env);
     if (mode === "prices7d") {
@@ -381,30 +489,30 @@ export class TravelpayoutsSource implements FlightSource {
         note: TP_CACHE_7D_NOTE,
       }));
     }
-    let latest: Offer[] = [];
-    try {
-      latest = await this.searchLatest(task, ctx);
-    } catch (err) {
-      const status = err instanceof TravelpayoutsError ? err.status : undefined;
-      const fallback =
-        mode === "both" &&
-        err instanceof TravelpayoutsError &&
-        !(status !== undefined && NO_FALLBACK_STATUS.has(status)) &&
-        !ctx.signal?.aborted;
-      if (!fallback) throw err;
-      this.opts.logger?.warn(
-        `Travelpayouts ${LATEST_PRICES_PATH}: ${err.message}; falling back to prices_for_dates`,
-      );
+    if (mode === "latest48h" || isStrictPriceAge(task)) return this.searchLatest(task, ctx);
+
+    const [latest, prices] = await Promise.allSettled([
+      this.searchLatest(task, ctx),
+      this.searchPricesForDates(task, ctx),
+    ]);
+    ctx.signal?.throwIfAborted();
+    if (latest.status === "rejected" && prices.status === "rejected") throw latest.reason;
+    for (const [r, path] of [
+      [latest, LATEST_PRICES_PATH],
+      [prices, PRICES_FOR_DATES_PATH],
+    ] as const) {
+      if (r.status === "rejected") {
+        const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+        this.opts.logger?.warn(`Travelpayouts ${path}: ${msg}; using the other endpoint only`);
+      }
     }
-    if (mode === "latest48h" || latest.length > 0) return latest;
-    // Nothing found in the last 48 h: 7-day cache, age unknown (v3 has no found_at).
-    return (await this.searchPricesForDates(task, ctx)).map((o) => ({
-      ...o,
-      cacheAgeHours: undefined,
-      foundAt: undefined,
-      stale: undefined,
-      note: TP_CACHE_7D_NOTE,
-    }));
+    return dedupeById(
+      mergeLatestWithPricesForDates(
+        latest.status === "fulfilled" ? latest.value : [],
+        prices.status === "fulfilled" ? prices.value : [],
+        this.opts.places,
+      ),
+    );
   }
 
   /** `/v2/prices/latest` for one task; filtered locally like prices_for_dates. */
@@ -464,7 +572,10 @@ export class TravelpayoutsSource implements FlightSource {
     );
   }
 
-  /** `prices_for_dates` for one task (the pre-48 h behaviour). */
+  /**
+   * `prices_for_dates` for one task. Country buckets send `destination=<ISO country>` (one
+   * request per origin × country × month); anywhere omits it.
+   */
   private async searchPricesForDates(task: SearchTask, ctx: SourceContext): Promise<Offer[]> {
     const dest = task.destination;
     const anywhere = dest.kind === "anywhere";
@@ -489,6 +600,8 @@ export class TravelpayoutsSource implements FlightSource {
     for (const returnAt of returnAtValues(task.trip)) {
       const params = { ...base, return_at: returnAt };
       for (let page = 1; page <= this.maxPages; page++) {
+        ctx.signal?.throwIfAborted();
+        await this.pricesBucket.take();
         ctx.signal?.throwIfAborted();
         const body = await this.get<TpPriceEntry[]>(
           PRICES_FOR_DATES_PATH,

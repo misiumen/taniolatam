@@ -5,8 +5,11 @@ import {
   PRICES_FOR_DATES_PATH,
   PlaceIndex,
   TP_CACHE_7D_NOTE,
+  TP_LATEST_RATE_LIMIT,
+  TP_PRICES_RATE_LIMIT,
   TravelpayoutsSource,
   mapTravelpayoutsLatestEntry,
+  mergeLatestWithPricesForDates,
   parseTravelpayoutsMode,
   resolveCityCode,
   searchDestinations,
@@ -16,7 +19,7 @@ import {
   type TravelpayoutsSourceOptions,
 } from "../src/index.ts";
 import { fixtureData } from "./fixtures.ts";
-import { NOW } from "./helpers.ts";
+import { NOW, offer } from "./helpers.ts";
 import {
   emptyData,
   emptyLatest,
@@ -90,6 +93,7 @@ const source = (fetchImpl: ReturnType<typeof routedFetch>, over: TravelpayoutsSo
     fetchImpl,
     places,
     latestRateLimit: { rps: 1000, burst: 100 },
+    pricesRateLimit: { rps: 1000, burst: 100 },
     ...over,
   });
 
@@ -227,25 +231,105 @@ describe("TravelpayoutsSource modes", () => {
     trip: { kind: "length", minDays: 7, maxDays: 21 },
   });
 
-  it("both (default): uses latest prices when there are any", async () => {
+  const strictTask = { ...roundTask, maxPriceAgeHours: 48, allowUnknownPriceAge: false };
+  /** POZ → BKK latest round trips: one matching the LO price_for_dates offer, one unmatched. */
+  const pozBkkLatest = (matchPrice: number) => ({
+    success: true,
+    currency: "pln",
+    data: [
+      {
+        value: matchPrice,
+        origin: "POZ",
+        destination: "BKK",
+        depart_date: "2027-03-12",
+        return_date: "2027-03-26",
+        number_of_changes: 1,
+        found_at: "2026-11-02T06:00:00Z",
+        actual: true,
+      },
+      {
+        value: 2000,
+        origin: "POZ",
+        destination: "BKK",
+        depart_date: "2027-03-20",
+        return_date: "2027-04-02",
+        number_of_changes: 2,
+        found_at: "2026-11-01T10:00:00Z",
+        actual: false,
+      },
+    ],
+  });
+  const sortedPaths = (f: ReturnType<typeof routedFetch>) => [...f.paths()].sort();
+
+  it("both (default task): asks both endpoints and merges matching offers", async () => {
     const fetchImpl = routedFetch({
-      [LATEST_PRICES_PATH]: [{ body: pozAnywhereLatest }],
-      [PRICES_FOR_DATES_PATH]: [{ body: emptyData }],
+      [LATEST_PRICES_PATH]: [{ body: pozBkkLatest(2600) }],
+      [PRICES_FOR_DATES_PATH]: [{ body: pozBkkRoundTrips }],
     });
-    const offers = await source(fetchImpl).search(task(), ctx());
-    expect(fetchImpl.paths()).toEqual(["/v2/prices/latest"]);
-    expect(offers.length).toBeGreaterThan(0);
-    expect(offers.every((o) => o.note === undefined && o.cacheAgeHours !== undefined)).toBe(true);
+    const offers = await source(fetchImpl).search(roundTask, ctx());
+    expect(sortedPaths(fetchImpl)).toEqual(["/aviasales/v3/prices_for_dates", "/v2/prices/latest"]);
+    expect(offers.map((o) => [o.departDate, o.price, o.carriers, o.cacheAgeHours, o.note])).toEqual(
+      [
+        // LO (prices_for_dates, 2489) matched the 2600 latest price: cheaper one kept, latest age.
+        ["2027-03-12", 2489, ["LO"], 4, undefined],
+        // Latest only: unchanged.
+        ["2027-03-20", 2000, [], 24, undefined],
+      ],
+    );
+    expect(offers[0]).toMatchObject({
+      foundAt: "2026-11-02T06:00:00.000Z",
+      stale: false,
+      deepLink: expect.stringContaining("/search/POZ1203BKK26031?t=LO"),
+    });
+    expect(offers[1]!.stale).toBe(true);
   });
 
-  it("both: falls back to prices_for_dates when latest is empty, marking unknown age", async () => {
+  it("both: a strictly cheaper latest price wins the match; unmatched v3 offers get the note", async () => {
+    const extra = {
+      ...pozBkkRoundTrips,
+      data: [
+        ...pozBkkRoundTrips.data!,
+        {
+          origin: "POZ",
+          destination: "BKK",
+          origin_airport: "POZ",
+          destination_airport: "BKK",
+          price: 2700,
+          airline: "EK",
+          departure_at: "2027-03-14T10:00:00+01:00",
+          return_at: "2027-03-28T10:00:00+07:00",
+          transfers: 1,
+          found_at: "2026-10-30T10:00:00Z",
+        },
+      ],
+    };
+    const fetchImpl = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: pozBkkLatest(2300) }],
+      [PRICES_FOR_DATES_PATH]: [{ body: extra }],
+    });
+    const offers = await source(fetchImpl).search(roundTask, ctx());
+    expect(offers.map((o) => [o.departDate, o.price, o.carriers, o.cacheAgeHours, o.note])).toEqual(
+      [
+        ["2027-03-12", 2300, [], 4, undefined],
+        ["2027-03-20", 2000, [], 24, undefined],
+        // Unmatched prices_for_dates: unknown age even with a found_at in the response.
+        ["2027-03-14", 2700, ["EK"], undefined, TP_CACHE_7D_NOTE],
+      ],
+    );
+    expect(offers[2]!.foundAt).toBeUndefined();
+  });
+
+  it("both: latest empty (less popular route) still returns the 7-day prices", async () => {
     const fetchImpl = routedFetch({
       [LATEST_PRICES_PATH]: [{ body: emptyLatest }],
       [PRICES_FOR_DATES_PATH]: [{ body: pozBkkRoundTrips }],
     });
     const offers = await source(fetchImpl).search(roundTask, ctx());
-    expect(fetchImpl.paths()).toEqual(["/v2/prices/latest", "/aviasales/v3/prices_for_dates"]);
-    expect(fetchImpl.calls[1]!.searchParams.get("currency")).toBe("pln");
+    expect(
+      fetchImpl.calls
+        .find((u) => u.pathname === PRICES_FOR_DATES_PATH)!
+        .searchParams.get("currency"),
+    ).toBe("pln");
     expect(offers).toHaveLength(1);
     expect(offers[0]).toMatchObject({
       price: 2489,
@@ -257,7 +341,48 @@ describe("TravelpayoutsSource modes", () => {
     });
   });
 
-  it("both: falls back on a server error but not on 401 / 429", async () => {
+  it("strict task (≤ 48 h, unknown age excluded): latest only", async () => {
+    const fetchImpl = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: pozBkkLatest(2600) }],
+      [PRICES_FOR_DATES_PATH]: [{ body: pozBkkRoundTrips }],
+    });
+    const offers = await source(fetchImpl).search(strictTask, ctx());
+    expect(fetchImpl.paths()).toEqual(["/v2/prices/latest"]);
+    expect(offers.map((o) => [o.price, o.note])).toEqual([
+      [2600, undefined],
+      [2000, undefined],
+    ]);
+    // 48 h with unknown ages allowed, or a 7-day limit without them, is not strict.
+    for (const loose of [
+      { maxPriceAgeHours: 48, allowUnknownPriceAge: true },
+      { maxPriceAgeHours: 168, allowUnknownPriceAge: false },
+    ]) {
+      const f = routedFetch({
+        [LATEST_PRICES_PATH]: [{ body: emptyLatest }],
+        [PRICES_FOR_DATES_PATH]: [{ body: emptyData }],
+      });
+      await source(f).search({ ...roundTask, ...loose }, ctx());
+      expect(f.paths()).toHaveLength(2);
+    }
+  });
+
+  it("country bucket: prices_for_dates gets destination=<ISO country>, latest none", async () => {
+    const fetchImpl = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: pozAnywhereLatest }],
+      [PRICES_FOR_DATES_PATH]: [{ body: emptyData }],
+    });
+    const offers = await source(fetchImpl).search(
+      task({ destination: { kind: "country", code: "ES" } }),
+      ctx(),
+    );
+    const byPath = Object.fromEntries(fetchImpl.calls.map((u) => [u.pathname, u.searchParams]));
+    expect(byPath[PRICES_FOR_DATES_PATH]!.get("destination")).toBe("ES");
+    expect(byPath[PRICES_FOR_DATES_PATH]!.get("unique")).toBe("false");
+    expect(byPath[LATEST_PRICES_PATH]!.has("destination")).toBe(false);
+    expect(offers.map((o) => o.destination)).toEqual(["BCN"]);
+  });
+
+  it("both: one failing endpoint is logged and the other answers; both failing throws", async () => {
     const http500 = routedFetch({
       [LATEST_PRICES_PATH]: [{ status: 500, raw: "boom" }],
       [PRICES_FOR_DATES_PATH]: [{ body: pozBkkRoundTrips }],
@@ -265,25 +390,73 @@ describe("TravelpayoutsSource modes", () => {
     const warn = vi.fn();
     const offers = await source(http500, { logger: { warn } }).search(roundTask, ctx());
     expect(offers.map((o) => o.note)).toEqual([TP_CACHE_7D_NOTE]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("falling back"));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringMatching(/prices\/latest: .*HTTP 500.*other endpoint/),
+    );
 
-    for (const status of [401, 429]) {
-      const denied = routedFetch({
-        [LATEST_PRICES_PATH]: [{ status, body: unauthorized }],
-        [PRICES_FOR_DATES_PATH]: [{ body: pozBkkRoundTrips }],
-      });
-      await expect(source(denied).search(roundTask, ctx())).rejects.toMatchObject({
-        status,
-        endpoint: "/v2/prices/latest",
-      });
-      expect(denied.paths()).toEqual(["/v2/prices/latest"]);
-    }
+    const v3down = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: pozBkkLatest(2600) }],
+      [PRICES_FOR_DATES_PATH]: [{ status: 429, body: unauthorized }],
+    });
+    expect((await source(v3down).search(roundTask, ctx())).map((o) => o.price)).toEqual([
+      2600, 2000,
+    ]);
 
-    // latest48h never falls back.
+    const denied = routedFetch({
+      [LATEST_PRICES_PATH]: [{ status: 401, body: unauthorized }],
+      [PRICES_FOR_DATES_PATH]: [{ status: 401, body: unauthorized }],
+    });
+    await expect(source(denied).search(roundTask, ctx())).rejects.toMatchObject({
+      status: 401,
+      endpoint: "/v2/prices/latest",
+    });
+
+    // latest48h never touches prices_for_dates.
     const strict = routedFetch({ [LATEST_PRICES_PATH]: [{ status: 500, raw: "boom" }] });
     await expect(source(strict, { mode: "latest48h" }).search(roundTask, ctx())).rejects.toThrow(
       /HTTP 500/,
     );
+    expect(strict.paths()).toEqual(["/v2/prices/latest"]);
+  });
+
+  it("an aborted search throws instead of returning partial offers", async () => {
+    const controller = new AbortController();
+    const fetchImpl = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: emptyLatest }],
+      [PRICES_FOR_DATES_PATH]: [{ body: emptyData }],
+    });
+    controller.abort(new Error("stop"));
+    await expect(
+      source(fetchImpl).search(roundTask, ctx({ signal: controller.signal })),
+    ).rejects.toThrow("stop");
+  });
+
+  it("rate limits: tasks 8/s × 6, latest ≤ 300/min and prices_for_dates ≤ 600/min", async () => {
+    const src = new TravelpayoutsSource();
+    expect(src.rateLimit).toMatchObject({ rps: 8, concurrency: 6 });
+    // Worst case in any minute: a full bucket plus a minute of refills.
+    expect(TP_LATEST_RATE_LIMIT.rps * 60 + TP_LATEST_RATE_LIMIT.burst).toBeLessThanOrEqual(300);
+    expect(TP_PRICES_RATE_LIMIT.rps * 60 + TP_PRICES_RATE_LIMIT.burst).toBeLessThanOrEqual(600);
+
+    // Every latest request (two endpoints per task) passes through the latest bucket.
+    const at: number[] = [];
+    const inner = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: emptyLatest }],
+      [PRICES_FOR_DATES_PATH]: [{ body: emptyData }],
+    });
+    const fetchImpl = Object.assign(
+      vi.fn(async (input: string) => {
+        if (new URL(input).pathname === LATEST_PRICES_PATH) at.push(performance.now());
+        return inner(input);
+      }),
+      { calls: inner.calls, paths: inner.paths },
+    );
+    const limited = source(fetchImpl, { latestRateLimit: { rps: 20, burst: 1 } });
+    await Promise.all([1, 2, 3, 4].map(() => limited.search(roundTask, ctx())));
+    expect(at).toHaveLength(4);
+    // 3 refills at 20/s ≈ 150 ms.
+    expect(at[3]! - at[0]!).toBeGreaterThanOrEqual(120);
+    expect(inner.paths().filter((p) => p === PRICES_FOR_DATES_PATH)).toHaveLength(4);
   });
 
   it("prices7d: prices_for_dates only, noted as 7-day cache", async () => {
@@ -391,8 +564,11 @@ describe("Travelpayouts through searchDestinations", () => {
     currency: "PLN",
   });
 
-  it("shows 48-hour prices (domestic WAW dropped, LON kept as a city)", async () => {
-    const fetchImpl = routedFetch({ [LATEST_PRICES_PATH]: [{ body: pozAnywhereLatest }] });
+  it("shows latest prices (domestic WAW dropped, LON kept as a city)", async () => {
+    const fetchImpl = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: pozAnywhereLatest }],
+      [PRICES_FOR_DATES_PATH]: [{ body: emptyData }],
+    });
     const r = await searchDestinations(query(), {
       places,
       sources: [source(fetchImpl)],
@@ -408,28 +584,126 @@ describe("Travelpayouts through searchDestinations", () => {
     expect(r.carrierFacet).toEqual([]);
   });
 
-  it("fallback prices (unknown age) need allowUnknownPriceAge", async () => {
+  it("default: an empty latest feed still shows the 7-day prices, without warnings", async () => {
     const routes = {
       [LATEST_PRICES_PATH]: [{ body: emptyLatest }],
       [PRICES_FOR_DATES_PATH]: [{ body: wawAnywhereOneWay }],
     };
-    const strict = await searchDestinations(query(), {
+    const r = await searchDestinations(query(), {
       places,
       sources: [source(routedFetch(routes))],
       ctx: ctx(),
     });
-    expect(strict.offers).toEqual([]);
-    expect(strict.priceAge.droppedUnknown).toBe(3);
-
-    const loose = await searchDestinations(query({ allowUnknownPriceAge: true }), {
-      places,
-      sources: [source(routedFetch(routes))],
-      ctx: ctx(),
-    });
-    expect(loose.offers.map((o) => [o.destination, o.note])).toEqual([
+    expect(r.offers.map((o) => [o.destination, o.note])).toEqual([
       ["LHR", TP_CACHE_7D_NOTE],
       ["BCN", TP_CACHE_7D_NOTE],
       ["AYT", TP_CACHE_7D_NOTE],
     ]);
+    expect(r.priceAge).toMatchObject({ strict: false, droppedUnknown: 0, droppedTooOld: 0 });
+    expect(r.plan.warnings).toEqual([]);
+  });
+
+  it("strict: latest only (no prices_for_dates request), nothing found → no warning", async () => {
+    const fetchImpl = routedFetch({
+      [LATEST_PRICES_PATH]: [{ body: emptyLatest }],
+      [PRICES_FOR_DATES_PATH]: [{ body: wawAnywhereOneWay }],
+    });
+    const r = await searchDestinations(
+      query({ maxPriceAgeHours: 48, allowUnknownPriceAge: false }),
+      { places, sources: [source(fetchImpl)], ctx: ctx() },
+    );
+    expect(fetchImpl.paths()).toEqual(["/v2/prices/latest"]);
+    expect(r.plan.tasks.map((t) => t.id)).toEqual(["travelpayouts:POZ:*:2027-03:48h"]);
+    expect(r.offers).toEqual([]);
+    expect(r.plan.warnings).toEqual([]);
+  });
+});
+
+describe("mergeLatestWithPricesForDates", () => {
+  const latest = (destination: string, price: number, over: object = {}) =>
+    offer({
+      origin: "POZ",
+      destination,
+      price,
+      carriers: [],
+      departDate: "2027-03-12",
+      returnDate: "2027-03-26",
+      foundAt: "2026-11-02T06:00:00.000Z",
+      cacheAgeHours: 4,
+      stale: false,
+      source: "travelpayouts",
+      ...over,
+    });
+  const v3 = (destination: string, price: number, over: object = {}) =>
+    offer({
+      origin: "POZ",
+      destination,
+      price,
+      carriers: ["LO"],
+      departDate: "2027-03-12",
+      returnDate: "2027-03-26",
+      cacheAgeHours: undefined,
+      source: "travelpayouts",
+      ...over,
+    });
+
+  it("matches a city-coded latest offer to an airport of that city (cityAirports)", () => {
+    // WAW-city = WAW + WMI in the fixture index.
+    const [merged, ...rest] = mergeLatestWithPricesForDates(
+      [latest("WAW", 300, { destinationIsCity: true })],
+      [v3("WMI", 250, { carriers: ["FR"] })],
+      places,
+    );
+    expect(rest).toEqual([]);
+    expect(merged).toMatchObject({
+      destination: "WMI",
+      price: 250,
+      carriers: ["FR"],
+      foundAt: "2026-11-02T06:00:00.000Z",
+      cacheAgeHours: 4,
+      stale: false,
+    });
+    expect(merged!.note).toBeUndefined();
+    // Without places a city code only matches itself.
+    expect(
+      mergeLatestWithPricesForDates(
+        [latest("WAW", 300, { destinationIsCity: true })],
+        [v3("WMI", 250)],
+      ).map((o) => [o.destination, o.note]),
+    ).toEqual([
+      ["WAW", undefined],
+      ["WMI", TP_CACHE_7D_NOTE],
+    ]);
+  });
+
+  it("needs the same dates and an airport-coded latest side to be equal", () => {
+    const out = mergeLatestWithPricesForDates(
+      [latest("BCN", 300)],
+      [v3("BCN", 250, { returnDate: "2027-03-27" }), v3("PRG", 200)],
+      places,
+    );
+    expect(out.map((o) => [o.destination, o.returnDate, o.note])).toEqual([
+      ["BCN", "2027-03-26", undefined],
+      ["BCN", "2027-03-27", TP_CACHE_7D_NOTE],
+      ["PRG", "2027-03-26", TP_CACHE_7D_NOTE],
+    ]);
+    expect(out[0]!.price).toBe(300);
+  });
+
+  it("several matches: the cheapest is combined, the others keep unknown age", () => {
+    const out = mergeLatestWithPricesForDates(
+      [latest("BCN", 300, { stale: true })],
+      [v3("BCN", 320, { carriers: ["LH"] }), v3("BCN", 280, { carriers: ["FR"] })],
+      places,
+    );
+    expect(out.map((o) => [o.carriers[0], o.price, o.cacheAgeHours, o.stale, o.note])).toEqual([
+      ["FR", 280, 4, true, undefined],
+      ["LH", 320, undefined, undefined, TP_CACHE_7D_NOTE],
+    ]);
+  });
+
+  it("equal prices keep the prices_for_dates details", () => {
+    const [o] = mergeLatestWithPricesForDates([latest("BCN", 300)], [v3("BCN", 300)], places);
+    expect(o).toMatchObject({ carriers: ["LO"], price: 300, cacheAgeHours: 4 });
   });
 });

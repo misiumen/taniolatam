@@ -7,7 +7,7 @@ const TODAY = "2026-11-02";
 describe("describeSearch", () => {
   it("summarises the default search", () => {
     expect(describeSearch(defaultFormState(TODAY)).join(" · ")).toBe(
-      "Polska → gdziekolwiek · pół roku · 7–21 dni · ceny do 48 h",
+      "Polska → gdziekolwiek · pół roku · 7–21 dni · ceny do 7 dni",
     );
   });
 
@@ -20,7 +20,7 @@ describe("describeSearch", () => {
       weekdays: [5 as const, 6 as const],
       excludeCarriers: ["FR", "W6"],
       allowOpenJaw: true,
-      priceAge: "7d" as const,
+      priceAge: "48h" as const,
     };
     expect(describeSearch(s)).toEqual([
       "Polska → gdziekolwiek",
@@ -32,7 +32,7 @@ describe("describeSearch", () => {
       "do 1500 zł",
       "bez 2 linii",
       "open-jaw",
-      "ceny do 7 dni",
+      "ceny do 48 h",
     ]);
   });
 

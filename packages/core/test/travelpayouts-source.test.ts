@@ -83,9 +83,9 @@ describe("TravelpayoutsSource basics", () => {
       multicity: false,
       countryDestination: true,
     });
-    // 600 req/min documented → stay well under 10 rps.
+    // 600 req/min documented → tasks stay under 10 rps (requests have their own buckets).
     expect(src.rateLimit.rps * 60).toBeLessThanOrEqual(600);
-    expect(src.rateLimit.concurrency).toBe(4);
+    expect(src.rateLimit.concurrency).toBe(6);
   });
 
   it("is enabled only with the flag and a non-empty token", () => {

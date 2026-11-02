@@ -29,7 +29,7 @@ describe("form state", () => {
     expect(s.departFrom).toBe("2027-01-31");
     expect(s.departTo).toBe("2027-07-31");
     expect(s.excludeCarriers).toEqual([]);
-    expect(s.priceAge).toBe("48h");
+    expect(s.priceAge).toBe("7d");
     expect([s.minDays, s.maxDays]).toEqual([7, 21]);
     expect(validateForm(s)).toBeUndefined();
   });
@@ -119,7 +119,7 @@ describe("form state", () => {
       maxDurationHours: "12",
       allowOpenJaw: true,
       excludeCarriers: ["FR", "W6"],
-      priceAge: "7d" as const,
+      priceAge: "48h" as const,
     };
     const params = new URLSearchParams(formToParams(s).toString());
     expect(paramsToForm(params, TODAY)).toEqual(s);
@@ -206,27 +206,27 @@ describe("form state", () => {
   });
 
   describe("airline and freshness filters", () => {
-    it("sends excludeCarriers and the relaxed price age only when changed", () => {
+    it("sends excludeCarriers and the strict 48 h window only when changed", () => {
       expect(toSearchQuery(defaultFormState(TODAY)).filters).toEqual({});
       const q = toSearchQuery({
         ...defaultFormState(TODAY),
         excludeCarriers: ["FR", "W6"],
-        priceAge: "7d",
+        priceAge: "48h",
       });
       expect(q.filters).toEqual({
         excludeCarriers: ["FR", "W6"],
-        maxPriceAgeHours: 168,
-        allowUnknownPriceAge: true,
+        maxPriceAgeHours: 48,
+        allowUnknownPriceAge: false,
       });
     });
 
-    it("keeps them in the URL (xa, pa) and sanitises xa", () => {
+    it("keeps them in the URL (xa, pa=48h) and sanitises xa", () => {
       const params = formToParams({
         ...defaultFormState(TODAY),
         excludeCarriers: ["FR", "W6"],
-        priceAge: "7d",
+        priceAge: "48h",
       });
-      expect([params.get("xa"), params.get("pa")]).toEqual(["FR,W6", "7d"]);
+      expect([params.get("xa"), params.get("pa")]).toEqual(["FR,W6", "48h"]);
       const defaults = formToParams(defaultFormState(TODAY));
       expect(["xa", "pa"].some((k) => defaults.has(k))).toBe(false);
       const back = paramsToForm(
@@ -234,7 +234,15 @@ describe("form state", () => {
         TODAY,
       );
       expect(back.excludeCarriers).toEqual(["FR", "W6"]);
-      expect(back.priceAge).toBe("48h");
+      expect(back.priceAge).toBe("7d");
+      expect(paramsToForm(new URLSearchParams("pa=48h"), TODAY).priceAge).toBe("48h");
+    });
+
+    it("reads the old pa=7d links as the default and drops the param again", () => {
+      const old = paramsToForm(new URLSearchParams("o=country:PL:Polska&pa=7d"), TODAY);
+      expect(old.priceAge).toBe("7d");
+      expect(formToParams(old).has("pa")).toBe(false);
+      expect(toSearchQuery(old).filters).toEqual({});
     });
   });
 });

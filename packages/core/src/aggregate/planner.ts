@@ -2,6 +2,7 @@ import { monthRange, monthsBetween, type IsoDate, type IsoMonth } from "../domai
 import type { Place } from "../domain/place.ts";
 import type { SearchQuery } from "../domain/query.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
+import { priceAgeSettings, priceAgeSuffix } from "./filters.ts";
 import {
   bucketKey,
   type DestinationBucket,
@@ -198,6 +199,10 @@ export function planSearch(query: SearchQuery, opts: PlanOptions): SearchPlan {
     else use(source, "airport", airportBuckets);
   }
 
+  // Freshness travels with each task so sources can pick endpoints; only the strict mode changes
+  // the id (and the cache key), so the default mode keeps its plain ids.
+  const age = priceAgeSettings(query.filters);
+  const ageSuffix = priceAgeSuffix(query.filters);
   const tasks: SearchTask[] = [];
   let requested = 0;
   for (const month of months) {
@@ -210,7 +215,7 @@ export function planSearch(query: SearchQuery, opts: PlanOptions): SearchPlan {
           requested++;
           if (tasks.length >= maxTasks) continue;
           tasks.push({
-            id: `${source.id}:${origin}:${bucketKey(destination)}:${month}`,
+            id: `${source.id}:${origin}:${bucketKey(destination)}:${month}${ageSuffix ? `:${ageSuffix}` : ""}`,
             sourceId: source.id,
             origin,
             destination,
@@ -220,6 +225,8 @@ export function planSearch(query: SearchQuery, opts: PlanOptions): SearchPlan {
             trip: query.dates.trip,
             directOnly: query.filters.directOnly ?? false,
             currency: query.currency,
+            maxPriceAgeHours: age.maxHours,
+            allowUnknownPriceAge: age.allowUnknown,
           });
         }
       }

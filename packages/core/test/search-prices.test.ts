@@ -6,8 +6,13 @@ import {
   applyFilters,
   carrierFacet,
   convertOffers,
+  DEFAULT_MAX_PRICE_AGE_HOURS,
+  planSearch,
   priceAgeHours,
+  priceAgeWarnings,
   searchDestinations,
+  STRICT_PRICE_AGE_HOURS,
+  taskCacheKey,
   type FlightSource,
   type Offer,
   type SearchQuery,
@@ -101,28 +106,110 @@ describe("price age", () => {
     expect(priceAgeHours(offers[5]!, NOW)).toBe(0);
   });
 
-  it("drops prices older than 48 h and of unknown age by default, and reports it", async () => {
+  const strict = { maxPriceAgeHours: STRICT_PRICE_AGE_HOURS, allowUnknownPriceAge: false };
+
+  it("defaults to 7 days with unknown ages kept: everything here is shown, no warning", async () => {
+    expect([DEFAULT_MAX_PRICE_AGE_HOURS, STRICT_PRICE_AGE_HOURS]).toEqual([168, 48]);
     const r = await searchDestinations(query(), { places, sources: [fixed(offers)], ctx });
+    expect(dests(r.offers)).toEqual(["AGP", "PRG", "BER", "LCA", "BCN", "BKK"]);
+    expect(r.offers.find((x) => x.destination === "PRG")?.note).toBe("cache do 7 dni");
+    expect(r.priceAge).toEqual({
+      maxHours: 168,
+      allowUnknown: true,
+      strict: false,
+      droppedTooOld: 0,
+      droppedUnknown: 0,
+    });
+    expect(r.plan.warnings).toEqual([]);
+  });
+
+  it("default mode still drops prices older than 7 days", async () => {
+    const old = o("TIA", 100, { cacheAgeHours: 200 });
+    const r = await searchDestinations(query(), {
+      places,
+      sources: [fixed([...offers, old])],
+      ctx,
+    });
+    expect(dests(r.offers)).not.toContain("TIA");
+    expect(r.plan.warnings).toEqual(["Pominięto 1 ofert z ceną starszą niż 7 dni."]);
+  });
+
+  it("strict mode (48 h, no unknown age) drops the rest and suggests „do 7 dni”", async () => {
+    const r = await searchDestinations(query(strict), { places, sources: [fixed(offers)], ctx });
     expect(dests(r.offers)).toEqual(["BER", "BCN", "BKK"]);
     expect(r.priceAge).toEqual({
       maxHours: 48,
       allowUnknown: false,
+      strict: true,
       droppedTooOld: 2,
       droppedUnknown: 1,
     });
-    expect(r.plan.warnings.join("\n")).toMatch(/1 ofert z ceną o nieznanym wieku/);
-    expect(r.plan.warnings.join("\n")).toMatch(/2 ofert z ceną starszą niż 48 h/);
+    expect(r.plan.warnings).toEqual([
+      "Pominięto 3 ofert z ceną starszą niż 48 h lub o nieznanym wieku (tryb „tylko do 48 h”). Wybierz „do 7 dni” w „Aktualność cen”, aby je zobaczyć.",
+    ]);
   });
 
-  it("allowUnknownPriceAge keeps unknown ages; maxPriceAgeHours widens the window", async () => {
-    const deps = { places, sources: [fixed(offers)], ctx };
-    const unknown = await searchDestinations(query({ allowUnknownPriceAge: true }), deps);
-    expect(dests(unknown.offers)).toEqual(["PRG", "BER", "BCN", "BKK"]);
-    expect(unknown.offers.find((x) => x.destination === "PRG")?.note).toBe("cache do 7 dni");
+  it("no warning when nothing was found at all, in either mode", async () => {
+    for (const filters of [{}, strict]) {
+      const r = await searchDestinations(query(filters), { places, sources: [fixed([])], ctx });
+      expect(r.offers).toEqual([]);
+      expect(r.plan.warnings).toEqual([]);
+    }
+  });
 
-    const week = await searchDestinations(query({ maxPriceAgeHours: 7 * 24 }), deps);
-    expect(dests(week.offers)).toEqual(["AGP", "BER", "LCA", "BCN", "BKK"]);
-    expect(week.priceAge.droppedTooOld).toBe(0);
+  it("priceAgeWarnings words each case", () => {
+    const base = { maxHours: 48, allowUnknown: false, strict: true, droppedTooOld: 0 };
+    expect(priceAgeWarnings({ ...base, droppedUnknown: 0 })).toEqual([]);
+    expect(priceAgeWarnings({ ...base, droppedUnknown: 2 })[0]).toMatch(
+      /^Pominięto 2 ofert z ceną o nieznanym wieku \(tryb „tylko do 48 h”\)\. Wybierz „do 7 dni”/,
+    );
+    expect(priceAgeWarnings({ ...base, droppedTooOld: 1, droppedUnknown: 0 })[0]).toMatch(
+      /z ceną starszą niż 48 h \(tryb/,
+    );
+    expect(
+      priceAgeWarnings({
+        ...base,
+        strict: false,
+        maxHours: 168,
+        droppedTooOld: 1,
+        droppedUnknown: 4,
+      }),
+    ).toEqual([
+      "Pominięto 4 ofert z ceną o nieznanym wieku.",
+      "Pominięto 1 ofert z ceną starszą niż 7 dni.",
+    ]);
+  });
+
+  it("explicit filters: unknown age off, or a tighter limit with unknown ages kept", async () => {
+    const deps = { places, sources: [fixed(offers)], ctx };
+    const noUnknown = await searchDestinations(query({ allowUnknownPriceAge: false }), deps);
+    expect(dests(noUnknown.offers)).toEqual(["AGP", "BER", "LCA", "BCN", "BKK"]);
+    expect(noUnknown.priceAge.strict).toBe(false);
+
+    // 48 h but unknown ages allowed (the default) is not strict.
+    const day = await searchDestinations(query({ maxPriceAgeHours: 48 }), deps);
+    expect(dests(day.offers)).toEqual(["PRG", "BER", "BCN", "BKK"]);
+    expect(day.priceAge).toMatchObject({ strict: false, droppedTooOld: 2, droppedUnknown: 0 });
+  });
+
+  it("the planner copies freshness onto tasks; strict tasks get a :48h id and cache key", () => {
+    const opts = { places, sources: [fixed([])] };
+    const loose = planSearch(query(), opts).tasks[0]!;
+    const tight = planSearch(query(strict), opts).tasks[0]!;
+    expect(loose).toMatchObject({
+      id: "s:WAW:*:2027-01",
+      maxPriceAgeHours: 168,
+      allowUnknownPriceAge: true,
+    });
+    expect(tight).toMatchObject({
+      id: "s:WAW:*:2027-01:48h",
+      maxPriceAgeHours: 48,
+      allowUnknownPriceAge: false,
+    });
+    expect(taskCacheKey(tight)).toBe(`${taskCacheKey(loose)}:48h`);
+    // Tasks without the fields (older callers) share the default key.
+    const { maxPriceAgeHours: _a, allowUnknownPriceAge: _b, ...bare } = loose;
+    expect(taskCacheKey(bare)).toBe(taskCacheKey(loose));
   });
 
   it("brings cacheAgeHours up to date for results served from our cache", async () => {
@@ -132,7 +219,7 @@ describe("price age", () => {
     expect(cached.cacheAgeHours).toBe(10); // not mutated
   });
 
-  it("applyFilters applies the age limit only when set", () => {
+  it("applyFilters applies the age limit only when set (unknown age dropped unless allowed)", () => {
     expect(applyFilters(offers, {}, { now: NOW })).toHaveLength(6);
     expect(dests(applyFilters(offers, { maxPriceAgeHours: 48 }, { now: NOW }))).toEqual([
       "BCN",
