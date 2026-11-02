@@ -206,11 +206,21 @@ export function allLinks(offer: Offer, env: Env = {}, opts: { adults?: number } 
   const base = { adults: opts.adults, currency: offer.currency };
   if (openJaw && offer.returnDate) {
     trips.push({
-      params: { ...base, origin: offer.origin, destination: offer.destination, departDate: offer.departDate },
+      params: {
+        ...base,
+        origin: offer.origin,
+        destination: offer.destination,
+        departDate: offer.departDate,
+      },
       suffix: LEG_SUFFIX.out,
     });
     trips.push({
-      params: { ...base, origin: offer.destination, destination: offer.returnTo!, departDate: offer.returnDate },
+      params: {
+        ...base,
+        origin: offer.destination,
+        destination: offer.returnTo!,
+        departDate: offer.returnDate,
+      },
       suffix: LEG_SUFFIX.back,
     });
   } else {

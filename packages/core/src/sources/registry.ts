@@ -1,5 +1,6 @@
 import type { PlaceIndex } from "../places/place-index.ts";
 import { MockSource } from "./mock/mock-source.ts";
+import { TravelpayoutsSource } from "./travelpayouts/travelpayouts-source.ts";
 import type { Env, FlightSource } from "./types.ts";
 
 export class SourceRegistry {
@@ -37,6 +38,6 @@ export interface DefaultSourceDeps {
 export function createDefaultRegistry(deps: DefaultSourceDeps): SourceRegistry {
   return new SourceRegistry([
     new MockSource({ places: deps.places }),
-    // wave 2: new TravelpayoutsSource(...) — enabled by SOURCE_TRAVELPAYOUTS=1 + TRAVELPAYOUTS_TOKEN
+    new TravelpayoutsSource({ places: deps.places }), // SOURCE_TRAVELPAYOUTS=1 + TRAVELPAYOUTS_TOKEN
   ]);
 }
