@@ -71,7 +71,7 @@ większość serwisów "tanie loty".
 
 ## 4. Architektura
 
-Szczegóły i rysunki: `docs/ARCHITECTURE.md`. Dwa klienty (web i mobile) korzystają z jednego API
+Domena produkcyjna: **gdziepolece.pl** (zakupiona 2026-11-02). Szczegóły i rysunki: `docs/ARCHITECTURE.md`. Dwa klienty (web i mobile) korzystają z jednego API
 i wspólnego pakietu `@taniolatam/core`.
 
 ```
