@@ -7,11 +7,11 @@ i żeby wcześniejsze nie blokowały produkcji.
 
 | Obszar | Decyzja | Dlaczego | Koszt |
 |---|---|---|---|
-| Baza danych użytkowników | **Postgres** (Neon, plan darmowy 0,5 GB) albo Render Postgres | SQLite na dysku Render jest jednoinstancyjny i bez kopii zapasowych; dane kont i alertów muszą być trwałe. Cache wyszukiwań zostaje w SQLite. | 0 zł (Neon) lub ok. 7 USD/mies. (Render) |
+| Baza danych użytkowników | **Render Postgres** (decyzja właściciela: wszystko na Render, poza pocztą) | SQLite na dysku Render jest jednoinstancyjny i bez kopii zapasowych; dane kont i alertów muszą być trwałe. Cache wyszukiwań zostaje w SQLite. | ok. 7 USD/mies. |
 | ORM i migracje | **Drizzle** | lekki, TypeScript, działa z Postgres i SQLite, migracje w repo | 0 |
 | Logowanie | **Auth.js (NextAuth v5)**: magic link na e-mail + Google | bez haseł do przechowywania, darmowe, self-hosted, sesje w bazie | 0 |
 | E-mail | **Resend** (3 000 wiadomości/mies. darmo) z domeną gdziepolece.pl | potrzebny do magic linków i alertów; wymaga rekordów SPF/DKIM w nazwa.pl | 0 do ok. 3 000/mies. |
-| Harmonogram alertów | w pierwszej wersji pętla w procesie serwera (jak import czarterów), docelowo Render Cron Job uderzający w chroniony endpoint | jedna instancja, brak kolejki na start; cron, gdy alertów będzie setki | 0, cron ok. 1 USD/mies. |
+| Harmonogram alertów | **Render Cron Job** uruchamiający `node scripts/alerts/run.mjs` co 12 h przeciwko Render Postgres; w pierwszej wersji dopuszczalna pętla w procesie serwera | cron widzi tę samą bazę Postgres, więc nie ma problemu wspólnego dysku jak przy SQLite | ok. 1 USD/mies. |
 | Historia bez konta | **localStorage** w przeglądarce, synchronizowana do konta po zalogowaniu | zero backendu na start, działa od razu, zgodne z RODO (dane nie opuszczają przeglądarki) | 0 |
 
 Odrzucone: Clerk/Auth0 (płatne progi, dane użytkowników u strony trzeciej), Firebase (vendor lock), hasła własne (ryzyko i obsługa resetów).
@@ -49,12 +49,17 @@ Odrzucone: Clerk/Auth0 (płatne progi, dane użytkowników u strony trzeciej), F
 - Udostępnianie zapisanych wyszukiwań linkiem.
 - Panel administracyjny: liczba użytkowników, alertów, wysyłek, błędów.
 
-## 2. Co właściciel musi zrobić przed etapem B
+## 2. Co właściciel musi zrobić przed etapem B (plan na osobny dzień)
 
-1. Założyć bazę Postgres (Neon: konto, projekt, skopiować `DATABASE_URL` do zmiennych w Render).
-2. Założyć konto Resend, dodać domenę gdziepolece.pl i wpisać w nazwa.pl rekordy SPF, DKIM i DMARC, które poda Resend. Skopiować `RESEND_API_KEY` do Render.
-3. W Google Cloud Console utworzyć klienta OAuth (typ: aplikacja internetowa) z adresem zwrotnym `https://gdziepolece.pl/api/auth/callback/google`. Skopiować `GOOGLE_CLIENT_ID` i `GOOGLE_CLIENT_SECRET` do Render.
-4. Wygenerować `AUTH_SECRET` (losowe 32 bajty) w Render.
+Wszystko na Render poza pocztą, zgodnie z decyzją z 2026-11-02. Kolejność na jedno posiedzenie, ok. 45 minut:
+
+1. **Render → New → Postgres**: nazwa `gdziepolece-db`, region Frankfurt, plan Starter. Po utworzeniu skopiować "Internal Database URL" i dodać do usługi webowej jako `DATABASE_URL` (Environment). Render robi codzienne kopie zapasowe w planie płatnym.
+2. **Resend** (resend.com): konto, Domains → Add domain `gdziepolece.pl`. Resend pokaże 3 rekordy (SPF jako TXT, DKIM jako TXT lub CNAME, opcjonalnie DMARC jako TXT). Wpisać je w nazwa.pl w tej samej tabeli rekordów co rekord A. Po weryfikacji: API Keys → Create → skopiować jako `RESEND_API_KEY` do Render. Nadawca: `powiadomienia@gdziepolece.pl`.
+3. **Google Cloud Console**: nowy projekt "Gdzie Polecę", APIs & Services → OAuth consent screen (typ External, nazwa aplikacji, e-mail kontaktowy, domena gdziepolece.pl), potem Credentials → Create OAuth client ID → Web application, Authorized redirect URI `https://gdziepolece.pl/api/auth/callback/google`. Skopiować `GOOGLE_CLIENT_ID` i `GOOGLE_CLIENT_SECRET` do Render.
+4. **`AUTH_SECRET`**: w Render Environment dodać zmienną i użyć przycisku "Generate" (losowa wartość). `AUTH_URL=https://gdziepolece.pl`.
+5. **Render → New → Cron Job** (dopiero przy etapie C): to samo repozytorium, komenda `node scripts/alerts/run.mjs`, harmonogram `0 6,18 * * *`, te same zmienne środowiskowe co usługa webowa.
+
+Po tych krokach etap B rusza bez dalszych pytań do właściciela.
 
 Żadnej z tych wartości nie wysyłać czatem ani do repozytorium.
 
