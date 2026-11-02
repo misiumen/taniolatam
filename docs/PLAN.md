@@ -8,7 +8,10 @@ Aplikacja webowa (później ewentualnie mobilna), która dla zadanego **miejsca 
 pokazuje **najtańsze destynacje** wraz z filtrami i mapą. Na start do użytku własnego, docelowo
 produkt na sprzedaż. Dane zbierane **wyłącznie legalnie**: oficjalne API, feedy udostępnione
 do redystrybucji, otwarte dane, deep-linki do serwisów zewnętrznych. **Bez scrapowania HTML**
-serwisów, które tego zabraniają (Google Flights, Skyscanner, fly4free, jakdolece, strony linii).
+serwisów, które tego zabraniają (Google Flights, Skyscanner, fly4free, strony linii).
+
+Poza zakresem: **jakdolece.pl** (nakładka na Skyscanner, nie jest źródłem) i **jakdojade** (nie jest
+źródłem; służy wyłącznie jako wzorzec formularza: skąd, dokąd, kiedy, o której, czy dopuszczam przesiadki).
 
 ## 2. Zakres funkcjonalny
 
@@ -26,7 +29,6 @@ serwisów, które tego zabraniają (Google Flights, Skyscanner, fly4free, jakdol
 - Mapa z cenami na pinezkach (jak Google Flights "Explore").
 - Kalendarz cen dla wybranej destynacji.
 - Warstwa "okazje": promocje z feedów redakcyjnych nałożone na wyniki.
-- Dojazd na lotnisko: szacunkowy czas i link do planera (jakdojade deep-link / OpenTripPlanner).
 - Zapis wyszukiwań i alerty cenowe (później).
 
 ## 3. Źródła danych — ocena legalności i kosztów
@@ -43,9 +45,8 @@ Legenda: ✅ legalne i dostępne od ręki · 🟡 legalne, ale wymaga zgody/part
 | **Google Flights** | ❌ API / ✅ deep-link | brak oficjalnego API (QPX zamknięte 2018) | — | Scraping (SerpApi, Apify) narusza regulamin Google; Google pozwało SerpApi (XII 2025). Używamy wyłącznie deep-linków do weryfikacji ceny. |
 | **Amadeus Self-Service** | ❌ | — | — | Zamknięte 17.07.2026. Enterprise: ~5–20 tys. USD/rok. Odpada. |
 | **Ryanair / Wizz Air endpointy fare-finder** | 🟡 | ceny tanich linii | 0 | Nieoficjalne endpointy; Ryanair ma program licencyjny API dla porównywarek (umowa). Bez umowy nie korzystamy. Deep-linki tak. |
-| **fly4free.pl, jakdolece.pl** | 🟡 | okazje redakcyjne | 0 | Tylko przez publiczny RSS, jeśli go udostępniają i robots.txt pozwala; zawsze z tytułem, linkiem do źródła i bez kopiowania treści. Nie zweryfikowano feedów (hosty zablokowane w tej sesji sieciowo). Jeśli brak RSS, zapytać redakcję o zgodę. |
+| **fly4free.pl** | 🟡 | okazje redakcyjne | 0 | Tylko przez publiczny RSS, jeśli go udostępnia i robots.txt pozwala; zawsze z tytułem, linkiem do źródła i bez kopiowania treści. Nie zweryfikowano feedu (host zablokowany w tej sesji sieciowo). Jeśli brak RSS, zapytać redakcję o zgodę. |
 | **Czartery** | 🟡 | miejsca czarterowe, "same loty" | 0 (afiliacja) | Brak otwartego API. Drogi: TravelLead (wakacje.pl) — pliki XML + afiliacja; Flightbox Specials; feedy produktowe touroperatorów w sieciach afiliacyjnych (Awin, TradeDoubler). Wymaga rejestracji wydawcy. Faza 3. |
-| **jakdojade** | ❌ API / ✅ deep-link | — | — | Brak publicznego API. Zamiennik: **OpenTripPlanner + GTFS** z otwartych danych miast (Warszawa, Poznań, GZM, Kraków, Gdańsk itd.) lub Google Routes API (10 000 zapytań/mies. darmo, potem 5 USD/1000). Faza 3. |
 | **Mapa** | ✅ | kafelki | 0 zł | MapLibre GL + OpenFreeMap (bez klucza) lub Protomaps. |
 | **Lotniska / regiony** | ✅ | słownik lotnisk, współrzędne, kraje, kontynenty | 0 zł | OurAirports (domena publiczna) + własne mapowanie regionów. |
 
@@ -65,11 +66,16 @@ większość serwisów "tanie loty".
 
 ## 4. Architektura
 
+Szczegóły i rysunki: `docs/ARCHITECTURE.md`. Dwa klienty (web i mobile) korzystają z jednego API
+i wspólnego pakietu `@taniolatam/core`.
+
 ```
-apps/web  (Next.js 15, TypeScript, Tailwind, MapLibre)
+apps/web     (Next.js 15, TypeScript, Tailwind, MapLibre)
   ├─ app/            UI: formularz, lista, mapa, kalendarz
-  └─ app/api/        endpointy: /search, /calendar, /deals, /airports
-packages/core      (czysty TS, bez frameworka)
+  └─ app/api/v1/     endpointy: /search, /calendar, /deals, /places (faza 1; później wydzielane do apps/api)
+apps/mobile  (Expo / React Native, faza 2) — ten sam API client, mapa MapLibre Native
+packages/api-client  (typy żądań/odpowiedzi + fetch wrapper, współdzielony przez web i mobile)
+packages/core        (czysty TS, bez frameworka)
   ├─ domain/         typy: Place, DateWindow, Offer, Itinerary, SearchQuery
   ├─ places/         rozwiązywanie "Polska" → [WAW, WMI, KRK, ...], regiony, geokody
   ├─ sources/        adaptery: interfejs FlightSource + implementacje
@@ -91,11 +97,11 @@ Zasady:
 
 1. **Szkielet + Travelpayouts + mapa** — działająca wyszukiwarka "skąd → dokąd → kiedy" z filtrami, listą i mapą, deep-linki do weryfikacji. Użytek własny.
 2. **Okazje + live** — RSS okazji (po potwierdzeniu feedów/zgody), Duffel za flagą, kalendarz cen, multicity/open-jaw w rankingu, alerty e-mail.
-3. **Czartery + dojazd** — feedy afiliacyjne touroperatorów, OpenTripPlanner/GTFS lub Google Routes, deep-link do jakdojade.
+3. **Czartery + mobile** — feedy afiliacyjne touroperatorów; aplikacja mobilna (Expo) na tym samym API.
 4. **Komercjalizacja** — konta, płatności, wnioski partnerskie (Skyscanner, Kiwi, Aviasales live), Postgres, monitoring, polityka prywatności.
 
 ## 6. Decyzje otwarte (do potwierdzenia przez właściciela)
 
 - Rejestracja konta Travelpayouts i wklejenie tokenu do `.env` (jedyny krok, którego nie zrobi agent).
 - Czy w fazie 2 płacić za Duffel (scenariusz B), czy czekać na partnerstwa.
-- Czy kontaktować się z fly4free / jakdolece w sprawie zgody na wykorzystanie feedu.
+- Czy kontaktować się z fly4free w sprawie zgody na wykorzystanie feedu.
