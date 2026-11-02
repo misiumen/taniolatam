@@ -1,4 +1,8 @@
 {
+  "AAT": {
+    "cityPl": "Ałtaj",
+    "cityEn": "Altay"
+  },
   "ABJ": {
     "cityPl": "Abidżan",
     "cityEn": "Abidjan"
@@ -23,6 +27,14 @@
     "cityPl": "Addis Abeba",
     "cityEn": "Addis Ababa"
   },
+  "ADL": {
+    "cityPl": "Adelajda",
+    "cityEn": "Adelaide"
+  },
+  "AER": {
+    "cityPl": "Soczi",
+    "cityEn": "Sochi"
+  },
   "AGA": {
     "cityPl": "Agadir",
     "cityEn": "Agadir"
@@ -39,17 +51,41 @@
     "cityPl": "Algier",
     "cityEn": "Algiers"
   },
+  "AMD": {
+    "cityPl": "Ahmadabad",
+    "cityEn": "Ahmedabad"
+  },
   "ANR": {
     "cityPl": "Antwerpia",
     "cityEn": "Antwerp"
+  },
+  "AOI": {
+    "cityPl": "Ankona",
+    "cityEn": "Ancona"
+  },
+  "AOK": {
+    "cityPl": "Karpatos",
+    "cityEn": "Karpathos"
   },
   "AQJ": {
     "cityPl": "Akaba",
     "cityEn": "Aqaba"
   },
+  "ARH": {
+    "cityPl": "Archangielsk",
+    "cityEn": "Arkhangelsk"
+  },
   "ARN": {
     "cityPl": "Sztokholm",
     "cityEn": "Stockholm"
+  },
+  "ASB": {
+    "cityPl": "Aszchabad",
+    "cityEn": "Ashgabat"
+  },
+  "ASF": {
+    "cityPl": "Astrachań",
+    "cityEn": "Astrakhan"
   },
   "ASW": {
     "cityPl": "Asuan",
@@ -59,21 +95,57 @@
     "cityPl": "Ateny",
     "cityEn": "Athens"
   },
+  "ATZ": {
+    "cityPl": "Asjut",
+    "cityEn": "Asyut"
+  },
+  "AUA": {
+    "cityPl": "Aruba",
+    "cityEn": "Aruba"
+  },
   "AUH": {
     "cityPl": "Abu Zabi",
     "cityEn": "Abu Dhabi"
+  },
+  "AWZ": {
+    "cityPl": "Ahwaz",
+    "cityEn": "Ahvaz"
+  },
+  "AXU": {
+    "cityPl": "Aksum",
+    "cityEn": "Axum"
+  },
+  "AZN": {
+    "cityPl": "Andiżan",
+    "cityEn": "Andijan"
   },
   "BAH": {
     "cityPl": "Bahrajn",
     "cityEn": "Bahrain"
   },
+  "BAX": {
+    "cityPl": "Barnauł",
+    "cityEn": "Barnaul"
+  },
+  "BBU": {
+    "cityPl": "Bukareszt",
+    "cityEn": "Bucharest"
+  },
   "BEG": {
     "cityPl": "Belgrad",
     "cityEn": "Belgrade"
   },
+  "BEN": {
+    "cityPl": "Bengazi",
+    "cityEn": "Benghazi"
+  },
   "BEY": {
     "cityPl": "Bejrut",
     "cityEn": "Beirut"
+  },
+  "BGF": {
+    "cityPl": "Bangi",
+    "cityEn": "Bangui"
   },
   "BGW": {
     "cityPl": "Bagdad",
@@ -82,6 +154,10 @@
   "BGY": {
     "cityPl": "Mediolan",
     "cityEn": "Milan"
+  },
+  "BHK": {
+    "cityPl": "Buchara",
+    "cityEn": "Bukhara"
   },
   "BHX": {
     "cityPl": "Birmingham",
@@ -99,9 +175,17 @@
     "cityPl": "Sztokholm",
     "cityEn": "Stockholm"
   },
+  "BNX": {
+    "cityPl": "Banja Łuka",
+    "cityEn": "Banja Luka"
+  },
   "BOM": {
     "cityPl": "Bombaj",
     "cityEn": "Mumbai"
+  },
+  "BQT": {
+    "cityPl": "Brześć",
+    "cityEn": "Brest"
   },
   "BRE": {
     "cityPl": "Brema",
@@ -119,6 +203,10 @@
     "cityPl": "Bazylea",
     "cityEn": "Basel"
   },
+  "BSZ": {
+    "cityPl": "Biszkek",
+    "cityEn": "Bishkek"
+  },
   "BTS": {
     "cityPl": "Bratysława",
     "cityEn": "Bratislava"
@@ -131,6 +219,10 @@
     "cityPl": "Paryż",
     "cityEn": "Paris"
   },
+  "BXY": {
+    "cityPl": "Bajkonur",
+    "cityEn": "Baikonur"
+  },
   "BZE": {
     "cityPl": "Belize",
     "cityEn": "Belize City"
@@ -142,6 +234,14 @@
   "CAN": {
     "cityPl": "Kanton",
     "cityEn": "Guangzhou"
+  },
+  "CAY": {
+    "cityPl": "Kajenna",
+    "cityEn": "Cayenne"
+  },
+  "CCJ": {
+    "cityPl": "Kalikut",
+    "cityEn": "Calicut"
   },
   "CCS": {
     "cityPl": "Caracas",
@@ -159,6 +259,14 @@
     "cityPl": "Cebu",
     "cityEn": "Cebu"
   },
+  "CEE": {
+    "cityPl": "Czerepowiec",
+    "cityEn": "Cherepovets"
+  },
+  "CEK": {
+    "cityPl": "Czelabińsk",
+    "cityEn": "Chelyabinsk"
+  },
   "CFU": {
     "cityPl": "Korfu",
     "cityEn": "Corfu"
@@ -171,6 +279,10 @@
     "cityPl": "Kolonia",
     "cityEn": "Cologne"
   },
+  "CGP": {
+    "cityPl": "Czittagong",
+    "cityEn": "Chattogram"
+  },
   "CHQ": {
     "cityPl": "Chania",
     "cityEn": "Chania"
@@ -178,6 +290,18 @@
   "CIA": {
     "cityPl": "Rzym",
     "cityEn": "Rome"
+  },
+  "CIT": {
+    "cityPl": "Szymkent",
+    "cityEn": "Shymkent"
+  },
+  "CJU": {
+    "cityPl": "Czedżu",
+    "cityEn": "Jeju"
+  },
+  "CKY": {
+    "cityPl": "Konakry",
+    "cityEn": "Conakry"
   },
   "CLJ": {
     "cityPl": "Kluż-Napoka",
@@ -187,6 +311,22 @@
     "cityPl": "Kolombo",
     "cityEn": "Colombo"
   },
+  "CND": {
+    "cityPl": "Konstanca",
+    "cityEn": "Constanța"
+  },
+  "COK": {
+    "cityPl": "Koczin",
+    "cityEn": "Kochi"
+  },
+  "COO": {
+    "cityPl": "Kotonu",
+    "cityEn": "Cotonou"
+  },
+  "COR": {
+    "cityPl": "Kordoba",
+    "cityEn": "Cordoba"
+  },
   "CPH": {
     "cityPl": "Kopenhaga",
     "cityEn": "Copenhagen"
@@ -195,17 +335,45 @@
     "cityPl": "Kapsztad",
     "cityEn": "Cape Town"
   },
+  "CRA": {
+    "cityPl": "Kraiowa",
+    "cityEn": "Craiova"
+  },
   "CRL": {
     "cityPl": "Bruksela",
     "cityEn": "Brussels"
+  },
+  "CRV": {
+    "cityPl": "Krotone",
+    "cityEn": "Crotone"
+  },
+  "CRZ": {
+    "cityPl": "Turkmenabat",
+    "cityEn": "Türkmenabat"
+  },
+  "CSY": {
+    "cityPl": "Czeboksary",
+    "cityEn": "Cheboksary"
   },
   "CTA": {
     "cityPl": "Katania",
     "cityEn": "Catania"
   },
+  "CTG": {
+    "cityPl": "Kartagena",
+    "cityEn": "Cartagena"
+  },
+  "CUR": {
+    "cityPl": "Curaçao",
+    "cityEn": "Curaçao"
+  },
   "CUZ": {
     "cityPl": "Cuzco",
     "cityEn": "Cusco"
+  },
+  "CWB": {
+    "cityPl": "Kurytyba",
+    "cityEn": "Curitiba"
   },
   "DAM": {
     "cityPl": "Damaszek",
@@ -235,6 +403,14 @@
     "cityPl": "Dżerba",
     "cityEn": "Djerba"
   },
+  "DJJ": {
+    "cityPl": "Dżajapura",
+    "cityEn": "Jayapura"
+  },
+  "DLA": {
+    "cityPl": "Duala",
+    "cityEn": "Douala"
+  },
   "DME": {
     "cityPl": "Moskwa",
     "cityEn": "Moscow"
@@ -255,13 +431,41 @@
     "cityPl": "Dubaj",
     "cityEn": "Dubai"
   },
+  "DYU": {
+    "cityPl": "Duszanbe",
+    "cityEn": "Dushanbe"
+  },
+  "EAM": {
+    "cityPl": "Nadżran",
+    "cityEn": "Najran"
+  },
   "EBB": {
     "cityPl": "Kampala",
     "cityEn": "Kampala"
   },
+  "EBL": {
+    "cityPl": "Irbil",
+    "cityEn": "Erbil"
+  },
+  "ECN": {
+    "cityPl": "Nikozja",
+    "cityEn": "Nicosia"
+  },
   "EDI": {
     "cityPl": "Edynburg",
     "cityEn": "Edinburgh"
+  },
+  "EFL": {
+    "cityPl": "Kefalinia",
+    "cityEn": "Kefalonia"
+  },
+  "ERS": {
+    "cityPl": "Windhuk",
+    "cityEn": "Windhoek"
+  },
+  "ETM": {
+    "cityPl": "Ejlat",
+    "cityEn": "Eilat"
   },
   "EVN": {
     "cityPl": "Erywań",
@@ -283,6 +487,14 @@
     "cityPl": "Fez",
     "cityEn": "Fez"
   },
+  "FIH": {
+    "cityPl": "Kinszasa",
+    "cityEn": "Kinshasa"
+  },
+  "FJR": {
+    "cityPl": "Fudżajra",
+    "cityEn": "Fujairah"
+  },
   "FKB": {
     "cityPl": "Karlsruhe/Baden-Baden",
     "cityEn": "Karlsruhe/Baden-Baden"
@@ -290,6 +502,10 @@
   "FLR": {
     "cityPl": "Florencja",
     "cityEn": "Florence"
+  },
+  "FNJ": {
+    "cityPl": "Pjongjang",
+    "cityEn": "Pyongyang"
   },
   "FRA": {
     "cityPl": "Frankfurt nad Menem",
@@ -303,13 +519,33 @@
     "cityPl": "Gdańsk",
     "cityEn": "Gdansk"
   },
+  "GDZ": {
+    "cityPl": "Gelendżyk",
+    "cityEn": "Gelendzhik"
+  },
+  "GHV": {
+    "cityPl": "Braszów",
+    "cityEn": "Brașov"
+  },
   "GIG": {
     "cityPl": "Rio de Janeiro",
     "cityEn": "Rio de Janeiro"
   },
+  "GME": {
+    "cityPl": "Homel",
+    "cityEn": "Gomel"
+  },
   "GMP": {
     "cityPl": "Seul",
     "cityEn": "Seoul"
+  },
+  "GMZ": {
+    "cityPl": "Gomera",
+    "cityEn": "La Gomera"
+  },
+  "GNJ": {
+    "cityPl": "Gandża",
+    "cityEn": "Ganja"
   },
   "GOA": {
     "cityPl": "Genua",
@@ -319,6 +555,10 @@
     "cityPl": "Goa",
     "cityEn": "Goa"
   },
+  "GOJ": {
+    "cityPl": "Niżny Nowogród",
+    "cityEn": "Nizhny Novgorod"
+  },
   "GOT": {
     "cityPl": "Göteborg",
     "cityEn": "Gothenburg"
@@ -326,6 +566,10 @@
   "GRZ": {
     "cityPl": "Graz",
     "cityEn": "Graz"
+  },
+  "GSV": {
+    "cityPl": "Saratów",
+    "cityEn": "Saratov"
   },
   "GUA": {
     "cityPl": "Gwatemala",
@@ -347,13 +591,33 @@
     "cityPl": "Hawana",
     "cityEn": "Havana"
   },
+  "HBE": {
+    "cityPl": "Aleksandria",
+    "cityEn": "Alexandria"
+  },
   "HEL": {
     "cityPl": "Helsinki",
     "cityEn": "Helsinki"
   },
+  "HFA": {
+    "cityPl": "Hajfa",
+    "cityEn": "Haifa"
+  },
+  "HHN": {
+    "cityPl": "Frankfurt-Hahn",
+    "cityEn": "Frankfurt-Hahn"
+  },
+  "HIJ": {
+    "cityPl": "Hiroszima",
+    "cityEn": "Hiroshima"
+  },
   "HKG": {
     "cityPl": "Hongkong",
     "cityEn": "Hong Kong"
+  },
+  "HLP": {
+    "cityPl": "Dżakarta",
+    "cityEn": "Jakarta"
   },
   "HND": {
     "cityPl": "Tokio",
@@ -363,9 +627,45 @@
     "cityPl": "Honolulu",
     "cityEn": "Honolulu"
   },
+  "HPH": {
+    "cityPl": "Hajfong",
+    "cityEn": "Haiphong"
+  },
+  "HSA": {
+    "cityPl": "Turkiestan",
+    "cityEn": "Turkistan"
+  },
+  "HTA": {
+    "cityPl": "Czyta",
+    "cityEn": "Chita"
+  },
+  "HTN": {
+    "cityPl": "Chotan",
+    "cityEn": "Hotan"
+  },
+  "HTY": {
+    "cityPl": "Antiochia",
+    "cityEn": "Antakya"
+  },
+  "HVD": {
+    "cityPl": "Chowd",
+    "cityEn": "Khovd"
+  },
+  "HYD": {
+    "cityPl": "Hajdarabad",
+    "cityEn": "Hyderabad"
+  },
   "IAD": {
     "cityPl": "Waszyngton",
     "cityEn": "Washington"
+  },
+  "IAR": {
+    "cityPl": "Jarosław",
+    "cityEn": "Yaroslavl"
+  },
+  "IAS": {
+    "cityPl": "Jassy",
+    "cityEn": "Iași"
   },
   "IBZ": {
     "cityPl": "Ibiza",
@@ -379,17 +679,61 @@
     "cityPl": "Zielona Góra",
     "cityEn": "Zielona Gora"
   },
+  "IJK": {
+    "cityPl": "Iżewsk",
+    "cityEn": "Izhevsk"
+  },
   "IKA": {
     "cityPl": "Teheran",
     "cityEn": "Tehran"
+  },
+  "IKT": {
+    "cityPl": "Irkuck",
+    "cityEn": "Irkutsk"
+  },
+  "INI": {
+    "cityPl": "Nisz",
+    "cityEn": "Niš"
+  },
+  "IOA": {
+    "cityPl": "Janina",
+    "cityEn": "Ioannina"
+  },
+  "IPC": {
+    "cityPl": "Wyspa Wielkanocna",
+    "cityEn": "Easter Island"
   },
   "ISB": {
     "cityPl": "Islamabad",
     "cityEn": "Islamabad"
   },
+  "ISC": {
+    "cityPl": "Wyspy Scilly",
+    "cityEn": "Isles of Scilly"
+  },
   "IST": {
     "cityPl": "Stambuł",
     "cityEn": "Istanbul"
+  },
+  "ISU": {
+    "cityPl": "As-Sulajmanijja",
+    "cityEn": "Sulaymaniyah"
+  },
+  "IWA": {
+    "cityPl": "Iwanowo",
+    "cityEn": "Ivanovo"
+  },
+  "IXE": {
+    "cityPl": "Mangaluru",
+    "cityEn": "Mangalore"
+  },
+  "JAI": {
+    "cityPl": "Dźajpur",
+    "cityEn": "Jaipur"
+  },
+  "JCL": {
+    "cityPl": "Czeskie Budziejowice",
+    "cityEn": "České Budějovice"
   },
   "JED": {
     "cityPl": "Dżudda",
@@ -399,33 +743,97 @@
     "cityPl": "Nowy Jork",
     "cityEn": "New York"
   },
+  "JIB": {
+    "cityPl": "Dżibuti",
+    "cityEn": "Djibouti"
+  },
+  "JKH": {
+    "cityPl": "Chios",
+    "cityEn": "Chios"
+  },
+  "JKL": {
+    "cityPl": "Kalimnos",
+    "cityEn": "Kalymnos"
+  },
+  "JNX": {
+    "cityPl": "Naksos",
+    "cityEn": "Naxos"
+  },
   "JRO": {
     "cityPl": "Kilimandżaro",
     "cityEn": "Kilimanjaro"
   },
+  "JSI": {
+    "cityPl": "Skiatos",
+    "cityEn": "Skiathos"
+  },
   "JTR": {
-    "cityPl": "Santorini",
+    "cityPl": "Santoryn",
     "cityEn": "Santorini"
+  },
+  "KCY": {
+    "cityPl": "Krasnojarsk",
+    "cityEn": "Krasnoyarsk"
   },
   "KEF": {
     "cityPl": "Reykjavík",
     "cityEn": "Reykjavik"
   },
+  "KEJ": {
+    "cityPl": "Kemerowo",
+    "cityEn": "Kemerovo"
+  },
   "KGS": {
     "cityPl": "Kos",
     "cityEn": "Kos"
+  },
+  "KHG": {
+    "cityPl": "Kaszgar",
+    "cityEn": "Kashgar"
   },
   "KHI": {
     "cityPl": "Karaczi",
     "cityEn": "Karachi"
   },
+  "KHV": {
+    "cityPl": "Chabarowsk",
+    "cityEn": "Khabarovsk"
+  },
+  "KJA": {
+    "cityPl": "Krasnojarsk",
+    "cityEn": "Krasnoyarsk"
+  },
+  "KLU": {
+    "cityPl": "Klagenfurt",
+    "cityEn": "Klagenfurt"
+  },
+  "KLV": {
+    "cityPl": "Karlowe Wary",
+    "cityEn": "Karlovy Vary"
+  },
+  "KOV": {
+    "cityPl": "Kokczetaw",
+    "cityEn": "Kokshetau"
+  },
   "KRK": {
     "cityPl": "Kraków",
     "cityEn": "Krakow"
   },
+  "KRT": {
+    "cityPl": "Chartum",
+    "cityEn": "Khartoum"
+  },
+  "KRW": {
+    "cityPl": "Turkmenbaszy",
+    "cityEn": "Turkmenbashi"
+  },
   "KSC": {
     "cityPl": "Koszyce",
     "cityEn": "Kosice"
+  },
+  "KSN": {
+    "cityPl": "Kustanaj",
+    "cityEn": "Kostanay"
   },
   "KTM": {
     "cityPl": "Katmandu",
@@ -443,9 +851,25 @@
     "cityPl": "Kutaisi",
     "cityEn": "Kutaisi"
   },
+  "KVA": {
+    "cityPl": "Kawala",
+    "cityEn": "Kavala"
+  },
+  "KVX": {
+    "cityPl": "Kirow",
+    "cityEn": "Kirov"
+  },
   "KWI": {
     "cityPl": "Kuwejt",
     "cityEn": "Kuwait"
+  },
+  "KZN": {
+    "cityPl": "Kazań",
+    "cityEn": "Kazan"
+  },
+  "LBD": {
+    "cityPl": "Chudżand",
+    "cityEn": "Khujand"
   },
   "LCA": {
     "cityPl": "Larnaka",
@@ -458,6 +882,10 @@
   "LCY": {
     "cityPl": "Londyn",
     "cityEn": "London"
+  },
+  "LDY": {
+    "cityPl": "Derry",
+    "cityEn": "Derry"
   },
   "LED": {
     "cityPl": "Petersburg",
@@ -503,6 +931,10 @@
     "cityPl": "Lublana",
     "cityEn": "Ljubljana"
   },
+  "LKO": {
+    "cityPl": "Lakhnau",
+    "cityEn": "Lucknow"
+  },
   "LPA": {
     "cityPl": "Gran Canaria",
     "cityEn": "Gran Canaria"
@@ -526,6 +958,14 @@
   "LXR": {
     "cityPl": "Luksor",
     "cityEn": "Luxor"
+  },
+  "LXS": {
+    "cityPl": "Limnos",
+    "cityEn": "Lemnos"
+  },
+  "LYP": {
+    "cityPl": "Fajsalabad",
+    "cityEn": "Faisalabad"
   },
   "LYS": {
     "cityPl": "Lyon",
@@ -551,6 +991,14 @@
     "cityPl": "Maskat",
     "cityEn": "Muscat"
   },
+  "MCX": {
+    "cityPl": "Machaczkała",
+    "cityEn": "Makhachkala"
+  },
+  "MDL": {
+    "cityPl": "Mandalaj",
+    "cityEn": "Mandalay"
+  },
   "MED": {
     "cityPl": "Medyna",
     "cityEn": "Medina"
@@ -559,13 +1007,41 @@
     "cityPl": "Meksyk",
     "cityEn": "Mexico City"
   },
+  "MFM": {
+    "cityPl": "Makau",
+    "cityEn": "Macau"
+  },
+  "MGQ": {
+    "cityPl": "Mogadiszu",
+    "cityEn": "Mogadishu"
+  },
+  "MHD": {
+    "cityPl": "Maszhad",
+    "cityEn": "Mashhad"
+  },
   "MIR": {
     "cityPl": "Monastyr",
     "cityEn": "Monastir"
   },
+  "MJI": {
+    "cityPl": "Trypolis",
+    "cityEn": "Tripoli"
+  },
+  "MJT": {
+    "cityPl": "Mitylena",
+    "cityEn": "Mytilene"
+  },
+  "MKZ": {
+    "cityPl": "Malakka",
+    "cityEn": "Malacca"
+  },
   "MLE": {
     "cityPl": "Male",
     "cityEn": "Malé"
+  },
+  "MMK": {
+    "cityPl": "Murmańsk",
+    "cityEn": "Murmansk"
   },
   "MMX": {
     "cityPl": "Malmö",
@@ -591,6 +1067,10 @@
     "cityPl": "Mińsk",
     "cityEn": "Minsk"
   },
+  "MSY": {
+    "cityPl": "Nowy Orlean",
+    "cityEn": "New Orleans"
+  },
   "MUC": {
     "cityPl": "Monachium",
     "cityEn": "Munich"
@@ -599,13 +1079,29 @@
     "cityPl": "Montevideo",
     "cityEn": "Montevideo"
   },
+  "MVQ": {
+    "cityPl": "Mohylew",
+    "cityEn": "Mogilev"
+  },
   "MXP": {
     "cityPl": "Mediolan",
     "cityEn": "Milan"
   },
+  "MZR": {
+    "cityPl": "Mazar-i-Szarif",
+    "cityEn": "Mazar-i-Sharif"
+  },
+  "NAJ": {
+    "cityPl": "Nachiczewan",
+    "cityEn": "Nakhchivan"
+  },
   "NAP": {
     "cityPl": "Neapol",
     "cityEn": "Naples"
+  },
+  "NAV": {
+    "cityPl": "Kapadocja",
+    "cityEn": "Nevşehir"
   },
   "NBE": {
     "cityPl": "Hammamet",
@@ -619,17 +1115,77 @@
     "cityPl": "Newcastle",
     "cityEn": "Newcastle"
   },
+  "NDJ": {
+    "cityPl": "Ndżamena",
+    "cityEn": "N'Djamena"
+  },
+  "NJC": {
+    "cityPl": "Niżniewartowsk",
+    "cityEn": "Nizhnevartovsk"
+  },
+  "NKC": {
+    "cityPl": "Nawakszut",
+    "cityEn": "Nouakchott"
+  },
+  "NKG": {
+    "cityPl": "Nankin",
+    "cityEn": "Nanjing"
+  },
+  "NKM": {
+    "cityPl": "Nagoja",
+    "cityEn": "Nagoya"
+  },
+  "NLU": {
+    "cityPl": "Meksyk",
+    "cityEn": "Mexico City"
+  },
+  "NMI": {
+    "cityPl": "Bombaj",
+    "cityEn": "Mumbai"
+  },
+  "NOU": {
+    "cityPl": "Numea",
+    "cityEn": "Nouméa"
+  },
+  "NOZ": {
+    "cityPl": "Nowokuźnieck",
+    "cityEn": "Novokuznetsk"
+  },
   "NRT": {
     "cityPl": "Tokio",
     "cityEn": "Tokyo"
+  },
+  "NSI": {
+    "cityPl": "Jaunde",
+    "cityEn": "Yaoundé"
+  },
+  "NSK": {
+    "cityPl": "Norylsk",
+    "cityEn": "Norilsk"
   },
   "NUE": {
     "cityPl": "Norymberga",
     "cityEn": "Nuremberg"
   },
+  "NVI": {
+    "cityPl": "Nawoi",
+    "cityEn": "Navoiy"
+  },
   "NYO": {
     "cityPl": "Sztokholm",
     "cityEn": "Stockholm"
+  },
+  "ODB": {
+    "cityPl": "Kordoba",
+    "cityEn": "Córdoba"
+  },
+  "OHD": {
+    "cityPl": "Ochryda",
+    "cityEn": "Ohrid"
+  },
+  "OKA": {
+    "cityPl": "Okinawa",
+    "cityEn": "Okinawa"
   },
   "OLB": {
     "cityPl": "Olbia",
@@ -651,6 +1207,10 @@
     "cityPl": "Ostrawa",
     "cityEn": "Ostrava"
   },
+  "OSS": {
+    "cityPl": "Osz",
+    "cityEn": "Osh"
+  },
   "OST": {
     "cityPl": "Ostenda",
     "cityEn": "Ostend"
@@ -659,13 +1219,37 @@
     "cityPl": "Bukareszt",
     "cityEn": "Bucharest"
   },
+  "OUA": {
+    "cityPl": "Wagadugu",
+    "cityEn": "Ouagadougou"
+  },
+  "OVB": {
+    "cityPl": "Nowosybirsk",
+    "cityEn": "Novosibirsk"
+  },
   "OVD": {
     "cityPl": "Oviedo",
     "cityEn": "Oviedo"
   },
+  "PAC": {
+    "cityPl": "Panama",
+    "cityEn": "Panama City"
+  },
   "PEK": {
     "cityPl": "Pekin",
     "cityEn": "Beijing"
+  },
+  "PES": {
+    "cityPl": "Pietrozawodsk",
+    "cityEn": "Petrozavodsk"
+  },
+  "PEV": {
+    "cityPl": "Pecz",
+    "cityEn": "Pécs"
+  },
+  "PEW": {
+    "cityPl": "Peszawar",
+    "cityEn": "Peshawar"
   },
   "PFO": {
     "cityPl": "Pafos",
@@ -675,6 +1259,18 @@
     "cityPl": "Filadelfia",
     "cityEn": "Philadelphia"
   },
+  "PIK": {
+    "cityPl": "Prestwick",
+    "cityEn": "Prestwick"
+  },
+  "PKC": {
+    "cityPl": "Pietropawłowsk Kamczacki",
+    "cityEn": "Petropavlovsk-Kamchatsky"
+  },
+  "PKV": {
+    "cityPl": "Pskow",
+    "cityEn": "Pskov"
+  },
   "PKX": {
     "cityPl": "Pekin",
     "cityEn": "Beijing"
@@ -683,13 +1279,29 @@
     "cityPl": "Połąga",
     "cityEn": "Palanga"
   },
+  "PLX": {
+    "cityPl": "Semipałatyńsk",
+    "cityEn": "Semey"
+  },
+  "PNA": {
+    "cityPl": "Pampeluna",
+    "cityEn": "Pamplona"
+  },
   "POZ": {
     "cityPl": "Poznań",
     "cityEn": "Poznan"
   },
+  "PPK": {
+    "cityPl": "Pietropawłowsk",
+    "cityEn": "Petropavl"
+  },
   "PRG": {
     "cityPl": "Praga",
     "cityEn": "Prague"
+  },
+  "PRN": {
+    "cityPl": "Prisztina",
+    "cityEn": "Pristina"
   },
   "PSA": {
     "cityPl": "Piza",
@@ -699,13 +1311,25 @@
     "cityPl": "Panama",
     "cityEn": "Panama City"
   },
+  "PUS": {
+    "cityPl": "Pusan",
+    "cityEn": "Busan"
+  },
   "PVG": {
     "cityPl": "Szanghaj",
     "cityEn": "Shanghai"
   },
+  "PXO": {
+    "cityPl": "Porto Santo",
+    "cityEn": "Porto Santo"
+  },
   "RAK": {
     "cityPl": "Marrakesz",
     "cityEn": "Marrakesh"
+  },
+  "RGN": {
+    "cityPl": "Rangun",
+    "cityEn": "Yangon"
   },
   "RHO": {
     "cityPl": "Rodos",
@@ -718,6 +1342,26 @@
   "RJK": {
     "cityPl": "Rijeka",
     "cityEn": "Rijeka"
+  },
+  "RKT": {
+    "cityPl": "Ras al-Chajma",
+    "cityEn": "Ras Al Khaimah"
+  },
+  "RKV": {
+    "cityPl": "Reykjavík",
+    "cityEn": "Reykjavik"
+  },
+  "RML": {
+    "cityPl": "Kolombo",
+    "cityEn": "Colombo"
+  },
+  "RMO": {
+    "cityPl": "Kiszyniów",
+    "cityEn": "Chișinău"
+  },
+  "RMQ": {
+    "cityPl": "Tajchung",
+    "cityEn": "Taichung"
   },
   "RNS": {
     "cityPl": "Rennes",
@@ -747,6 +1391,18 @@
     "cityPl": "Stambuł",
     "cityEn": "Istanbul"
   },
+  "SBZ": {
+    "cityPl": "Sybin",
+    "cityEn": "Sibiu"
+  },
+  "SCV": {
+    "cityPl": "Suczawa",
+    "cityEn": "Suceava"
+  },
+  "SCW": {
+    "cityPl": "Syktywkar",
+    "cityEn": "Syktyvkar"
+  },
   "SEN": {
     "cityPl": "Londyn",
     "cityEn": "London"
@@ -758,6 +1414,10 @@
   "SGN": {
     "cityPl": "Ho Chi Minh",
     "cityEn": "Ho Chi Minh City"
+  },
+  "SHA": {
+    "cityPl": "Szanghaj",
+    "cityEn": "Shanghai"
   },
   "SHJ": {
     "cityPl": "Szardża",
@@ -771,9 +1431,17 @@
     "cityPl": "Los Cabos",
     "cityEn": "Los Cabos"
   },
+  "SJJ": {
+    "cityPl": "Sarajewo",
+    "cityEn": "Sarajevo"
+  },
   "SJO": {
     "cityPl": "San José",
     "cityEn": "San José"
+  },
+  "SKD": {
+    "cityPl": "Samarkanda",
+    "cityEn": "Samarkand"
   },
   "SKG": {
     "cityPl": "Saloniki",
@@ -783,6 +1451,18 @@
     "cityPl": "Skopje",
     "cityEn": "Skopje"
   },
+  "SKX": {
+    "cityPl": "Sarańsk",
+    "cityEn": "Saransk"
+  },
+  "SLL": {
+    "cityPl": "Salala",
+    "cityEn": "Salalah"
+  },
+  "SLY": {
+    "cityPl": "Salechard",
+    "cityEn": "Salekhard"
+  },
   "SSH": {
     "cityPl": "Szarm el-Szejk",
     "cityEn": "Sharm El Sheikh"
@@ -790,6 +1470,18 @@
   "STN": {
     "cityPl": "Londyn",
     "cityEn": "London"
+  },
+  "STW": {
+    "cityPl": "Stawropol",
+    "cityEn": "Stavropol"
+  },
+  "SUB": {
+    "cityPl": "Surabaja",
+    "cityEn": "Surabaya"
+  },
+  "SUI": {
+    "cityPl": "Suchumi",
+    "cityEn": "Sukhumi"
   },
   "SVO": {
     "cityPl": "Moskwa",
@@ -799,6 +1491,10 @@
     "cityPl": "Sewilla",
     "cityEn": "Seville"
   },
+  "SVX": {
+    "cityPl": "Jekaterynburg",
+    "cityEn": "Yekaterinburg"
+  },
   "SXB": {
     "cityPl": "Strasburg",
     "cityEn": "Strasbourg"
@@ -806,6 +1502,14 @@
   "SYD": {
     "cityPl": "Sydney",
     "cityEn": "Sydney"
+  },
+  "SYZ": {
+    "cityPl": "Szyraz",
+    "cityEn": "Shiraz"
+  },
+  "SZB": {
+    "cityPl": "Kuala Lumpur",
+    "cityEn": "Kuala Lumpur"
   },
   "SZY": {
     "cityPl": "Olsztyn",
@@ -819,13 +1523,45 @@
     "cityPl": "Taszkent",
     "cityEn": "Tashkent"
   },
+  "TAZ": {
+    "cityPl": "Daszoguz",
+    "cityEn": "Dashoguz"
+  },
+  "TBU": {
+    "cityPl": "Nukualofa",
+    "cityEn": "Nuku'alofa"
+  },
+  "TBZ": {
+    "cityPl": "Tebriz",
+    "cityEn": "Tabriz"
+  },
+  "TER": {
+    "cityPl": "Terceira",
+    "cityEn": "Terceira"
+  },
+  "TFN": {
+    "cityPl": "Teneryfa",
+    "cityEn": "Tenerife"
+  },
   "TFS": {
     "cityPl": "Teneryfa",
     "cityEn": "Tenerife"
   },
+  "THR": {
+    "cityPl": "Teheran",
+    "cityEn": "Tehran"
+  },
   "TIA": {
     "cityPl": "Tirana",
     "cityEn": "Tirana"
+  },
+  "TJM": {
+    "cityPl": "Tiumeń",
+    "cityEn": "Tyumen"
+  },
+  "TLQ": {
+    "cityPl": "Turfan",
+    "cityEn": "Turpan"
   },
   "TLS": {
     "cityPl": "Tuluza",
@@ -847,25 +1583,81 @@
     "cityPl": "Antananarywa",
     "cityEn": "Antananarivo"
   },
+  "TOM": {
+    "cityPl": "Tombuktu",
+    "cityEn": "Timbuktu"
+  },
   "TPE": {
     "cityPl": "Tajpej",
     "cityEn": "Taipei"
+  },
+  "TRF": {
+    "cityPl": "Sandefjord",
+    "cityEn": "Sandefjord"
   },
   "TRN": {
     "cityPl": "Turyn",
     "cityEn": "Turin"
   },
+  "TRS": {
+    "cityPl": "Triest",
+    "cityEn": "Trieste"
+  },
+  "TSA": {
+    "cityPl": "Tajpej",
+    "cityEn": "Taipei"
+  },
   "TSF": {
     "cityPl": "Wenecja",
     "cityEn": "Venice"
+  },
+  "TSN": {
+    "cityPl": "Tiencin",
+    "cityEn": "Tianjin"
+  },
+  "TSR": {
+    "cityPl": "Timiszoara",
+    "cityEn": "Timișoara"
+  },
+  "TTU": {
+    "cityPl": "Tetuan",
+    "cityEn": "Tetouan"
   },
   "UBN": {
     "cityPl": "Ułan Bator",
     "cityEn": "Ulaanbaatar"
   },
+  "UET": {
+    "cityPl": "Kweta",
+    "cityEn": "Quetta"
+  },
+  "UGC": {
+    "cityPl": "Urgencz",
+    "cityEn": "Urgench"
+  },
+  "UKK": {
+    "cityPl": "Ust-Kamienogorsk",
+    "cityEn": "Oskemen"
+  },
+  "ULV": {
+    "cityPl": "Uljanowsk",
+    "cityEn": "Ulyanovsk"
+  },
+  "ULY": {
+    "cityPl": "Uljanowsk",
+    "cityEn": "Ulyanovsk"
+  },
+  "URC": {
+    "cityPl": "Urumczi",
+    "cityEn": "Ürümqi"
+  },
   "USM": {
     "cityPl": "Ko Samui",
     "cityEn": "Koh Samui"
+  },
+  "UUD": {
+    "cityPl": "Ułan-Ude",
+    "cityEn": "Ulan-Ude"
   },
   "VAR": {
     "cityPl": "Warna",
@@ -891,6 +1683,22 @@
     "cityPl": "Wilno",
     "cityEn": "Vilnius"
   },
+  "VNS": {
+    "cityPl": "Waranasi",
+    "cityEn": "Varanasi"
+  },
+  "VOG": {
+    "cityPl": "Wołgograd",
+    "cityEn": "Volgograd"
+  },
+  "VOL": {
+    "cityPl": "Wołos",
+    "cityEn": "Volos"
+  },
+  "VOZ": {
+    "cityPl": "Woroneż",
+    "cityEn": "Voronezh"
+  },
   "VRA": {
     "cityPl": "Varadero",
     "cityEn": "Varadero"
@@ -898,6 +1706,18 @@
   "VRN": {
     "cityPl": "Werona",
     "cityEn": "Verona"
+  },
+  "VST": {
+    "cityPl": "Sztokholm",
+    "cityEn": "Stockholm"
+  },
+  "VTE": {
+    "cityPl": "Wientian",
+    "cityEn": "Vientiane"
+  },
+  "VVO": {
+    "cityPl": "Władywostok",
+    "cityEn": "Vladivostok"
   },
   "WAW": {
     "cityPl": "Warszawa",
@@ -915,6 +1735,18 @@
     "cityPl": "Wrocław",
     "cityEn": "Wroclaw"
   },
+  "YEI": {
+    "cityPl": "Bursa",
+    "cityEn": "Bursa"
+  },
+  "YKS": {
+    "cityPl": "Jakuck",
+    "cityEn": "Yakutsk"
+  },
+  "YNB": {
+    "cityPl": "Janbu",
+    "cityEn": "Yanbu"
+  },
   "YUL": {
     "cityPl": "Montreal",
     "cityEn": "Montreal"
@@ -922,6 +1754,18 @@
   "ZAG": {
     "cityPl": "Zagrzeb",
     "cityEn": "Zagreb"
+  },
+  "ZAZ": {
+    "cityPl": "Saragossa",
+    "cityEn": "Zaragoza"
+  },
+  "ZBR": {
+    "cityPl": "Czabahar",
+    "cityEn": "Chabahar"
+  },
+  "ZIA": {
+    "cityPl": "Moskwa",
+    "cityEn": "Moscow"
   },
   "ZRH": {
     "cityPl": "Zurych",
