@@ -1,10 +1,13 @@
-import type {
-  CarrierType,
-  DateWindow,
-  LayoverRange,
-  Place,
-  TripSpec,
-  Weekday,
+import type { LiveQuoteRequest } from "@gdziepolece/api-client";
+import {
+  addDays,
+  type CarrierType,
+  type DateWindow,
+  type LayoverRange,
+  type LiveMode,
+  type Place,
+  type TripSpec,
+  type Weekday,
 } from "@gdziepolece/core";
 import type { TimeWindow, WebSearchFilters, WebSearchRequest } from "../lib/api-extensions";
 
@@ -281,7 +284,73 @@ function filters(v: unknown): WebSearchFilters {
     departTime: timeWindow(v.departTime, "godzina wylotu"),
     arriveTime: timeWindow(v.arriveTime, "godzina przylotu"),
     layover: layoverRanges(v.layover),
+    live: liveMode(v.live),
   };
+}
+
+const LIVE_MODES: readonly LiveMode[] = ["auto", "off", "only"];
+
+function liveMode(v: unknown): LiveMode | undefined {
+  if (v === undefined) return undefined;
+  if (!LIVE_MODES.includes(v as LiveMode)) {
+    return fail("Pole „ceny na żywo” musi mieć wartość auto, off albo only.");
+  }
+  return v as LiveMode;
+}
+
+/** How far ahead a live quote may depart (airlines sell about a year ahead). */
+export const LIVE_QUOTE_MAX_DAYS_AHEAD = 365;
+const IATA = /^[A-Z]{3}$/;
+
+function iata(v: unknown, what: string): string {
+  const code = typeof v === "string" ? v.trim().toUpperCase() : "";
+  if (!IATA.test(code)) return fail(`Pole „${what}” musi być trzyliterowym kodem IATA.`);
+  return code;
+}
+
+/**
+ * `POST /api/v1/live-quote` body: IATA origin and destination (different), a departure from
+ * `today` up to a year ahead, an optional return not before it, `maxStops` 0-2.
+ */
+export function validateLiveQuote(body: unknown, today: string): Validated<LiveQuoteRequest> {
+  try {
+    if (!isObj(body)) return fail("Zapytanie musi być obiektem JSON.");
+    const origin = iata(body.origin, "skąd");
+    const destination = iata(body.destination, "dokąd");
+    if (origin === destination) return fail("Lotnisko wylotu i celu muszą się różnić.");
+    const departDate = isoDate(body.departDate, "data wylotu");
+    if (departDate < today) return fail("Data wylotu nie może być w przeszłości.");
+    if (departDate > addDays(today, LIVE_QUOTE_MAX_DAYS_AHEAD)) {
+      return fail("Ceny na żywo sprawdzamy najwyżej rok naprzód.");
+    }
+    const returnDate =
+      body.returnDate === undefined || body.returnDate === null
+        ? undefined
+        : isoDate(body.returnDate, "data powrotu");
+    if (returnDate !== undefined && returnDate < departDate) {
+      return fail("Data powrotu jest wcześniejsza niż data wylotu.");
+    }
+    if (returnDate !== undefined && returnDate > addDays(departDate, LIVE_QUOTE_MAX_DAYS_AHEAD)) {
+      return fail("Powrót najwyżej rok po wylocie.");
+    }
+    const maxStops =
+      body.maxStops === undefined
+        ? undefined
+        : num(body.maxStops, "przesiadki", { min: 0, max: 2, int: true });
+    return {
+      ok: true,
+      value: {
+        origin,
+        destination,
+        departDate,
+        ...(returnDate ? { returnDate } : {}),
+        ...(maxStops !== undefined ? { maxStops } : {}),
+      },
+    };
+  } catch (err) {
+    if (err instanceof Invalid) return { ok: false, error: err.message };
+    throw err;
+  }
 }
 
 /** Hand-rolled validation of a `SearchQuery` JSON body. Messages are Polish, user-presentable. */

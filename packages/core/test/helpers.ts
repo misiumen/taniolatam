@@ -28,7 +28,13 @@ export function offer(
 /** Records every call; optional latency. */
 export function fakeSource(
   id: string,
-  opts: { anywhere?: boolean; delayMs?: number; fail?: (t: SearchTask) => boolean } = {},
+  opts: {
+    anywhere?: boolean;
+    delayMs?: number;
+    fail?: (t: SearchTask) => boolean;
+    /** `capabilities.live`: the planner gives live sources exact tasks of specific queries only. */
+    live?: boolean;
+  } = {},
 ): FlightSource & { calls: { task: SearchTask; at: number }[]; maxInFlight: number } {
   let inFlight = 0;
   const src = {
@@ -37,7 +43,7 @@ export function fakeSource(
     capabilities: {
       anywhere: opts.anywhere ?? false,
       calendar: false,
-      live: true,
+      live: opts.live ?? false,
       multicity: false,
     },
     calls: [] as { task: SearchTask; at: number }[],

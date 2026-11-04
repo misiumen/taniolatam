@@ -4,6 +4,28 @@ import type { Place } from "./place.ts";
 export type CarrierType = "scheduled" | "lowcost" | "charter";
 export type Freshness = "live" | "cached";
 
+/**
+ * One flight of a leg (a leg with stops has several), as live sources report it (Duffel
+ * `slices[].segments[]`). Times are local wall times at the respective airport, no offset.
+ */
+export interface Segment {
+  /** IATA airport codes. */
+  origin: string;
+  destination: string;
+  /** Local departure date-time at `origin`, "YYYY-MM-DDTHH:MM[:SS]". */
+  departAt: string;
+  /** Local arrival date-time at `destination`, "YYYY-MM-DDTHH:MM[:SS]". */
+  arriveAt: string;
+  /** Marketing carrier (IATA). */
+  carrier: string;
+  /** Marketing flight number without the carrier code ("281"). */
+  flightNumber?: string;
+  /** Operating carrier (IATA) when it differs from the marketing one (codeshare). */
+  operatingCarrier?: string;
+  /** Block time of this flight in minutes. */
+  durationMinutes: number;
+}
+
 export interface Leg {
   origin: string;
   destination: string;
@@ -37,6 +59,17 @@ export interface Leg {
    * `searchDestinations` on legs with stops when it can be estimated.
    */
   layoverMinutesEstimated?: number;
+  /**
+   * Flights of this leg, when the source reports them (live sources). With segments, `stops` is
+   * `segments.length - 1` and `layoverMinutes` is exact.
+   */
+  segments?: Segment[];
+  /**
+   * Exact total layover of this leg in minutes: the sum of the gaps between consecutive
+   * segments (arrival and next departure are local times at the same airport). Set only from
+   * segments; `layoverMinutesEstimated` then carries the same value.
+   */
+  layoverMinutes?: number;
 }
 
 export interface Offer {
@@ -81,6 +114,11 @@ export interface Offer {
    * `searchDestinations`; such legs pass `filters.layover`.
    */
   layoverUnknown?: boolean;
+  /**
+   * The layovers (`layoverMinutesEstimated` on the offer and legs) are exact, computed from the
+   * source's segments (live sources), not estimated.
+   */
+  layoverExact?: boolean;
   /** IATA/ICAO marketing carrier codes, outbound first. */
   carriers: string[];
   carrierType: CarrierType;
@@ -94,6 +132,10 @@ export interface Offer {
   /** ISO date-time when we obtained the price. */
   fetchedAt: string;
   freshness: Freshness;
+  /** Live offers: when the source stops honouring the price (Duffel `expires_at`), ISO. */
+  expiresAt?: string;
+  /** The source's own id of the offer (Duffel `off_...`), for debugging and support. */
+  sourceOfferId?: string;
   /** For cached prices: how old the price was at the source when fetched. */
   cacheAgeHours?: number;
   /**
@@ -135,7 +177,8 @@ export interface Offer {
   /**
    * Where the user verifies / books the price. Empty string for open-jaw offers combined from two
    * one-ways: there is no single booking link, each leg carries its own (`legs[].deepLink`) and
-   * `allLinks()` builds per-leg verification links.
+   * `allLinks()` builds per-leg verification links. Also empty for sources without a public
+   * booking page (Duffel): the UI then shows the verification links only.
    */
   deepLink: string;
   legs?: Leg[];

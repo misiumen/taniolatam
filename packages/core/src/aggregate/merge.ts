@@ -1,7 +1,26 @@
 import type { Offer } from "../domain/offer.ts";
 
-/** Better of two equally-keyed offers: cheaper, then live over cached, then fresher. */
+/**
+ * A live and a cached offer for the same trip are the same product when the cached one names no
+ * carrier or shares one with the live offer. A cached low-cost price (Ryanair, which Duffel does
+ * not sell) for the same dates is a different product and competes on price.
+ */
+function sameProduct(live: Offer, cached: Offer): boolean {
+  if (cached.carriers.length === 0) return true;
+  const codes = new Set(live.carriers.map((c) => c.toUpperCase()));
+  return cached.carriers.some((c) => codes.has(c.toUpperCase()));
+}
+
+/**
+ * Better of two equally-keyed offers: a live offer beats a cached one of the same product
+ * (`sameProduct`) whatever the prices (the cached price is stale by definition); otherwise the
+ * cheaper, then live over cached, then fresher.
+ */
 function better(a: Offer, b: Offer): Offer {
+  if (a.freshness !== b.freshness) {
+    const [live, cached] = a.freshness === "live" ? [a, b] : [b, a];
+    if (sameProduct(live, cached)) return live;
+  }
   if (a.price !== b.price) return a.price < b.price ? a : b;
   if (a.freshness !== b.freshness) return a.freshness === "live" ? a : b;
   return (a.cacheAgeHours ?? 0) <= (b.cacheAgeHours ?? 0) ? a : b;
@@ -25,8 +44,8 @@ export function dedupeKey(
 
 /**
  * Collapses offers for the same trip (`dedupeKey`: origin, destination, departure and return
- * dates, return airport) reported by one or several sources: keeps the cheapest (ties: live over
- * cached, then fresher) and records every source that reported the trip in `sources`, sorted.
+ * dates, return airport) reported by one or several sources: keeps the live offer over a cached
+ * one of the same product, else the cheapest (ties: live over cached, then fresher) and records every source that reported the trip in `sources`, sorted.
  * The kept offer keeps its own `id`.
  */
 export function dedupeOffers(offers: Iterable<Offer>): Offer[] {

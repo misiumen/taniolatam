@@ -25,6 +25,8 @@ export interface LayoverLeg {
   stops: number;
   /** Door-to-door travel time of the leg; undefined = unknown. */
   durationMinutes?: number;
+  /** Exact layover from segments (`Leg.layoverMinutes`); used as is instead of the estimate. */
+  exactMinutes?: number;
 }
 
 export type LayoverPlaces = Pick<PlaceIndex, "airport"> & Partial<Pick<PlaceIndex, "cityAirports">>;
@@ -47,10 +49,12 @@ export function estimateFlightMinutes(km: number, stops: number): number {
 
 /**
  * Estimated total layover of one leg in minutes (see the formula above): 0 for a direct leg,
- * undefined when the travel time or the coordinates of either end are unknown.
+ * the exact value when the leg has one (`exactMinutes`, from segments), undefined when the
+ * travel time or the coordinates of either end are unknown.
  */
 export function estimateLayoverMinutes(leg: LayoverLeg, places: LayoverPlaces): number | undefined {
   if (leg.stops <= 0) return 0;
+  if (leg.exactMinutes !== undefined && Number.isFinite(leg.exactMinutes)) return leg.exactMinutes;
   const d = leg.durationMinutes;
   if (d === undefined || !Number.isFinite(d) || d <= 0) return undefined;
   const a = coordsOf(leg.origin, places);
@@ -81,6 +85,7 @@ export function offerLayoverLegs(o: Offer): LayoverLeg[] {
       stops: l.stops ?? o.stops,
       durationMinutes:
         (i === 0 ? o.durationMinutes : undefined) ?? utcMinutes(l.departAtUtc, l.arriveAtUtc),
+      ...(l.layoverMinutes !== undefined ? { exactMinutes: l.layoverMinutes } : {}),
     }));
   }
   const out: LayoverLeg[] = [

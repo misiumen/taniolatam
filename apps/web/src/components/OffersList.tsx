@@ -20,6 +20,7 @@ import {
   formatStay,
   formatLayover,
   formatStops,
+  LAYOVER_EXACT_HINT,
   LAYOVER_HINT,
   formatTripDates,
   offerTimes,
@@ -30,6 +31,7 @@ import { openJawLegs, verifyLinks, type VerifyLink } from "../lib/links";
 import { useAffiliateEnv } from "../lib/use-public-config";
 import { CalendarPanel } from "./CalendarPanel";
 import { LinkRow, PriceAgeChip } from "./DestinationCard";
+import { LiveQuote } from "./LiveQuote";
 import { btnGhostCls, chipCls, chipOffCls, chipOnCls } from "./ui";
 
 interface Props {
@@ -78,12 +80,19 @@ function OfferRow({ offer }: { offer: ApiOffer }) {
     },
     { key: "stops", node: <span data-testid="offer-stops">{formatStops(offer.stops)}</span> },
   ];
-  const layover = formatLayover(offer.layoverMinutesEstimated, offer.stops);
+  const layover = formatLayover(
+    offer.layoverMinutesEstimated,
+    offer.stops,
+    offer.layoverExact === true,
+  );
   if (layover) {
     meta.push({
       key: "layover",
       node: (
-        <span data-testid="offer-layover" title={LAYOVER_HINT}>
+        <span
+          data-testid="offer-layover"
+          title={offer.layoverExact ? LAYOVER_EXACT_HINT : LAYOVER_HINT}
+        >
           {layover}
         </span>
       ),
@@ -163,6 +172,7 @@ function OfferRow({ offer }: { offer: ApiOffer }) {
         )}
         {offer.note && <span className="text-muted">{offer.note}</span>}
       </div>
+      {!legs && <LiveQuote offer={offer} />}
       <div className="mt-1.5 text-[13px]">
         <LinkRow links={links} label="Sprawdź cenę:" />
       </div>

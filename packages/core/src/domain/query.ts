@@ -12,6 +12,8 @@ export interface LayoverRange {
   to?: number;
 }
 
+export type LiveMode = "auto" | "off" | "only";
+
 export interface SearchFilters {
   maxPrice?: number;
   maxStops?: number;
@@ -75,6 +77,12 @@ export interface SearchFilters {
    * Default false: results compare flight prices only.
    */
   includePackages?: boolean;
+  /**
+   * Live sources (`capabilities.live`, Duffel): "auto" (default) asks them only for specific
+   * queries (see `isSpecificQuery`), "off" never, "only" skips the cached sources and asks the
+   * live ones (still only for specific queries).
+   */
+  live?: LiveMode;
   /** Reserved for true multi-city itineraries (not implemented yet). */
   multicity?: boolean;
 }

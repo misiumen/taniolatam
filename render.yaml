@@ -29,6 +29,17 @@ services:
         sync: false
       - key: TRAVELPAYOUTS_MARKER
         sync: false
+      # Duffel: ceny na żywo linii regularnych, płatne za wyszukiwanie; domyślnie wyłączone.
+      # Włączenie: SOURCE_DUFFEL=1 + DUFFEL_ACCESS_TOKEN w panelu, DUFFEL_MODE=live dla tokenu
+      # produkcyjnego. Limit dzienny chroni przed kosztami (licznik w cache SQLite na dysku /data).
+      - key: SOURCE_DUFFEL
+        value: "0"
+      - key: DUFFEL_ACCESS_TOKEN
+        sync: false
+      - key: DUFFEL_MODE
+        value: test
+      - key: DUFFEL_DAILY_SEARCH_BUDGET
+        value: "200"
       # Czartery (faza 3), domyślnie wyłączone. Na Renderze cron job nie widzi dysku usługi web,
       # więc import działa w procesie serwera: SOURCE_CHARTERS=1 + CHARTER_IMPORT_INTERVAL_MINUTES
       # (np. 360) + CHARTER_FEEDS_FILE (np. /data/charter-feeds.json). Sekrety feedów (nazwy z

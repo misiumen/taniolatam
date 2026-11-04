@@ -55,6 +55,8 @@ export function taskCacheKey(t: SearchTask): string {
     JSON.stringify(t.trip),
     t.directOnly ? "d" : "",
     t.currency,
+    // Only live tasks carry it; absent keeps the existing keys unchanged.
+    ...(t.maxStops !== undefined ? [`s${t.maxStops}`] : []),
     ...(age ? [age] : []),
   ].join(":");
 }
@@ -73,10 +75,14 @@ export async function runTasks(tasks: SearchTask[], opts: RunOptions): Promise<R
       sem: new Semaphore(limit.concurrency),
     });
   }
-  const ttlFor = (id: string) =>
-    typeof opts.cacheTtlSeconds === "number"
+  // A source that opts out (`cacheTtlSeconds: 0`) is never cached here, whatever the run says.
+  const ttlFor = (id: string) => {
+    const own = lanes.get(id)?.source.cacheTtlSeconds;
+    if (own === 0) return 0;
+    return typeof opts.cacheTtlSeconds === "number"
       ? opts.cacheTtlSeconds
-      : (opts.cacheTtlSeconds?.[id] ?? DEFAULT_TTL_SECONDS);
+      : (opts.cacheTtlSeconds?.[id] ?? own ?? DEFAULT_TTL_SECONDS);
+  };
 
   const runOne = async (task: SearchTask): Promise<TaskResult> => {
     const lane = lanes.get(task.sourceId);
@@ -88,8 +94,10 @@ export async function runTasks(tasks: SearchTask[], opts: RunOptions): Promise<R
         error: new Error(`Unknown source: ${task.sourceId}`),
       };
     const key = taskCacheKey(task);
+    const ttl = ttlFor(task.sourceId);
+    const cache = ttl > 0 ? opts.cache : undefined;
     try {
-      const hit = await opts.cache?.get<Offer[]>(key);
+      const hit = await cache?.get<Offer[]>(key);
       if (hit) return { task, offers: hit, cached: true };
       await lane.sem.acquire();
       try {
@@ -97,7 +105,7 @@ export async function runTasks(tasks: SearchTask[], opts: RunOptions): Promise<R
         await lane.bucket.take();
         opts.ctx.signal?.throwIfAborted();
         const offers = await lane.source.search(task, opts.ctx);
-        await opts.cache?.set(key, offers, ttlFor(task.sourceId));
+        await cache?.set(key, offers, ttl);
         return { task, offers, cached: false };
       } finally {
         lane.sem.release();

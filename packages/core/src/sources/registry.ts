@@ -1,7 +1,9 @@
 import type { AirlineIndex } from "../airlines/airline-index.ts";
+import type { Cache } from "../cache/types.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 import { CharterSource } from "./charters/charter-source.ts";
 import type { CharterStore } from "./charters/types.ts";
+import { DuffelSource } from "./duffel/duffel-source.ts";
 import { MockSource } from "./mock/mock-source.ts";
 import { TravelpayoutsSource } from "./travelpayouts/travelpayouts-source.ts";
 import type { Env, FlightSource } from "./types.ts";
@@ -42,6 +44,11 @@ export interface DefaultSourceDeps {
    * charter source stays disabled even with SOURCE_CHARTERS=1.
    */
   charters?: CharterStore;
+  /**
+   * The app's cache: Duffel keeps its daily search budget and 30-minute live results there
+   * (default: an in-memory cache, so the budget resets with the process).
+   */
+  cache?: Cache;
 }
 
 /** All built-in sources. New adapters add one line here (each gates itself via `isEnabled`). */
@@ -52,5 +59,8 @@ export function createDefaultRegistry(deps: DefaultSourceDeps): SourceRegistry {
     new TravelpayoutsSource({ places: deps.places, airlines: deps.airlines }),
     // SOURCE_CHARTERS=1 + a charter store filled by importCharterFeeds (see sources/charters).
     new CharterSource({ store: deps.charters, airlines: deps.airlines }),
+    // SOURCE_DUFFEL=1 + DUFFEL_ACCESS_TOKEN (live prices, paid per search; specific queries
+    // only), or SOURCE_DUFFEL_MOCK=1 for the network-free test double (e2e).
+    new DuffelSource({ places: deps.places, airlines: deps.airlines, cache: deps.cache }),
   ]);
 }

@@ -82,6 +82,11 @@ export interface SearchTask {
   departTo: IsoDate;
   trip: TripSpec;
   directOnly: boolean;
+  /**
+   * The query's `filters.maxStops` (0 with `directOnly`), so a live source can ask for fewer
+   * connections (Duffel `max_connections`). Undefined = no limit.
+   */
+  maxStops?: number;
   currency: string;
   /**
    * The query's price-age limit (planner: `filters.maxPriceAgeHours`, default 168), so a source
@@ -100,10 +105,24 @@ export interface SearchTask {
   spanMonths?: IsoMonth[];
 }
 
+/**
+ * Something a source wants the pipeline to know besides offers or errors: a skipped task, an
+ * exhausted budget. `message` (Polish, user-facing) becomes a search warning (once per text).
+ */
+export interface SourceNotice {
+  sourceId: string;
+  /** Stable machine code, e.g. "duffel-skipped-nonspecific", "duffel-budget-exhausted". */
+  code: string;
+  message?: string;
+  taskId?: string;
+}
+
 export interface SourceContext {
   env: Env;
   now: () => Date;
   signal?: AbortSignal;
+  /** Receives `SourceNotice`s; `searchDestinations` counts them and collects the warnings. */
+  notice?: (n: SourceNotice) => void;
 }
 
 export interface CalendarOptions {
@@ -117,6 +136,12 @@ export interface FlightSource {
   readonly capabilities: SourceCapabilities;
   /** Defaults for the runner; overridable per run. */
   readonly rateLimit?: RateLimit;
+  /**
+   * How long the runner caches this source's task results (seconds); `RunOptions.cacheTtlSeconds`
+   * overrides it. 0 = the runner never caches them (the source caches on its own, e.g. Duffel,
+   * whose empty answer under an exhausted budget must not be cached).
+   */
+  readonly cacheTtlSeconds?: number;
   isEnabled(env: Env): boolean;
   /**
    * Prices one grid cell.

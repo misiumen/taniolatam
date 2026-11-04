@@ -5,7 +5,13 @@ import { addDays, stayBounds, type DateWindow, type IsoDate } from "../domain/da
 import type { DestinationSummary, Offer } from "../domain/offer.ts";
 import type { SearchFilters, SearchQuery } from "../domain/query.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
-import type { FlightSource, RateLimit, SearchTask, SourceContext } from "../sources/types.ts";
+import type {
+  FlightSource,
+  RateLimit,
+  SearchTask,
+  SourceContext,
+  SourceNotice,
+} from "../sources/types.ts";
 import { convertOffers } from "./currency.ts";
 import { carrierFacet, type CarrierFacetEntry } from "./facet.ts";
 import {
@@ -136,6 +142,8 @@ export interface SearchResult {
   timeWindows?: TimeWindowReport;
   /** Present when `filters.layover` restricts anything. */
   layover?: LayoverReport;
+  /** Source notices by code (`SourceNotice.code`), e.g. `{ "duffel-budget-exhausted": 2 }`. */
+  notices: Record<string, number>;
 }
 
 export const DEFAULT_OPEN_JAW_DESTINATIONS = 40;
@@ -258,14 +266,31 @@ export async function searchDestinations(
   const trip = query.dates.trip;
   const openJaw = query.filters.allowOpenJaw === true && trip.kind !== "oneway";
 
+  // Open-jaw legs never ask live (paid) sources: the round-trip plan already did, if anything.
+  const noLive = { ...query.filters, live: "off" as const };
   const outPlan = openJaw
-    ? planSearch({ ...query, dates: { ...query.dates, trip: { kind: "oneway" } } }, planOpts)
+    ? planSearch(
+        { ...query, filters: noLive, dates: { ...query.dates, trip: { kind: "oneway" } } },
+        planOpts,
+      )
     : undefined;
+
+  // Source notices: counted by code; their messages become warnings, once each.
+  const notices: Record<string, number> = {};
+  const noticeMessages = new Set<string>();
+  const ctx: SourceContext = {
+    ...deps.ctx,
+    notice: (n: SourceNotice) => {
+      notices[n.code] = (notices[n.code] ?? 0) + 1;
+      if (n.message) noticeMessages.add(n.message);
+      deps.ctx.notice?.(n);
+    },
+  };
   const outTasks = outPlan ? withSuffix(outPlan.tasks, "out") : [];
 
   const runOpts = {
     sources: deps.sources,
-    ctx: deps.ctx,
+    ctx,
     cache: deps.cache,
     limits: deps.limits,
     onTaskDone: deps.onTaskDone,
@@ -417,6 +442,7 @@ export async function searchDestinations(
           filters: {
             directOnly: query.filters.directOnly,
             excludeOriginCountries: false,
+            live: "off",
             ...age,
           },
           currency: query.currency,
@@ -473,6 +499,7 @@ export async function searchDestinations(
   }
 
   plan.warnings.push(
+    ...noticeMessages,
     ...priceAgeWarnings(priceAge),
     ...timeWindowWarnings(timeReport),
     ...layoverWarnings(layoverReport),
@@ -500,6 +527,7 @@ export async function searchDestinations(
     currency: currencyReport,
     ...(timeReport ? { timeWindows: timeReport } : {}),
     ...(layoverReport ? { layover: layoverReport } : {}),
+    notices,
   };
 }
 
@@ -512,7 +540,7 @@ export async function searchDestinations(
 function finalizeOffer(
   o: Offer,
   now: Date,
-  airlines: Pick<AirlineIndex, "names"> | undefined,
+  airlines: Pick<AirlineIndex, "name"> | undefined,
   places: PlaceIndex,
 ): Offer {
   const patch: Partial<Offer> = {};
@@ -521,7 +549,10 @@ function finalizeOffer(
     const hours = h === undefined ? undefined : Math.floor(h);
     if (hours !== undefined && hours !== o.cacheAgeHours) patch.cacheAgeHours = hours;
   }
-  if (airlines && o.carriers.length) patch.carrierNames = airlines.names(o.carriers);
+  if (airlines && o.carriers.length) {
+    // The index first; a name the source sent (Duffel `owner.name`) beats the bare code.
+    patch.carrierNames = o.carriers.map((c, i) => airlines.name(c) ?? o.carrierNames?.[i] ?? c);
+  }
   if (o.timesUnknown !== true && offerTimesUnknown(o)) patch.timesUnknown = true;
   const out = Object.keys(patch).length ? { ...o, ...patch } : o;
   return withLayoverEstimate(out, places);

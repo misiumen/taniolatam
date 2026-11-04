@@ -11,6 +11,7 @@ import {
   formatDuration,
   formatLayover,
   formatStops,
+  LAYOVER_EXACT_HINT,
   LAYOVER_HINT,
   offerTimes,
   plural,
@@ -22,6 +23,7 @@ import type { WebOffer } from "../lib/api-extensions";
 import { openJawLegs, verifyLinks, type OpenJawLeg, type VerifyLink } from "../lib/links";
 import { useAffiliateEnv } from "../lib/use-public-config";
 import { CalendarPanel } from "./CalendarPanel";
+import { LiveQuote } from "./LiveQuote";
 
 interface Props {
   view: DestinationView;
@@ -163,12 +165,19 @@ export function DestinationCard({
     meta.push({ key: "stay", node: `${daysBetween(offer.departDate, offer.returnDate)} dni` });
   }
   meta.push({ key: "stops", node: formatStops(offer.stops) });
-  const layover = formatLayover(offer.layoverMinutesEstimated, offer.stops);
+  const layover = formatLayover(
+    offer.layoverMinutesEstimated,
+    offer.stops,
+    offer.layoverExact === true,
+  );
   if (layover) {
     meta.push({
       key: "layover",
       node: (
-        <span data-testid="card-layover" title={LAYOVER_HINT}>
+        <span
+          data-testid="card-layover"
+          title={offer.layoverExact ? LAYOVER_EXACT_HINT : LAYOVER_HINT}
+        >
           {layover}
         </span>
       ),
@@ -313,6 +322,8 @@ export function DestinationCard({
           {offer.note}
         </p>
       )}
+
+      {!legs && <LiveQuote offer={offer} />}
 
       {!legs && (
         <div className="mt-2 text-[13px]">

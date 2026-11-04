@@ -2,6 +2,8 @@ import type {
   ApiErrorBody,
   CalendarRequest,
   CalendarResponse,
+  LiveQuoteRequest,
+  LiveQuoteResponse,
   PlacesResponse,
   SearchRequest,
   SearchResponse,
@@ -34,6 +36,8 @@ export interface ApiClient {
   search(query: SearchRequest, opts?: RequestOptions): Promise<SearchResponse>;
   places(q: string, opts?: PlacesOptions): Promise<PlacesResponse>;
   calendar(req: CalendarRequest, opts?: RequestOptions): Promise<CalendarResponse>;
+  /** One exact trip priced live (Duffel); costs one paid search unless cached for 30 min. */
+  liveQuote(req: LiveQuoteRequest, opts?: RequestOptions): Promise<LiveQuoteResponse>;
 }
 
 const list = (v: string | string[]) => (Array.isArray(v) ? v.join(",") : v);
@@ -97,5 +101,12 @@ export function createApiClient(baseUrl = "", fetchImpl?: FetchLike): ApiClient 
       }),
     calendar: (req, opts) =>
       request<CalendarResponse>(`calendar?${calendarQuery(req)}`, { signal: opts?.signal }),
+    liveQuote: (req, opts) =>
+      request<LiveQuoteResponse>("live-quote", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(req),
+        signal: opts?.signal,
+      }),
   };
 }

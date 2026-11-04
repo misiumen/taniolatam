@@ -1,4 +1,10 @@
-import type { AirportInfo, EmptyHints, ResultsView, SearchRequest } from "@gdziepolece/api-client";
+import type {
+  AirportInfo,
+  EmptyHints,
+  LiveBudget,
+  ResultsView,
+  SearchRequest,
+} from "@gdziepolece/api-client";
 import {
   addDays,
   aviasalesLink,
@@ -12,6 +18,8 @@ import {
   type Offer,
   type PlaceIndex,
 } from "@gdziepolece/core";
+import { airportInfo } from "./airports";
+import { liveBudget, liveSource } from "./live";
 import type { WebSearchResponse } from "../lib/api-extensions";
 import type { ServerContext } from "./context";
 
@@ -174,21 +182,8 @@ export async function runSearch(
   const airports: Record<string, AirportInfo> = {};
   const addAirport = (iata: string) => {
     if (airports[iata]) return;
-    // City codes from the 48h price feed (LON, ROM) have no airport entry: use the city's
-    // main airport for coordinates and names, keyed by the city code.
-    const a =
-      ctx.places.airport(iata) ??
-      ctx.places.cityAirports(iata).map((c) => ctx.places.airport(c))[0];
-    if (!a) return;
-    airports[iata] = {
-      iata,
-      name: a.name,
-      city: a.cityPl ?? a.city,
-      countryCode: a.countryCode,
-      countryName: ctx.places.country(a.countryCode)?.namePl,
-      lat: a.lat,
-      lon: a.lon,
-    };
+    const info = airportInfo(ctx.places, iata);
+    if (info) airports[iata] = info;
   };
   const view = resultsView(
     result.summaries.length,
@@ -229,6 +224,9 @@ export async function runSearch(
   const timeWindows = (result as { timeWindows?: { dropped: number } }).timeWindows;
   // Offers dropped by the layover ranges (estimated layover).
   const layover = result.layover ? { dropped: result.layover.dropped } : undefined;
+  const live = liveSource(sources);
+  let budget: LiveBudget | undefined;
+  if (live) budget = await liveBudget(live, process.env);
 
   return {
     destinations: summaries,
@@ -246,6 +244,8 @@ export async function runSearch(
       warnings,
       truncated: result.plan.truncated,
       view,
+      ...(live ? { liveEnabled: true } : {}),
+      ...(budget ? { live: budget } : {}),
     },
   };
 }

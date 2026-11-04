@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateSearchQuery } from "./validate";
+import { validateLiveQuote, validateSearchQuery } from "./validate";
 
 const valid = {
   origins: [{ kind: "country", code: "pl" }],
@@ -216,5 +216,54 @@ describe("validateSearchQuery", () => {
     ]) {
       expect(withTrip(bad).ok, JSON.stringify(bad)).toBe(false);
     }
+  });
+});
+
+describe("live mode and live quotes", () => {
+  it("accepts filters.live auto/off/only and nothing else", () => {
+    const ok = validateSearchQuery({ ...valid, filters: { live: "only" } });
+    expect(ok.ok && ok.value.filters.live).toBe("only");
+    const bad = validateSearchQuery({ ...valid, filters: { live: "yes" } });
+    expect(bad).toEqual({ ok: false, error: expect.stringContaining("ceny na żywo") });
+  });
+
+  const today = "2026-11-04";
+  const quote = {
+    origin: "gdn",
+    destination: "HAN",
+    departDate: "2027-03-12",
+    returnDate: "2027-03-26",
+  };
+
+  it("normalises a valid live quote", () => {
+    expect(validateLiveQuote(quote, today)).toEqual({
+      ok: true,
+      value: {
+        origin: "GDN",
+        destination: "HAN",
+        departDate: "2027-03-12",
+        returnDate: "2027-03-26",
+      },
+    });
+    expect(validateLiveQuote({ ...quote, returnDate: undefined, maxStops: 1 }, today)).toEqual({
+      ok: true,
+      value: { origin: "GDN", destination: "HAN", departDate: "2027-03-12", maxStops: 1 },
+    });
+  });
+
+  it.each([
+    [{ ...quote, origin: "GDAN" }, "kodem IATA"],
+    [{ ...quote, destination: 7 }, "kodem IATA"],
+    [{ ...quote, destination: "GDN", origin: "GDN" }, "muszą się różnić"],
+    [{ ...quote, departDate: "2026-11-03" }, "w przeszłości"],
+    [{ ...quote, departDate: "2028-01-10", returnDate: undefined }, "rok naprzód"],
+    [{ ...quote, departDate: "12.03.2027" }, "RRRR-MM-DD"],
+    [{ ...quote, returnDate: "2027-03-01" }, "wcześniejsza"],
+    [{ ...quote, maxStops: 3 }, "przesiadki"],
+    ["GDN-HAN", "obiektem JSON"],
+  ])("rejects %j", (body, message) => {
+    const r = validateLiveQuote(body, today);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain(message);
   });
 });

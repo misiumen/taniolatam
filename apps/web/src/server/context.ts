@@ -56,7 +56,8 @@ async function init(): Promise<ServerContext> {
     driver: process.env.CACHE_DRIVER === "memory" ? "memory" : "sqlite",
     path: process.env.CACHE_PATH || undefined,
   });
-  const registry = createDefaultRegistry({ places, airlines });
+  // Duffel keeps its daily search budget and 30-minute live results in the same cache.
+  const registry = createDefaultRegistry({ places, airlines, cache });
   return {
     data,
     places,

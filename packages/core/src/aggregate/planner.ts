@@ -1,6 +1,14 @@
-import { monthRange, monthsBetween, type IsoDate, type IsoMonth } from "../domain/dates.ts";
+import {
+  addDays,
+  daysBetween,
+  matchesWindow,
+  monthRange,
+  monthsBetween,
+  type IsoDate,
+  type IsoMonth,
+} from "../domain/dates.ts";
 import type { Place } from "../domain/place.ts";
-import type { SearchQuery } from "../domain/query.ts";
+import type { LiveMode, SearchQuery } from "../domain/query.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
 import { airportCityEn } from "../places/types.ts";
 import { priceAgeSettings, priceAgeSuffix } from "./filters.ts";
@@ -18,6 +26,43 @@ export interface PlanOptions {
   maxTasks?: number;
   /** Departures before this date are dropped (YYYY-MM-DD). */
   today?: IsoDate;
+  /** Cap on live-source tasks (`capabilities.live`) per plan. Default `DEFAULT_MAX_LIVE_TASKS`. */
+  maxLiveTasks?: number;
+}
+
+/** A query is specific (live sources may run) with at most this many origin airports... */
+export const LIVE_MAX_ORIGINS = 2;
+/** ...and this many destination airports (or the airports of one city, any number)... */
+export const LIVE_MAX_DESTINATIONS = 2;
+/** ...and departure (and return) windows at most this many days wide, inclusive. */
+export const LIVE_MAX_WINDOW_DAYS = 3;
+/** Default `PlanOptions.maxLiveTasks`: each live task is one paid search. */
+export const DEFAULT_MAX_LIVE_TASKS = 12;
+
+/** Why a query is not specific enough for live sources (`LivePlan.reason`). */
+export type LiveSkipReason =
+  | "off"
+  | "anywhere"
+  | "origins"
+  | "destinations"
+  | "dates"
+  | "stay-length"
+  | "return-dates"
+  | "empty";
+
+/** What the planner decided about live sources (`SearchPlan.live`). */
+export interface LivePlan {
+  /** Effective `filters.live` (default "auto"). */
+  mode: LiveMode;
+  /** The query passed `isSpecificQuery` (always false for mode "off"). */
+  specific: boolean;
+  /** Set when not specific. */
+  reason?: LiveSkipReason;
+  /** Live tasks emitted. */
+  tasks: number;
+  /** Live tasks before the `maxLiveTasks` cap. */
+  requested: number;
+  truncated: boolean;
 }
 
 /** How a source's destinations were split into buckets. */
@@ -60,6 +105,8 @@ export interface SearchPlan {
   excludedCountries: string[];
   /** Strategy chosen per source id, with the alternatives' costs; sources with no tasks are absent. */
   strategies: Record<string, StrategyChoice>;
+  /** Live sources: whether the query was specific and how many paid tasks it produced. */
+  live: LivePlan;
 }
 
 export const DEFAULT_MAX_TASKS = 500;
@@ -243,6 +290,93 @@ export function truncationWarning(
   return `${shown}; pełny zakres wymagałby ${requested} ${zapytan(requested)}, limit to ${maxTasks}. Zawęź lotniska wylotu albo daty.`;
 }
 
+/** Every date from `from` to `to`, inclusive (empty when `from > to`). */
+function daysInRange(from: IsoDate, to: IsoDate): IsoDate[] {
+  const out: IsoDate[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
+  return out;
+}
+
+interface LiveGrid {
+  reason?: LiveSkipReason;
+  /** Destination buckets for sources with / without `cityDestination`. */
+  cityBuckets: DestinationBucket[];
+  airportBuckets: DestinationBucket[];
+  /** (departure day, return day or undefined for one-way) pairs. */
+  pairs: { depart: IsoDate; ret?: IsoDate }[];
+}
+
+/**
+ * The specific-query test behind live sources (see `isSpecificQuery`): ≤ 2 origin airports;
+ * destinations resolving to ≤ 2 airports or to the airports of one city group; a departure
+ * window ≤ 3 days wide (after clipping to today); one-way, or a fixed return window ≤ 3 days
+ * wide. Stay-length trips are never specific: they would need one paid search per (departure,
+ * return) pair of a long range.
+ */
+function liveGrid(
+  query: SearchQuery,
+  places: PlaceIndex,
+  origins: string[],
+  targets: string[] | null,
+  departFrom: IsoDate,
+  departTo: IsoDate,
+): LiveGrid {
+  const none = (reason: LiveSkipReason): LiveGrid => ({
+    reason,
+    cityBuckets: [],
+    airportBuckets: [],
+    pairs: [],
+  });
+  if (targets === null) return none("anywhere");
+  if (origins.length === 0 || targets.length === 0 || departFrom > departTo) return none("empty");
+  if (origins.length > LIVE_MAX_ORIGINS) return none("origins");
+  const cities = cityBuckets(places, targets);
+  const oneCity = cities.length === 1 && cities[0]!.kind === "city";
+  if (targets.length > LIVE_MAX_DESTINATIONS && !oneCity) return none("destinations");
+  if (daysBetween(departFrom, departTo) + 1 > LIVE_MAX_WINDOW_DAYS) return none("dates");
+  const trip = query.dates.trip;
+  if (trip.kind === "length") return none("stay-length");
+  let returns: (IsoDate | undefined)[] = [undefined];
+  if (trip.kind === "fixedReturn") {
+    if (daysBetween(trip.returnFrom, trip.returnTo) + 1 > LIVE_MAX_WINDOW_DAYS) {
+      return none("return-dates");
+    }
+    returns = daysInRange(trip.returnFrom, trip.returnTo);
+  }
+  const pairs: LiveGrid["pairs"] = [];
+  for (const depart of daysInRange(departFrom, departTo)) {
+    for (const ret of returns) {
+      if (ret !== undefined && ret < depart) continue;
+      if (!matchesWindow(query.dates, depart, ret)) continue;
+      pairs.push(ret === undefined ? { depart } : { depart, ret });
+    }
+  }
+  if (pairs.length === 0) return none("empty");
+  return {
+    // One request per city when the source takes city codes; airports otherwise (≤ 2, or the
+    // query is not specific for such a source: see `planSearch`).
+    cityBuckets: oneCity ? cities : airportBuckets(targets),
+    airportBuckets: targets.length <= LIVE_MAX_DESTINATIONS ? airportBuckets(targets) : [],
+    pairs,
+  };
+}
+
+/**
+ * Is the query specific enough for live (paid) sources? See `liveGrid` for the rules; e.g.
+ * GDN → HAN on exact dates is, Polska → gdziekolwiek is not.
+ */
+export function isSpecificQuery(
+  query: SearchQuery,
+  places: PlaceIndex,
+  today?: IsoDate,
+): { specific: boolean; reason?: LiveSkipReason } {
+  const plan = planSearch(
+    { ...query, filters: { ...query.filters, live: "auto" } },
+    { places, sources: [], today },
+  );
+  return plan.live.reason ? { specific: false, reason: plan.live.reason } : { specific: true };
+}
+
 /**
  * Turns a query into a bounded grid of (source × origin airport × destination bucket × month).
  *
@@ -304,12 +438,15 @@ export function planSearch(query: SearchQuery, opts: PlanOptions): SearchPlan {
   const citiesOf = (codes: string[]) =>
     codes === targets ? (cities ??= cityBuckets(places, targets)) : cityBuckets(places, codes);
 
-  const share = Math.max(1, Math.floor(maxTasks / Math.max(1, opts.sources.length)));
+  const liveMode: LiveMode = query.filters.live ?? "auto";
+  const liveSources = opts.sources.filter((s) => s.capabilities.live);
+  const cachedSources = liveMode === "only" ? [] : opts.sources.filter((s) => !s.capabilities.live);
+  const share = Math.max(1, Math.floor(maxTasks / Math.max(1, cachedSources.length)));
   const grid = (buckets: DestinationBucket[]) => buckets.length * origins.length * months.length;
 
   const bucketsBySource = new Map<FlightSource, DestinationBucket[]>();
   const strategies: Record<string, StrategyChoice> = {};
-  for (const source of opts.sources) {
+  for (const source of cachedSources) {
     const caps = source.capabilities;
     const options = new Map<BucketStrategy, DestinationBucket[]>();
     if (destinations === null) {
@@ -384,6 +521,76 @@ export function planSearch(query: SearchQuery, opts: PlanOptions): SearchPlan {
 
   const truncated = requested > tasks.length;
   if (truncated) warnings.push(truncationWarning(months, tasks.length, requested, maxTasks));
+
+  // Live (paid) sources: one task per exact (origin, destination, departure day, return day),
+  // only for specific queries, capped by `maxLiveTasks`; never part of `maxTasks`.
+  const grid0 = liveGrid(
+    query,
+    places,
+    origins,
+    destinations ? targets : null,
+    departFrom,
+    departTo,
+  );
+  const live: LivePlan = {
+    mode: liveMode,
+    specific: liveMode !== "off" && grid0.reason === undefined,
+    ...(liveMode === "off"
+      ? { reason: "off" as const }
+      : grid0.reason
+        ? { reason: grid0.reason }
+        : {}),
+    tasks: 0,
+    requested: 0,
+    truncated: false,
+  };
+  if (live.specific) {
+    const maxLive = Math.max(0, opts.maxLiveTasks ?? DEFAULT_MAX_LIVE_TASKS);
+    const directOnly = query.filters.directOnly ?? false;
+    const maxStops = directOnly ? 0 : query.filters.maxStops;
+    for (const source of liveSources) {
+      const buckets = source.capabilities.cityDestination
+        ? grid0.cityBuckets
+        : grid0.airportBuckets;
+      for (const { depart, ret } of grid0.pairs) {
+        for (const origin of origins) {
+          for (const destination of buckets) {
+            live.requested++;
+            if (live.tasks >= maxLive) continue;
+            live.tasks++;
+            tasks.push({
+              id: `${source.id}:${origin}:${bucketKey(destination)}:${depart}:${ret ?? "ow"}`,
+              sourceId: source.id,
+              origin,
+              destination,
+              month: depart.slice(0, 7),
+              departFrom: depart,
+              departTo: depart,
+              trip:
+                ret === undefined
+                  ? { kind: "oneway" }
+                  : { kind: "fixedReturn", returnFrom: ret, returnTo: ret },
+              directOnly,
+              ...(maxStops !== undefined ? { maxStops } : {}),
+              currency: query.currency,
+              maxPriceAgeHours: age.maxHours,
+              allowUnknownPriceAge: age.allowUnknown,
+            });
+          }
+        }
+      }
+    }
+    live.truncated = live.requested > live.tasks;
+    if (live.truncated) {
+      warnings.push(
+        `Ceny na żywo: sprawdzono ${live.tasks} z ${live.requested} kombinacji lotnisk i dat (limit kosztów). Zawęź daty lub lotniska.`,
+      );
+    }
+  } else if (liveMode === "only" && liveSources.length > 0) {
+    warnings.push(
+      "Ceny na żywo sprawdzamy tylko dla konkretnych zapytań: do 2 lotnisk wylotu i celu, wylot w oknie do 3 dni, lot w jedną stronę albo powrót w oknie do 3 dni.",
+    );
+  }
   return {
     tasks,
     origins,
@@ -395,5 +602,6 @@ export function planSearch(query: SearchQuery, opts: PlanOptions): SearchPlan {
     warnings,
     excludedCountries: [...excluded].sort(),
     strategies,
+    live,
   };
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import type { ApiClient, SearchResponse } from "@gdziepolece/api-client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SORT_LABELS, type DestinationView, type SortMode } from "../lib/destinations";
 import { plural } from "../lib/format";
 import { EXAMPLE_SEARCHES, type ExampleSearch } from "../lib/search-summary";
 import { DestinationCard } from "./DestinationCard";
+import { LiveQuoteContext } from "./LiveQuote";
 import { OFFERS_PAGE_SIZE, OffersList } from "./OffersList";
 import { btnGhostCls, chipCls, chipOffCls, chipOnCls } from "./ui";
 
@@ -152,145 +153,135 @@ function Loaded({
   const offersTotal = views.reduce((n, v) => n + v.summary.offersCount, 0);
   // One destination gets a full page of dates; several share the space.
   const rowsPerDestination = views.length === 1 ? OFFERS_PAGE_SIZE : 5;
+  const live = useMemo(
+    () => ({ enabled: meta.liveEnabled === true, api }),
+    [meta.liveEnabled, api],
+  );
 
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-col gap-2 border-b border-line px-4 pb-3 pt-4">
-        {summary && <SummaryLine parts={summary} />}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <h2 className="text-sm" data-testid="results-count">
-            <span className="font-semibold tabular-nums">{views.length}</span>{" "}
-            {plural(views.length, "kierunek", "kierunki", "kierunków")}
-            {offersView && (
-              <>
-                {" · "}
-                <span className="font-semibold tabular-nums">{offersTotal}</span>{" "}
-                {plural(offersTotal, "oferta", "oferty", "ofert")}
-              </>
-            )}
-            <span className="text-muted">
-              {" "}
-              · {meta.tasks} zapytań · {meta.tookMs} ms
-            </span>
-          </h2>
-          <div role="group" aria-label="Sortowanie" className="flex flex-wrap gap-1.5">
-            {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={sort === m}
-                onClick={() => onSortChange(m)}
-                className={`${chipCls} px-2.5 py-0.5 text-[13px] ${sort === m ? chipOnCls : chipOffCls}`}
-              >
-                {SORT_LABELS[m]}
-              </button>
-            ))}
+    <LiveQuoteContext.Provider value={live}>
+      <div className="flex flex-col">
+        <div className="flex flex-col gap-2 border-b border-line px-4 pb-3 pt-4">
+          {summary && <SummaryLine parts={summary} />}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <h2 className="text-sm" data-testid="results-count">
+              <span className="font-semibold tabular-nums">{views.length}</span>{" "}
+              {plural(views.length, "kierunek", "kierunki", "kierunków")}
+              {offersView && (
+                <>
+                  {" · "}
+                  <span className="font-semibold tabular-nums">{offersTotal}</span>{" "}
+                  {plural(offersTotal, "oferta", "oferty", "ofert")}
+                </>
+              )}
+              <span className="text-muted">
+                {" "}
+                · {meta.tasks} zapytań · {meta.tookMs} ms
+              </span>
+            </h2>
+            <div role="group" aria-label="Sortowanie" className="flex flex-wrap gap-1.5">
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={sort === m}
+                  onClick={() => onSortChange(m)}
+                  className={`${chipCls} px-2.5 py-0.5 text-[13px] ${sort === m ? chipOnCls : chipOffCls}`}
+                >
+                  {SORT_LABELS[m]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {(meta.truncated || meta.warnings.length > 0) && (
-        <div className="flex flex-col gap-2 px-4 pt-3">
-          {/* The planner's own warning ("Pokazano loty do końca ...") already explains a truncated
+        {(meta.truncated || meta.warnings.length > 0) && (
+          <div className="flex flex-col gap-2 px-4 pt-3">
+            {/* The planner's own warning ("Pokazano loty do końca ...") already explains a truncated
               grid; show the generic banner only when no such warning came back. */}
-          {meta.truncated && !meta.warnings.some((w) => w.startsWith("Pokazano loty do")) && (
-            <p role="status" className="rounded-md bg-warn-bg px-3 py-2 text-sm text-warn-fg">
-              Wyniki są niepełne: zapytanie przekroczyło limit zapytań do źródeł. Zawęź miejsca
-              wylotu lub przedział dat, aby zobaczyć wszystko.
+            {meta.truncated && !meta.warnings.some((w) => w.startsWith("Pokazano loty do")) && (
+              <p role="status" className="rounded-md bg-warn-bg px-3 py-2 text-sm text-warn-fg">
+                Wyniki są niepełne: zapytanie przekroczyło limit zapytań do źródeł. Zawęź miejsca
+                wylotu lub przedział dat, aby zobaczyć wszystko.
+              </p>
+            )}
+            {meta.warnings.length > 0 && (
+              <div role="status" className="rounded-md bg-warn-bg px-3 py-2 text-sm text-warn-fg">
+                <button
+                  type="button"
+                  className="font-semibold underline-offset-2 hover:underline"
+                  onClick={() => setWarningsOpen((o) => !o)}
+                  aria-expanded={warningsOpen}
+                >
+                  Uwagi ({meta.warnings.length}) {warningsOpen ? "▾" : "▸"}
+                </button>
+                {warningsOpen && (
+                  <ul className="mt-1 list-disc pl-5">
+                    {meta.warnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {views.length === 0 ? (
+          <div className="mx-auto max-w-md px-6 py-10 text-center">
+            <h2 className="font-display text-xl font-semibold">Brak wyników</h2>
+            <p className="mt-1 text-sm text-muted">
+              Nie znaleźliśmy lotów dla tych parametrów. Poszerz daty, zwiększ limit ceny albo
+              dopuść przesiadki.
             </p>
-          )}
-          {meta.warnings.length > 0 && (
-            <div role="status" className="rounded-md bg-warn-bg px-3 py-2 text-sm text-warn-fg">
-              <button
-                type="button"
-                className="font-semibold underline-offset-2 hover:underline"
-                onClick={() => setWarningsOpen((o) => !o)}
-                aria-expanded={warningsOpen}
-              >
-                Uwagi ({meta.warnings.length}) {warningsOpen ? "▾" : "▸"}
-              </button>
-              {warningsOpen && (
-                <ul className="mt-1 list-disc pl-5">
-                  {meta.warnings.map((w, i) => (
-                    <li key={i}>{w}</li>
+            {response.emptyHints && response.emptyHints.links.length > 0 && (
+              <div className="mt-5" data-testid="empty-links">
+                <p className="text-sm font-medium">Sprawdź tę trasę bezpośrednio:</p>
+                <ul className="mt-2 flex flex-wrap justify-center gap-2">
+                  {response.emptyHints.links.map((l) => (
+                    <li key={l.id}>
+                      <a
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className={`${chipCls} ${chipOffCls}`}
+                      >
+                        {l.label}
+                      </a>
+                    </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {views.length === 0 ? (
-        <div className="mx-auto max-w-md px-6 py-10 text-center">
-          <h2 className="font-display text-xl font-semibold">Brak wyników</h2>
-          <p className="mt-1 text-sm text-muted">
-            Nie znaleźliśmy lotów dla tych parametrów. Poszerz daty, zwiększ limit ceny albo dopuść
-            przesiadki.
-          </p>
-          {response.emptyHints && response.emptyHints.links.length > 0 && (
-            <div className="mt-5" data-testid="empty-links">
-              <p className="text-sm font-medium">Sprawdź tę trasę bezpośrednio:</p>
-              <ul className="mt-2 flex flex-wrap justify-center gap-2">
-                {response.emptyHints.links.map((l) => (
-                  <li key={l.id}>
-                    <a
-                      href={l.url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className={`${chipCls} ${chipOffCls}`}
-                    >
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {response.emptyHints?.singleOrigin && (
-            <div className="mt-5 flex flex-wrap justify-center gap-2" data-testid="widen-origin">
-              <button
-                type="button"
-                className={`${chipCls} ${chipOffCls}`}
-                onClick={() => onWidenOrigin("poland")}
-              >
-                Szukaj z całej Polski
-              </button>
-              {response.emptyHints.nearestLarge && (
+              </div>
+            )}
+            {response.emptyHints?.singleOrigin && (
+              <div className="mt-5 flex flex-wrap justify-center gap-2" data-testid="widen-origin">
                 <button
                   type="button"
                   className={`${chipCls} ${chipOffCls}`}
-                  onClick={() => onWidenOrigin(response.emptyHints!.nearestLarge!)}
+                  onClick={() => onWidenOrigin("poland")}
                 >
-                  Dodaj {response.emptyHints.nearestLarge.label}
+                  Szukaj z całej Polski
                 </button>
-              )}
-            </div>
-          )}
-        </div>
-      ) : offersView ? (
-        <div data-testid="results-list" className="flex flex-col gap-4">
-          {views.slice(0, limit).map((v) => (
-            <OffersList
-              key={v.key}
-              view={v}
-              sort={sort}
-              pageSize={rowsPerDestination}
-              selected={v.key === selectedKey}
-              highlighted={v.key === hoveredKey}
-              onSelect={() => onSelect(v.key === selectedKey ? null : v.key)}
-              onHover={onHover}
-              api={api}
-              stay={stay}
-            />
-          ))}
-        </div>
-      ) : (
-        <ol data-testid="results-list">
-          {views.slice(0, limit).map((v) => (
-            <li key={v.key}>
-              <DestinationCard
+                {response.emptyHints.nearestLarge && (
+                  <button
+                    type="button"
+                    className={`${chipCls} ${chipOffCls}`}
+                    onClick={() => onWidenOrigin(response.emptyHints!.nearestLarge!)}
+                  >
+                    Dodaj {response.emptyHints.nearestLarge.label}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : offersView ? (
+          <div data-testid="results-list" className="flex flex-col gap-4">
+            {views.slice(0, limit).map((v) => (
+              <OffersList
+                key={v.key}
                 view={v}
+                sort={sort}
+                pageSize={rowsPerDestination}
                 selected={v.key === selectedKey}
                 highlighted={v.key === hoveredKey}
                 onSelect={() => onSelect(v.key === selectedKey ? null : v.key)}
@@ -298,18 +289,34 @@ function Loaded({
                 api={api}
                 stay={stay}
               />
-            </li>
-          ))}
-        </ol>
-      )}
-      {views.length > limit && (
-        <button type="button" className={`${btnGhostCls} mt-4 self-center`} onClick={onShowMore}>
-          Pokaż więcej ({views.length - limit})
-        </button>
-      )}
-      <p className="px-4 py-4 text-center text-xs text-muted">
-        Ceny są orientacyjne. Zawsze sprawdź aktualną cenę w serwisie, klikając link przy ofercie.
-      </p>
-    </div>
+            ))}
+          </div>
+        ) : (
+          <ol data-testid="results-list">
+            {views.slice(0, limit).map((v) => (
+              <li key={v.key}>
+                <DestinationCard
+                  view={v}
+                  selected={v.key === selectedKey}
+                  highlighted={v.key === hoveredKey}
+                  onSelect={() => onSelect(v.key === selectedKey ? null : v.key)}
+                  onHover={onHover}
+                  api={api}
+                  stay={stay}
+                />
+              </li>
+            ))}
+          </ol>
+        )}
+        {views.length > limit && (
+          <button type="button" className={`${btnGhostCls} mt-4 self-center`} onClick={onShowMore}>
+            Pokaż więcej ({views.length - limit})
+          </button>
+        )}
+        <p className="px-4 py-4 text-center text-xs text-muted">
+          Ceny są orientacyjne. Zawsze sprawdź aktualną cenę w serwisie, klikając link przy ofercie.
+        </p>
+      </div>
+    </LiveQuoteContext.Provider>
   );
 }

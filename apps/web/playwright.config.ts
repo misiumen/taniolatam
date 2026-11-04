@@ -26,6 +26,9 @@ export default defineConfig({
       // Keep e2e hermetic even when the root .env enables real sources.
       SOURCE_TRAVELPAYOUTS: "0",
       SOURCE_DUFFEL: "0",
+      // Network-free Duffel test double: "Sprawdź na żywo" and specific queries get fake,
+      // clearly labelled live offers (live.spec.ts).
+      SOURCE_DUFFEL_MOCK: "1",
       CACHE_DRIVER: "memory",
       // Canonical URLs in the SEO specs assume the production address.
       PUBLIC_SITE_URL: "https://gdziepolece.pl",

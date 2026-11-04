@@ -150,6 +150,51 @@ export interface SearchMeta {
   truncated: boolean;
   /** Additive and optional: presentation hint, see `ResultsView`. Absent = "destinations". */
   view?: ResultsView;
+  /**
+   * Additive and optional: a live-price source (Duffel) is enabled, so the UI may offer
+   * "Sprawdź na żywo" (`POST /api/v1/live-quote`). Absent = false.
+   */
+  liveEnabled?: boolean;
+  /** Additive and optional, with `liveEnabled`: today's paid live searches. */
+  live?: LiveBudget;
+}
+
+/** Today's budget of paid live searches (Duffel), reset at midnight in Poland. */
+export interface LiveBudget {
+  used: number;
+  budget: number;
+  remaining: number;
+}
+
+/** `POST /api/v1/live-quote` body: one exact trip priced live (one paid search at most). */
+export interface LiveQuoteRequest {
+  /** IATA airport code. */
+  origin: string;
+  /** IATA airport or city code. */
+  destination: string;
+  /** "YYYY-MM-DD", today or later. */
+  departDate: IsoDate;
+  /** "YYYY-MM-DD", not before `departDate`; omit for one-way. */
+  returnDate?: IsoDate;
+  /** 0 (direct only), 1 or 2 connections; default 2. */
+  maxStops?: number;
+}
+
+/**
+ * Outcome of a live quote: "ok" (offers found), "empty" (Duffel has no offer for these dates:
+ * scheduled airlines only), "budget" (today's live budget is used up; nothing was asked).
+ */
+export type LiveQuoteStatus = "ok" | "empty" | "budget";
+
+export interface LiveQuoteResponse {
+  status: LiveQuoteStatus;
+  /** Cheapest first, prices in PLN (converted with NBP rates when Duffel sent another currency). */
+  offers: ApiOffer[];
+  /** Polish notices (budget, conversion problems). */
+  warnings: string[];
+  live: LiveBudget;
+  /** Airports referenced by the offers (segments included), for names in the UI. */
+  airports: Record<string, AirportInfo>;
 }
 
 /** Display data for an airport referenced by a result (the browser has no airport dictionary). */

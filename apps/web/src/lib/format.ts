@@ -108,6 +108,9 @@ export function formatStops(stops: number): string {
 }
 
 /** Tooltip of the layover estimate. */
+/** Tooltip of an exact layover (`Offer.layoverExact`). */
+export const LAYOVER_EXACT_HINT = "Dokładny czas przesiadki z rozkładu lotów (ceny na żywo).";
+
 export const LAYOVER_HINT =
   "Szacunek: czas podróży minus szacowany czas lotu. Dokładny czas przesiadki pokaże źródło na żywo.";
 
@@ -115,8 +118,19 @@ export const LAYOVER_HINT =
  * Estimated layover next to the stops text: "≈ 3 h 20 przesiadki" ("przesiadka" for one stop),
  * rounded to 5 minutes. Undefined when unknown or under 5 minutes (nothing useful to say).
  */
-export function formatLayover(minutes: number | undefined, stops: number): string | undefined {
+export function formatLayover(
+  minutes: number | undefined,
+  stops: number,
+  exact = false,
+): string | undefined {
   if (minutes === undefined || !Number.isFinite(minutes) || stops < 1) return undefined;
+  if (exact) {
+    // Live sources (Duffel) report the connections themselves: no rounding, no "≈".
+    const m = Math.max(0, Math.round(minutes));
+    const h = Math.floor(m / 60);
+    const time = h === 0 ? `${m % 60} min` : m % 60 === 0 ? `${h} h` : `${h} h ${m % 60} min`;
+    return `${time} ${stops === 1 ? "przesiadka" : "przesiadki"}`;
+  }
   const rounded = Math.round(minutes / 5) * 5;
   if (rounded < 5) return undefined;
   const h = Math.floor(rounded / 60);
