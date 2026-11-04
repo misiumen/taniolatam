@@ -65,6 +65,9 @@ describe("createApiClient", () => {
         stayMaxDays: 14,
       }),
     ).toBe("from=WAW%2CWMI&to=BKK&month=2027-03&currency=PLN&stayMin=7&stayMax=14");
+    expect(calendarQuery({ from: "POZ", to: "BKK", month: "2027-03", roundTrip: true })).toBe(
+      "from=POZ&to=BKK&month=2027-03&roundTrip=1",
+    );
     expect(calendarQuery({ from: "POZ", to: "BKK", month: "2027-03" })).toBe(
       "from=POZ&to=BKK&month=2027-03",
     );

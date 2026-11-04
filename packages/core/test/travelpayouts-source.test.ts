@@ -181,6 +181,7 @@ describe("TravelpayoutsSource.search", () => {
         arriveAtUtc: "2027-03-12T18:55:00.000Z",
         carrier: "LO",
         flightNumber: "385",
+        stops: 1,
       },
       {
         origin: "BKK",
@@ -192,6 +193,8 @@ describe("TravelpayoutsSource.search", () => {
         departAtUtc: "2027-03-26T16:40:00.000Z",
         arriveAtUtc: "2027-03-27T07:50:00.000Z",
         carrier: "LO",
+        // Per-leg `transfers` / `return_transfers`, for the layover estimate.
+        stops: 2,
       },
     ]);
     expect(o).toMatchObject({ departTimeLocal: "06:15", arriveTimeLocal: "01:55" });

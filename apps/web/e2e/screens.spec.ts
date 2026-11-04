@@ -99,3 +99,24 @@ test("dark mode 1440", async ({ page, baseURL }) => {
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${DIR}/desktop-1440-dark.png` });
 });
+
+for (const [width, height] of [
+  [1440, 900],
+  [390, 844],
+] as const) {
+  test(`Trasa section ${width}: stops and layover ranges`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto("/szukaj");
+    await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
+    await page
+      .getByRole("radiogroup", { name: "Przesiadki" })
+      .getByRole("radio", { name: "Max 2" })
+      .click();
+    const layover = page.getByTestId("layover");
+    await layover.getByRole("button", { name: "2-6 h", exact: true }).click();
+    await layover.getByRole("button", { name: "12+ h", exact: true }).click();
+    const section = page.getByTestId("form-section").filter({ has: layover });
+    await section.scrollIntoViewIfNeeded();
+    await section.screenshot({ path: `${DIR}/trasa-${width}.png` });
+  });
+}

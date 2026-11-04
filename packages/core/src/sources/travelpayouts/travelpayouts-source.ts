@@ -204,6 +204,9 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
   const airline = e.airline?.trim().toUpperCase();
   const carriers = airline ? [airline] : [];
   const stops = Math.max(nonNegInt(e.transfers), returnDate ? nonNegInt(e.return_transfers) : 0);
+  /** Per-leg stops, only when the field is present (the layover estimate falls back to `stops`). */
+  const legStops = (n: unknown) =>
+    typeof n === "number" && Number.isFinite(n) ? { stops: nonNegInt(n) } : {};
   // Offer.durationMinutes is outbound only; `duration` covers both directions on round trips.
   const durationMinutes =
     positive(e.duration_to) ?? (returnDate ? undefined : positive(e.duration));
@@ -249,6 +252,7 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
       ...outTimes,
       carrier: airline,
       flightNumber: e.flight_number === undefined ? undefined : String(e.flight_number),
+      ...legStops(e.transfers),
     },
   ];
   if (returnDate) {
@@ -258,6 +262,7 @@ export function mapTravelpayoutsEntry(e: TpPriceEntry, o: MapEntryOptions): Offe
       departAt: e.return_at!,
       ...timesOf(e.return_at!, destination, origin, positive(e.duration_back)),
       carrier: airline,
+      ...legStops(e.return_transfers),
     });
   }
 

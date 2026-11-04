@@ -30,6 +30,13 @@ export interface Leg {
   deepLink?: string;
   /** Per-leg carrier type, set on combined open-jaw offers (`carrierTypes` filters every leg). */
   carrierType?: CarrierType;
+  /** Stops on this leg when the source says (Travelpayouts `transfers` / `return_transfers`). */
+  stops?: number;
+  /**
+   * Estimated total layover of this leg in minutes (`estimateLayoverMinutes`), set by
+   * `searchDestinations` on legs with stops when it can be estimated.
+   */
+  layoverMinutesEstimated?: number;
 }
 
 export interface Offer {
@@ -63,6 +70,17 @@ export interface Offer {
    * `departTime` / `arriveTime` filters.
    */
   timesUnknown?: boolean;
+  /**
+   * Estimated total layover of the outbound leg in minutes (`estimateLayoverMinutes`: travel time
+   * minus estimated time in the air), set by `searchDestinations` on offers with stops when it
+   * can be estimated. Sources report no per-segment times, so this is an estimate.
+   */
+  layoverMinutesEstimated?: number;
+  /**
+   * Some leg with stops has no layover estimate (unknown duration or coordinates). Set by
+   * `searchDestinations`; such legs pass `filters.layover`.
+   */
+  layoverUnknown?: boolean;
   /** IATA/ICAO marketing carrier codes, outbound first. */
   carriers: string[];
   carrierType: CarrierType;

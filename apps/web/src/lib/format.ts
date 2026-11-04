@@ -107,6 +107,24 @@ export function formatStops(stops: number): string {
   return `${stops} przesiadek`;
 }
 
+/** Tooltip of the layover estimate. */
+export const LAYOVER_HINT =
+  "Szacunek: czas podróży minus szacowany czas lotu. Dokładny czas przesiadki pokaże źródło na żywo.";
+
+/**
+ * Estimated layover next to the stops text: "≈ 3 h 20 przesiadki" ("przesiadka" for one stop),
+ * rounded to 5 minutes. Undefined when unknown or under 5 minutes (nothing useful to say).
+ */
+export function formatLayover(minutes: number | undefined, stops: number): string | undefined {
+  if (minutes === undefined || !Number.isFinite(minutes) || stops < 1) return undefined;
+  const rounded = Math.round(minutes / 5) * 5;
+  if (rounded < 5) return undefined;
+  const h = Math.floor(rounded / 60);
+  const m = rounded % 60;
+  const time = h === 0 ? `${m} min` : m === 0 ? `${h} h` : `${h} h ${m}`;
+  return `≈ ${time} ${stops === 1 ? "przesiadka" : "przesiadki"}`;
+}
+
 export function formatDuration(minutes?: number): string | undefined {
   if (minutes === undefined) return undefined;
   const h = Math.floor(minutes / 60);

@@ -9,7 +9,7 @@ import { dayLink } from "../lib/links";
 interface Props {
   offer: Offer;
   api: ApiClient;
-  stay: { min: number; max: number } | null;
+  stay: { min?: number; max?: number } | null;
 }
 
 const MONTH_NAMES = [
@@ -45,6 +45,8 @@ export function CalendarPanel({ offer, api, stay }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const stayMin = stay?.min;
   const stayMax = stay?.max;
+  // A round trip without bounds (any stay length) still asks for round-trip prices.
+  const roundTrip = stay !== null;
 
   useEffect(() => {
     setMonth(offer.departDate.slice(0, 7));
@@ -62,6 +64,9 @@ export function CalendarPanel({ offer, api, stay }: Props) {
           currency: offer.currency,
           stayMinDays: stayMin,
           stayMaxDays: stayMax,
+          ...(roundTrip && stayMin === undefined && stayMax === undefined
+            ? { roundTrip: true }
+            : {}),
         },
         { signal: ac.signal },
       )
@@ -76,7 +81,7 @@ export function CalendarPanel({ offer, api, stay }: Props) {
           });
       });
     return () => ac.abort();
-  }, [api, offer.origin, offer.destination, offer.currency, month, stayMin, stayMax]);
+  }, [api, offer.origin, offer.destination, offer.currency, month, stayMin, stayMax, roundTrip]);
 
   const cells = useMemo(() => {
     if (state.kind !== "ok") return null;

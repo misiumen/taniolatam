@@ -13,7 +13,7 @@ export type SearchStatus =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "error"; message: string }
-  | { kind: "done"; response: SearchResponse; stay: { min: number; max: number } | null };
+  | { kind: "done"; response: SearchResponse; stay: { min?: number; max?: number } | null };
 
 interface Props {
   status: SearchStatus;
@@ -32,6 +32,8 @@ interface Props {
   sort: SortMode;
   onSortChange: (mode: SortMode) => void;
   onExample: (example: ExampleSearch) => void;
+  /** Empty result: widen the origin ("poland") or add an airport, and search again. */
+  onWidenOrigin: (to: "poland" | { iata: string; label: string }) => void;
 }
 
 function SummaryLine({ parts }: { parts: string[] }) {
@@ -141,7 +143,8 @@ function Loaded({
   api,
   sort,
   onSortChange,
-}: Props & { response: SearchResponse; stay: { min: number; max: number } | null }) {
+  onWidenOrigin,
+}: Props & { response: SearchResponse; stay: { min?: number; max?: number } | null }) {
   const [warningsOpen, setWarningsOpen] = useState(true);
   const { meta } = response;
   // Few destinations: each one lists its dates (the server sends `offers` per destination).
@@ -225,6 +228,45 @@ function Loaded({
             Nie znaleźliśmy lotów dla tych parametrów. Poszerz daty, zwiększ limit ceny albo dopuść
             przesiadki.
           </p>
+          {response.emptyHints && response.emptyHints.links.length > 0 && (
+            <div className="mt-5" data-testid="empty-links">
+              <p className="text-sm font-medium">Sprawdź tę trasę bezpośrednio:</p>
+              <ul className="mt-2 flex flex-wrap justify-center gap-2">
+                {response.emptyHints.links.map((l) => (
+                  <li key={l.id}>
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className={`${chipCls} ${chipOffCls}`}
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {response.emptyHints?.singleOrigin && (
+            <div className="mt-5 flex flex-wrap justify-center gap-2" data-testid="widen-origin">
+              <button
+                type="button"
+                className={`${chipCls} ${chipOffCls}`}
+                onClick={() => onWidenOrigin("poland")}
+              >
+                Szukaj z całej Polski
+              </button>
+              {response.emptyHints.nearestLarge && (
+                <button
+                  type="button"
+                  className={`${chipCls} ${chipOffCls}`}
+                  onClick={() => onWidenOrigin(response.emptyHints!.nearestLarge!)}
+                >
+                  Dodaj {response.emptyHints.nearestLarge.label}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : offersView ? (
         <div data-testid="results-list" className="flex flex-col gap-4">

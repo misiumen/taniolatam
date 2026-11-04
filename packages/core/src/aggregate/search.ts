@@ -1,7 +1,7 @@
 import type { AirlineIndex } from "../airlines/airline-index.ts";
 import type { Cache } from "../cache/types.ts";
 import type { NbpRates } from "../currency/nbp.ts";
-import { addDays, type DateWindow, type IsoDate } from "../domain/dates.ts";
+import { addDays, stayBounds, type DateWindow, type IsoDate } from "../domain/dates.ts";
 import type { DestinationSummary, Offer } from "../domain/offer.ts";
 import type { SearchFilters, SearchQuery } from "../domain/query.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
@@ -20,6 +20,7 @@ import {
   timeWindowsAllowed,
   type FilterContext,
 } from "./filters.ts";
+import { hasLayoverRanges, layoverAllowed, withLayoverEstimate } from "./layover.ts";
 import { dedupeOffers } from "./merge.ts";
 import { combineOpenJaw } from "./open-jaw.ts";
 import { DEFAULT_MAX_TASKS, planSearch, type SearchPlan } from "./planner.ts";
@@ -80,6 +81,16 @@ export interface TimeWindowReport {
   droppedOpenJawLegs?: number;
 }
 
+export interface LayoverReport {
+  /**
+   * Offers (round trips, or one-ways for one-way searches) that passed every other filter but
+   * price age, and had a leg whose estimated layover is outside `filters.layover`.
+   */
+  dropped: number;
+  /** Open-jaw only: one-way legs removed by the layover ranges before pairing (as `TimeWindowReport`). */
+  droppedOpenJawLegs?: number;
+}
+
 export interface CurrencyReport {
   /** Offers converted to `query.currency` with NBP rates. */
   converted: number;
@@ -123,9 +134,17 @@ export interface SearchResult {
   currency: CurrencyReport;
   /** Present when `filters.departTime` or `filters.arriveTime` restricts anything. */
   timeWindows?: TimeWindowReport;
+  /** Present when `filters.layover` restricts anything. */
+  layover?: LayoverReport;
 }
 
 export const DEFAULT_OPEN_JAW_DESTINATIONS = 40;
+
+/**
+ * Open-jaw return legs for a round trip without a maximum stay are searched up to this many days
+ * after the latest outbound (one-way return tasks need a finite date range).
+ */
+export const OPEN_JAW_MAX_STAY_DAYS = 30;
 
 const withSuffix = (tasks: SearchTask[], suffix: string) =>
   tasks.map((t) => ({ ...t, id: `${t.id}:${suffix}` }));
@@ -138,7 +157,10 @@ function returnRange(
   const first = outDates.reduce((a, b) => (b < a ? b : a));
   const last = outDates.reduce((a, b) => (b > a ? b : a));
   if (trip.kind === "length") {
-    return { from: addDays(first, trip.minDays), to: addDays(last, trip.maxDays) };
+    // No upper bound: search returns up to `OPEN_JAW_MAX_STAY_DAYS` after the last outbound.
+    const { min, max } = stayBounds(trip);
+    const upTo = Number.isFinite(max) ? max : Math.max(min, OPEN_JAW_MAX_STAY_DAYS);
+    return { from: addDays(first, min), to: addDays(last, upTo) };
   }
   if (trip.kind === "fixedReturn") {
     const from = trip.returnFrom > first ? trip.returnFrom : first;
@@ -191,6 +213,12 @@ export function timeWindowWarnings(r: TimeWindowReport | undefined): string[] {
   return [`Pominięto ${r.dropped} ofert poza widełkami godzin wylotu/przylotu.`];
 }
 
+/** Polish warning for offers outside the layover ranges (none when 0). */
+export function layoverWarnings(r: LayoverReport | undefined): string[] {
+  if (!r || r.dropped === 0) return [];
+  return [`Pominięto ${r.dropped} ofert poza wybranym czasem przesiadki (szacunek).`];
+}
+
 /**
  * plan → run → convert currency → filter (incl. price age) → carrier facet → exclude carriers →
  * dedupe → rank. The one call the API layer needs.
@@ -206,6 +234,10 @@ export function timeWindowWarnings(r: TimeWindowReport | undefined): string[] {
  * - `filters.departTime` / `arriveTime` apply to every leg (local clock times; unknown times
  *   pass). Counts in `timeWindows`, warning via `timeWindowWarnings`. Offers with an unknown leg
  *   time get `timesUnknown: true`. Open-jaw legs are checked before pairing.
+ * - `filters.layover` applies to every leg with stops, on the estimated layover
+ *   (`estimateLayoverMinutes`; unknown estimates pass). Counts in `layover`, warning via
+ *   `layoverWarnings`. Every offer with stops gets `layoverMinutesEstimated` (outbound and per
+ *   leg) when it can be estimated, else `layoverUnknown: true`.
  *
  * With `filters.allowOpenJaw` and a round trip (`length` / `fixedReturn`), two more phases run:
  * 1. alongside the round-trip plan, one-way outbound tasks (origins → destinations);
@@ -263,6 +295,7 @@ export async function searchDestinations(
     excludeCarriers: undefined,
     departTime: undefined,
     arriveTime: undefined,
+    layover: undefined,
   };
   const hours = { departTime: query.filters.departTime, arriveTime: query.filters.arriveTime };
   const timeReport: TimeWindowReport | undefined = hasTimeWindows(hours)
@@ -277,6 +310,22 @@ export async function searchDestinations(
       return false;
     });
   };
+  const layoverFilter = { layover: query.filters.layover };
+  const layoverReport: LayoverReport | undefined = hasLayoverRanges(layoverFilter)
+    ? { dropped: 0 }
+    : undefined;
+  /** Drops offers with a leg whose estimated layover is outside the ranges, counting them. */
+  const inLayover = (offers: Offer[], key: "dropped" | "droppedOpenJawLegs") => {
+    if (!layoverReport) return offers;
+    return offers.filter((o) => {
+      if (layoverAllowed(o, layoverFilter, deps.places)) return true;
+      layoverReport[key] = (layoverReport[key] ?? 0) + 1;
+      return false;
+    });
+  };
+  /** Hour windows, then layover ranges. */
+  const inRanges = (offers: Offer[], key: "dropped" | "droppedOpenJawLegs") =>
+    inLayover(inHours(offers, key), key);
   const excluded = carrierSet(query.filters.excludeCarriers);
   const notExcluded = (offers: Offer[]) =>
     excluded.size ? offers.filter((o) => !hasExcludedCarrier(o, excluded)) : offers;
@@ -317,7 +366,7 @@ export async function searchDestinations(
     });
 
   // Before carrier exclusion: feeds the carrier facet.
-  const listed = keepFresh(inHours(applyFilters(roundOffers, baseFilters, filterCtx), "dropped"));
+  const listed = keepFresh(inRanges(applyFilters(roundOffers, baseFilters, filterCtx), "dropped"));
   const candidates = notExcluded(listed);
 
   let report: OpenJawReport | undefined;
@@ -327,7 +376,8 @@ export async function searchDestinations(
     // open-jaw legs.
     const legFilters = { ...baseFilters, ...age, maxPrice: undefined, includePackages: false };
     if (timeReport) timeReport.droppedOpenJawLegs = 0;
-    const outLegs = inHours(
+    if (layoverReport) layoverReport.droppedOpenJawLegs = 0;
+    const outLegs = inRanges(
       applyFilters(outOffers, legFilters, {
         ...filterCtx,
         window: { ...query.dates, trip: { kind: "oneway" } },
@@ -380,7 +430,7 @@ export async function searchDestinations(
     runs.push(phase2);
 
     const home = new Set(plan.origins);
-    const backLegs = inHours(
+    const backLegs = inRanges(
       applyFilters(
         await convert(phase2.offers),
         {
@@ -422,10 +472,14 @@ export async function searchDestinations(
     };
   }
 
-  plan.warnings.push(...priceAgeWarnings(priceAge), ...timeWindowWarnings(timeReport));
+  plan.warnings.push(
+    ...priceAgeWarnings(priceAge),
+    ...timeWindowWarnings(timeReport),
+    ...layoverWarnings(layoverReport),
+  );
 
   const offers = dedupeOffers(candidates)
-    .map((o) => finalizeOffer(o, now, deps.airlines))
+    .map((o) => finalizeOffer(o, now, deps.airlines, deps.places))
     .sort((a, b) => a.price - b.price || a.id.localeCompare(b.id));
   return {
     summaries: summarizeByDestination(offers, { groupBy: deps.groupBy, places: deps.places }),
@@ -445,15 +499,22 @@ export async function searchDestinations(
     priceAge,
     currency: currencyReport,
     ...(timeReport ? { timeWindows: timeReport } : {}),
+    ...(layoverReport ? { layover: layoverReport } : {}),
   };
 }
 
 /**
  * Output touches: `cacheAgeHours` brought up to date (task results may come from our cache),
- * `carrierNames` from the airline index and `timesUnknown` when a leg's time is unknown. Returns
- * a new object only when something changes.
+ * `carrierNames` from the airline index, `timesUnknown` when a leg's time is unknown and the
+ * layover estimate (`withLayoverEstimate`) on offers with stops. Returns a new object only when
+ * something changes.
  */
-function finalizeOffer(o: Offer, now: Date, airlines?: Pick<AirlineIndex, "names">): Offer {
+function finalizeOffer(
+  o: Offer,
+  now: Date,
+  airlines: Pick<AirlineIndex, "names"> | undefined,
+  places: PlaceIndex,
+): Offer {
   const patch: Partial<Offer> = {};
   if (o.freshness === "cached" && (o.foundAt !== undefined || o.cacheAgeHours !== undefined)) {
     const h = priceAgeHours(o, now);
@@ -462,5 +523,6 @@ function finalizeOffer(o: Offer, now: Date, airlines?: Pick<AirlineIndex, "names
   }
   if (airlines && o.carriers.length) patch.carrierNames = airlines.names(o.carriers);
   if (o.timesUnknown !== true && offerTimesUnknown(o)) patch.timesUnknown = true;
-  return Object.keys(patch).length ? { ...o, ...patch } : o;
+  const out = Object.keys(patch).length ? { ...o, ...patch } : o;
+  return withLayoverEstimate(out, places);
 }

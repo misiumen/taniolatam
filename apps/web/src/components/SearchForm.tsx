@@ -5,14 +5,20 @@ import type { ApiClient } from "@gdziepolece/api-client";
 import { useId, useState, type ReactNode } from "react";
 import {
   ALL_CARRIER_TYPES,
+  formMaxStops,
+  MAX_CUSTOM_STOPS,
   MAX_DURATION_HOURS,
+  returnRangeStarted,
+  setCustomStops,
+  STAY_OPTIONS,
+  STOPS_OPTIONS,
   type FormState,
   type PriceAgeWindow,
-  type StopsMode,
 } from "../lib/form-state";
 import { carrierTypeName, formatPrice, plural } from "../lib/format";
 import {
   datesText,
+  layoverText,
   priceAgeText,
   routeText,
   stayText,
@@ -21,6 +27,7 @@ import {
   weekdaysText,
 } from "../lib/search-summary";
 import { DateRangeField } from "./DateRangeField";
+import { LayoverField } from "./LayoverField";
 import { PlaceInput } from "./PlaceInput";
 import { TimeRangeField } from "./TimeRangeField";
 import { btnPrimaryCls, inputCls, labelCls } from "./ui";
@@ -60,12 +67,6 @@ const WEEKDAYS: { value: Weekday; label: string; full: string }[] = [
   { value: 5, label: "Pt", full: "piątek" },
   { value: 6, label: "So", full: "sobota" },
   { value: 7, label: "Nd", full: "niedziela" },
-];
-
-const STOPS: { value: StopsMode; label: string }[] = [
-  { value: "direct", label: "Bez" },
-  { value: "max1", label: "Max 1" },
-  { value: "any", label: "Dowolnie" },
 ];
 
 type SectionId = "route" | "dates" | "flight" | "price" | "advanced";
@@ -185,8 +186,10 @@ export function SearchForm({
         : [...state.excludeCarriers, code].sort(),
     );
 
+  const routeSummary = [routeText(state), stopsText(state), layoverText(state)]
+    .filter(Boolean)
+    .join(" · ");
   const flightSummary = [
-    stopsText(state),
     state.maxDurationHours ? `lot do ${state.maxDurationHours} h` : "bez limitu czasu",
     state.carrierTypes.length < ALL_CARRIER_TYPES.length
       ? state.carrierTypes.map(carrierTypeName).join(", ") || "brak typu linii"
@@ -220,7 +223,7 @@ export function SearchForm({
         <Section
           title="Trasa"
           hint="Lotniska, miasta, kraje lub regiony. Puste „Dokąd” = cały świat."
-          summary={routeText(state)}
+          summary={routeSummary}
           open={open.route}
           onToggle={() => toggle("route")}
         >
@@ -245,6 +248,53 @@ export function SearchForm({
               placeholder="Gdziekolwiek lub kraj, miasto"
             />
           </div>
+
+          <fieldset data-testid="stops">
+            <legend className={labelCls}>Przesiadki</legend>
+            <div role="radiogroup" aria-label="Przesiadki" className="grid grid-cols-4 gap-1">
+              {STOPS_OPTIONS.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={state.stops === s.value}
+                  onClick={() => onChange({ ...state, stops: s.value, customStops: "" })}
+                  className={`whitespace-nowrap rounded-md border px-1 py-1.5 text-sm ${
+                    state.stops === s.value ? toggleOn : toggleOff
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-1.5 flex items-center justify-end gap-2">
+              <label htmlFor="custom-stops" className="text-xs text-muted">
+                własna liczba
+              </label>
+              <div className="w-20">
+                <input
+                  id="custom-stops"
+                  type="number"
+                  min={0}
+                  max={MAX_CUSTOM_STOPS}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="np. 3"
+                  className={`${inputCls} px-2 py-1 text-center text-sm tabular-nums ${
+                    state.stops === "custom" ? "border-fg" : ""
+                  }`}
+                  value={state.customStops}
+                  onChange={(e) => onChange({ ...state, ...setCustomStops(e.target.value) })}
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <LayoverField
+            value={state.layover}
+            onChange={(ids) => set("layover", ids)}
+            disabled={formMaxStops(state) === 0}
+          />
         </Section>
 
         <Section
@@ -255,47 +305,94 @@ export function SearchForm({
             stayText(state),
             weekdaysText(state) ?? "dowolny dzień",
             ...timeWindowsText(state),
-          ].join(" · ")}
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           open={open.dates}
           onToggle={() => toggle("dates")}
         >
           <DateRangeField state={state} onChange={onChange} />
 
-          <fieldset>
-            <legend className={labelCls}>Długość pobytu</legend>
-            <label className="mb-2 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={state.oneWay}
-                onChange={(e) => set("oneWay", e.target.checked)}
-              />
-              Tylko w jedną stronę
-            </label>
-            {!state.oneWay && (
-              <div className="flex items-center gap-2">
+          {state.datePreset === "exact" && (
+            <fieldset data-testid="return-range">
+              <legend className={labelCls}>
+                Powrót między <span className="font-normal text-muted">(opcjonalnie)</span>
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
                 <input
-                  type="number"
-                  min={0}
-                  max={365}
-                  aria-label="Minimalna liczba dni"
-                  className={`${inputCls} tabular-nums`}
-                  value={state.minDays}
-                  onChange={(e) => set("minDays", e.target.valueAsNumber)}
+                  type="date"
+                  suppressHydrationWarning
+                  aria-label="Powrót od"
+                  className={inputCls}
+                  value={state.returnFrom}
+                  onChange={(e) => set("returnFrom", e.target.value)}
                 />
-                <span className="text-muted">-</span>
                 <input
-                  type="number"
-                  min={0}
-                  max={365}
-                  aria-label="Maksymalna liczba dni"
-                  className={`${inputCls} tabular-nums`}
-                  value={state.maxDays}
-                  onChange={(e) => set("maxDays", e.target.valueAsNumber)}
+                  type="date"
+                  suppressHydrationWarning
+                  aria-label="Powrót do"
+                  className={inputCls}
+                  value={state.returnTo}
+                  onChange={(e) => set("returnTo", e.target.value)}
                 />
-                <span className="text-sm text-muted">dni</span>
               </div>
-            )}
-          </fieldset>
+            </fieldset>
+          )}
+
+          {returnRangeStarted(state) ? (
+            <p className="text-xs text-muted" data-testid="stay-from-dates">
+              Długość pobytu wynika z dat.
+            </p>
+          ) : (
+            <fieldset data-testid="stay">
+              <legend className={labelCls}>Długość pobytu</legend>
+              <div role="radiogroup" aria-label="Długość pobytu" className="grid grid-cols-3 gap-1">
+                {STAY_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={state.stayMode === o.value}
+                    onClick={() => set("stayMode", o.value)}
+                    className={`rounded-md border px-1 py-1.5 text-sm leading-tight ${
+                      state.stayMode === o.value ? toggleOn : toggleOff
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              {state.stayMode === "range" && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={365}
+                    aria-label="Minimalna liczba dni"
+                    className={`${inputCls} tabular-nums`}
+                    value={state.minDays}
+                    onChange={(e) => set("minDays", e.target.valueAsNumber)}
+                  />
+                  <span className="text-muted">-</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={365}
+                    aria-label="Maksymalna liczba dni"
+                    className={`${inputCls} tabular-nums`}
+                    value={state.maxDays}
+                    onChange={(e) => set("maxDays", e.target.valueAsNumber)}
+                  />
+                  <span className="text-sm text-muted">dni</span>
+                </div>
+              )}
+              {state.stayMode === "any" && (
+                <p className="mt-1.5 text-xs text-muted">
+                  Loty w obie strony, pobyt dowolnej długości.
+                </p>
+              )}
+            </fieldset>
+          )}
 
           <fieldset>
             <legend className={labelCls}>Dni wylotu</legend>
@@ -343,31 +440,11 @@ export function SearchForm({
 
         <Section
           title="Lot"
-          hint="Przesiadki, czas w powietrzu i przewoźnicy."
+          hint="Czas w powietrzu i przewoźnicy."
           summary={flightSummary}
           open={open.flight}
           onToggle={() => toggle("flight")}
         >
-          <fieldset>
-            <legend className={labelCls}>Przesiadki</legend>
-            <div role="radiogroup" aria-label="Przesiadki" className="grid grid-cols-3 gap-1">
-              {STOPS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={state.stops === s.value}
-                  onClick={() => set("stops", s.value)}
-                  className={`rounded-md border px-2 py-1.5 text-sm ${
-                    state.stops === s.value ? toggleOn : toggleOff
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
           <div>
             <label htmlFor="max-duration" className={labelCls}>
               Maks. czas lotu

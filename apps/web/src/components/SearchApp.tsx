@@ -13,7 +13,10 @@ import {
 import {
   defaultFormState,
   formToParams,
+  DEFAULT_ORIGIN,
+  hasReturnRange,
   hasSearchParams,
+  isOneWay,
   paramsToForm,
   todayIso,
   toSearchQuery,
@@ -77,7 +80,11 @@ export function SearchApp() {
         setStatus({
           kind: "done",
           response,
-          stay: state.oneWay ? null : { min: state.minDays, max: state.maxDays },
+          stay: isOneWay(state)
+            ? null
+            : state.stayMode === "range" && !hasReturnRange(state)
+              ? { min: state.minDays, max: state.maxDays }
+              : {},
         });
       } catch (err) {
         if (ac.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
@@ -114,6 +121,25 @@ export function SearchApp() {
       submit(state);
     },
     [submit],
+  );
+
+  /** Empty result: search from the whole of Poland, or add the nearest large airport. */
+  const widenOrigin = useCallback(
+    (to: "poland" | { iata: string; label: string }) => {
+      const origins =
+        to === "poland"
+          ? [DEFAULT_ORIGIN]
+          : form.origins.some((c) => c.place.kind === "airport" && c.place.code === to.iata)
+            ? form.origins
+            : [
+                ...form.origins,
+                { place: { kind: "airport" as const, code: to.iata }, label: to.label },
+              ];
+      const next = { ...form, origins };
+      setForm(next);
+      submit(next);
+    },
+    [form, submit],
   );
 
   // A shared link runs its search on load.
@@ -383,6 +409,7 @@ export function SearchApp() {
               sort={sort}
               onSortChange={setSort}
               onExample={runExample}
+              onWidenOrigin={widenOrigin}
             />
           </section>
 

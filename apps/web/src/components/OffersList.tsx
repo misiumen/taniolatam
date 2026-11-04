@@ -18,7 +18,9 @@ import {
   formatMonthYear,
   formatPrice,
   formatStay,
+  formatLayover,
   formatStops,
+  LAYOVER_HINT,
   formatTripDates,
   offerTimes,
   plural,
@@ -41,7 +43,7 @@ interface Props {
   onSelect: () => void;
   onHover?: (key: string | null) => void;
   api: ApiClient;
-  stay: { min: number; max: number } | null;
+  stay: { min?: number; max?: number } | null;
 }
 
 /** Rows added by each "Pokaż więcej" (and shown first for a single destination). */
@@ -76,6 +78,17 @@ function OfferRow({ offer }: { offer: ApiOffer }) {
     },
     { key: "stops", node: <span data-testid="offer-stops">{formatStops(offer.stops)}</span> },
   ];
+  const layover = formatLayover(offer.layoverMinutesEstimated, offer.stops);
+  if (layover) {
+    meta.push({
+      key: "layover",
+      node: (
+        <span data-testid="offer-layover" title={LAYOVER_HINT}>
+          {layover}
+        </span>
+      ),
+    });
+  }
   if (duration) {
     meta.push({ key: "duration", node: <span data-testid="offer-duration">{duration}</span> });
   }

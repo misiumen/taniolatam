@@ -3,6 +3,15 @@ import type { CarrierType } from "./offer.ts";
 import type { Place } from "./place.ts";
 import type { TimeWindow } from "./times.ts";
 
+/**
+ * Range of the estimated total layover of one leg, in minutes: `from` inclusive, `to` exclusive;
+ * no `to` = no upper bound ("12+ h").
+ */
+export interface LayoverRange {
+  from: number;
+  to?: number;
+}
+
 export interface SearchFilters {
   maxPrice?: number;
   maxStops?: number;
@@ -54,6 +63,13 @@ export interface SearchFilters {
   departTime?: TimeWindow | TimeWindow[];
   /** Arrival time window(s) (local clock at each leg's destination airport); as `departTime`. */
   arriveTime?: TimeWindow | TimeWindow[];
+  /**
+   * Estimated total layover per leg (see `estimateLayoverMinutes`), OR of the ranges. Applied to
+   * EVERY leg with at least one stop; direct legs always pass, legs whose layover cannot be
+   * estimated (unknown duration or coordinates) pass and mark the offer `layoverUnknown`.
+   * Undefined or empty = any.
+   */
+  layover?: LayoverRange[];
   /**
    * Keep tour-operator packages (`Offer.isPackage`: flight + hotel prices from charter feeds).
    * Default false: results compare flight prices only.

@@ -8,8 +8,12 @@ export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export type TripSpec =
   | { kind: "oneway" }
-  /** Stay length in days (nights), inclusive range. */
-  | { kind: "length"; minDays: number; maxDays: number }
+  /**
+   * Round trip with a stay length in days (nights), inclusive range. Each bound is optional:
+   * a missing `minDays` = from 0, a missing `maxDays` = no upper limit, so `{ kind: "length" }`
+   * keeps round trips of any stay length (see `stayBounds`).
+   */
+  | { kind: "length"; minDays?: number; maxDays?: number }
   /** Return within a fixed date range (single day: returnFrom === returnTo). */
   | { kind: "fixedReturn"; returnFrom: IsoDate; returnTo: IsoDate };
 
@@ -26,6 +30,20 @@ export interface DateWindow {
 }
 
 const DAY_MS = 86_400_000;
+
+/** Stay bounds of a "length" trip with the defaults applied: 0 … Infinity when unset. */
+export function stayBounds(trip: { minDays?: number; maxDays?: number }): {
+  min: number;
+  max: number;
+} {
+  return { min: trip.minDays ?? 0, max: trip.maxDays ?? Number.POSITIVE_INFINITY };
+}
+
+/** `stay` days (≥ 0) within the trip's optional bounds. */
+export function stayAllowed(trip: { minDays?: number; maxDays?: number }, stay: number): boolean {
+  const { min, max } = stayBounds(trip);
+  return stay >= 0 && stay >= min && stay <= max;
+}
 
 function toUtc(date: IsoDate): number {
   const t = Date.parse(`${date}T00:00:00Z`);
@@ -88,7 +106,7 @@ export function matchesWindow(
   }
   if (trip.kind === "length") {
     const stay = daysBetween(departDate, returnDate);
-    return stay >= trip.minDays && stay <= trip.maxDays;
+    return stayAllowed(trip, stay);
   }
   return returnDate >= trip.returnFrom && returnDate <= trip.returnTo && returnDate >= departDate;
 }

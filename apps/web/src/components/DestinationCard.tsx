@@ -9,7 +9,9 @@ import {
   formatDateRange,
   formatDay,
   formatDuration,
+  formatLayover,
   formatStops,
+  LAYOVER_HINT,
   offerTimes,
   plural,
   priceAge,
@@ -29,7 +31,7 @@ interface Props {
   onSelect: () => void;
   onHover?: (key: string | null) => void;
   api: ApiClient;
-  stay: { min: number; max: number } | null;
+  stay: { min?: number; max?: number } | null;
 }
 
 export function LinkRow({ links, label }: { links: VerifyLink[]; label?: string }) {
@@ -161,6 +163,17 @@ export function DestinationCard({
     meta.push({ key: "stay", node: `${daysBetween(offer.departDate, offer.returnDate)} dni` });
   }
   meta.push({ key: "stops", node: formatStops(offer.stops) });
+  const layover = formatLayover(offer.layoverMinutesEstimated, offer.stops);
+  if (layover) {
+    meta.push({
+      key: "layover",
+      node: (
+        <span data-testid="card-layover" title={LAYOVER_HINT}>
+          {layover}
+        </span>
+      ),
+    });
+  }
   if (duration) meta.push({ key: "duration", node: duration });
   const outTimes = timesText(times.out);
   const backTimes = timesText(times.back);

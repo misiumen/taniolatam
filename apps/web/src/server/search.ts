@@ -1,13 +1,103 @@
-import type { AirportInfo, ResultsView, SearchRequest } from "@gdziepolece/api-client";
+import type { AirportInfo, EmptyHints, ResultsView, SearchRequest } from "@gdziepolece/api-client";
 import {
+  addDays,
+  aviasalesLink,
+  googleFlightsLink,
+  kiwiLink,
   placeKey,
   searchDestinations,
+  skyscannerLink,
+  type FlightLinkParams,
   summarizeByDestination,
   type Offer,
   type PlaceIndex,
 } from "@gdziepolece/core";
 import type { WebSearchResponse } from "../lib/api-extensions";
 import type { ServerContext } from "./context";
+
+/** Stay assumed for the empty-state links when the search has no minimum stay. */
+export const EMPTY_HINT_STAY_DAYS = 7;
+/** Radius for "Dodaj <najbliższe duże lotnisko>". */
+export const NEAREST_LARGE_RADIUS_KM = 600;
+
+const firstAirport = (places: PlaceIndex, place: SearchRequest["origins"][number]) => {
+  try {
+    return places.resolve(place)[0];
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Help for an empty result: verification links for the exact query (core link builders; a
+ * builder that cannot format it is skipped) and, for a single origin airport, the nearest large
+ * airport to add.
+ */
+export function emptyHints(
+  query: SearchRequest,
+  places: PlaceIndex,
+  env: Record<string, string | undefined> = {},
+): EmptyHints {
+  const origin = query.origins.map((p) => firstAirport(places, p)).find(Boolean);
+  const dest = query.destinations
+    .filter((p) => p.kind !== "anywhere")
+    .map((p) => firstAirport(places, p))
+    .find(Boolean);
+  const links: EmptyHints["links"] = [];
+  const { departFrom, trip } = query.dates;
+  const returnDate =
+    trip.kind === "oneway"
+      ? undefined
+      : trip.kind === "fixedReturn"
+        ? trip.returnFrom
+        : addDays(departFrom, trip.minDays ?? EMPTY_HINT_STAY_DAYS);
+  if (origin && dest) {
+    const p: FlightLinkParams = {
+      origin,
+      destination: dest,
+      departDate: departFrom,
+      returnDate,
+      currency: query.currency,
+    };
+    const builders: [string, string, () => string][] = [
+      ["google", "Google Flights", () => googleFlightsLink(p)],
+      ["skyscanner", "Skyscanner", () => skyscannerLink(p)],
+      ["kiwi", "Kiwi.com", () => kiwiLink(p, { affiliateId: env.KIWI_AFFILIATE_ID })],
+      ["aviasales", "Aviasales", () => aviasalesLink(p, { marker: env.TRAVELPAYOUTS_MARKER })],
+    ];
+    for (const [id, label, build] of builders) {
+      try {
+        links.push({ id, label, url: build() });
+      } catch {
+        // This site cannot express the query (e.g. a non-IATA code): skip it.
+      }
+    }
+  }
+  const all = new Set<string>();
+  for (const o of query.origins) {
+    try {
+      for (const code of places.resolve(o)) all.add(code);
+    } catch {
+      // unresolvable origin
+    }
+  }
+  const out: EmptyHints = { links };
+  if (all.size === 1) {
+    const single = [...all][0]!;
+    out.singleOrigin = single;
+    // Same country first (GDN → WAW, not Kaliningrad), then any.
+    const country = places.airport(single)?.countryCode;
+    const larges = places
+      .nearby(single, NEAREST_LARGE_RADIUS_KM)
+      .filter((n) => n.airport.type === "large");
+    const large = larges.find((n) => n.airport.countryCode === country) ?? larges[0];
+    if (large) {
+      const a = large.airport;
+      out.nearestLarge = { iata: a.iata, label: `${a.cityPl ?? a.city} (${a.iata})` };
+    }
+  }
+  return out;
+}
 
 /** At most this many destinations in the result: list every destination's dates ("offers"). */
 export const OFFERS_VIEW_MAX_DESTINATIONS = 8;
@@ -137,10 +227,14 @@ export async function runSearch(
 
   // Offers dropped by the time windows (optional in core; passed through when reported).
   const timeWindows = (result as { timeWindows?: { dropped: number } }).timeWindows;
+  // Offers dropped by the layover ranges (estimated layover).
+  const layover = result.layover ? { dropped: result.layover.dropped } : undefined;
 
   return {
     destinations: summaries,
     ...(timeWindows ? { timeWindows } : {}),
+    ...(layover ? { layover } : {}),
+    ...(summaries.length === 0 ? { emptyHints: emptyHints(query, ctx.places, process.env) } : {}),
     carrierFacet: result.carrierFacet,
     groupAirports,
     airports,

@@ -19,6 +19,9 @@ import {
 } from "../types.ts";
 import { hashString, intBetween, pick, seededRandom } from "./random.ts";
 
+/** Longest stay the mock invents when the trip sets no upper bound. */
+const MOCK_MAX_STAY_DAYS = 21;
+
 export interface MockSourceOptions {
   places: PlaceIndex;
   /** Changes every generated price; same seed + same input = same output. */
@@ -192,7 +195,10 @@ export class MockSource implements FlightSource {
     const rng = seededRandom(this.seed, origin, dest, departDate, trip.kind);
     let returnDate: IsoDate | undefined;
     if (trip.kind === "length") {
-      returnDate = addDays(departDate, intBetween(rng, trip.minDays, trip.maxDays));
+      // Unbounded stays: 2-21 days, a plausible spread for a mock.
+      const min = trip.minDays ?? Math.min(2, trip.maxDays ?? 2);
+      const max = trip.maxDays ?? Math.max(min, MOCK_MAX_STAY_DAYS);
+      returnDate = addDays(departDate, intBetween(rng, min, max));
     } else if (trip.kind === "fixedReturn") {
       const from = trip.returnFrom > departDate ? trip.returnFrom : departDate;
       if (from > trip.returnTo) return undefined;
@@ -252,7 +258,9 @@ export class MockSource implements FlightSource {
     const durationMinutes = Math.round((km / 780) * 60 + 35 + stops * (60 + rng() * 180));
 
     const fields = { origin, destination: dest, departDate, returnDate, carriers: unique };
-    const legs = this.legs(origin, dest, departDate, returnDate, durationMinutes, unique[0]!);
+    const legs = this.legs(origin, dest, departDate, returnDate, durationMinutes, unique[0]!).map(
+      (l) => ({ ...l, stops }),
+    );
     return {
       id: offerKey(fields),
       ...fields,

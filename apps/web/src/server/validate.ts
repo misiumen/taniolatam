@@ -1,4 +1,11 @@
-import type { CarrierType, DateWindow, Place, TripSpec, Weekday } from "@gdziepolece/core";
+import type {
+  CarrierType,
+  DateWindow,
+  LayoverRange,
+  Place,
+  TripSpec,
+  Weekday,
+} from "@gdziepolece/core";
 import type { TimeWindow, WebSearchFilters, WebSearchRequest } from "../lib/api-extensions";
 
 const DAY_MINUTES = 1440;
@@ -116,11 +123,19 @@ function trip(v: unknown): TripSpec {
     case "oneway":
       return { kind: "oneway" };
     case "length": {
-      const minDays = num(v.minDays, "minimalna długość pobytu", { min: 0, max: 365, int: true });
-      const maxDays = num(v.maxDays, "maksymalna długość pobytu", { min: 0, max: 365, int: true });
-      if (minDays > maxDays)
+      // Both bounds optional: none = round trips of any stay length.
+      const opts = { min: 0, max: 365, int: true };
+      const minDays =
+        v.minDays === undefined ? undefined : num(v.minDays, "minimalna długość pobytu", opts);
+      const maxDays =
+        v.maxDays === undefined ? undefined : num(v.maxDays, "maksymalna długość pobytu", opts);
+      if (minDays !== undefined && maxDays !== undefined && minDays > maxDays)
         return fail("Minimalna długość pobytu nie może przekraczać maksymalnej.");
-      return { kind: "length", minDays, maxDays };
+      return {
+        kind: "length",
+        ...(minDays === undefined ? {} : { minDays }),
+        ...(maxDays === undefined ? {} : { maxDays }),
+      };
     }
     case "fixedReturn": {
       const returnFrom = isoDate(v.returnFrom, "powrót od");
@@ -140,10 +155,14 @@ function dates(v: unknown): DateWindow {
   if (departFrom > departTo) return fail("Data wylotu „od” jest późniejsza niż „do”.");
   const span = (Date.parse(departTo) - Date.parse(departFrom)) / 86_400_000;
   if (span > 800) return fail("Przedział dat wylotu może mieć najwyżej 800 dni.");
+  const t = trip(v.trip);
+  if (t.kind === "fixedReturn" && t.returnTo < departFrom) {
+    return fail("Data „powrót do” jest wcześniejsza niż najwcześniejszy wylot.");
+  }
   return {
     departFrom,
     departTo,
-    trip: trip(v.trip),
+    trip: t,
     departWeekdays: weekdays(v.departWeekdays, "dni wylotu"),
     returnWeekdays: weekdays(v.returnWeekdays, "dni powrotu"),
   };
@@ -187,6 +206,35 @@ function timeWindow(v: unknown, what: string): TimeWindow | TimeWindow[] | undef
   return v.map((w) => oneTimeWindow(w, what));
 }
 
+/** "do 2 h", "2-6 h", "6-12 h", "12+ h": at most four layover ranges. */
+const MAX_LAYOVER_RANGES = 4;
+
+/** Whole minutes ≥ 0 (no upper bound). */
+function minutes(v: unknown, what: string): number {
+  if (typeof v !== "number" || !Number.isSafeInteger(v) || v < 0) {
+    return fail(`Pole „${what}” musi być liczbą całkowitą minut, co najmniej 0.`);
+  }
+  return v;
+}
+
+/** `filters.layover`: 1–4 ranges `{ from, to? }` in minutes, `to` (optional) above `from`. */
+function layoverRanges(v: unknown): LayoverRange[] | undefined {
+  const what = "czas przesiadki";
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v) || v.length < 1 || v.length > MAX_LAYOVER_RANGES) {
+    return fail(`Pole „${what}” musi być listą od 1 do ${MAX_LAYOVER_RANGES} przedziałów.`);
+  }
+  return v.map((r) => {
+    if (!isObj(r)) return fail(`Pole „${what}” musi mieć postać { from, to } (minuty).`);
+    const from = minutes(r.from, `${what} od`);
+    if (r.to === undefined) return { from };
+    const to = minutes(r.to, `${what} do`);
+    if (to <= from)
+      return fail(`W polu „${what}” koniec przedziału musi być większy niż początek.`);
+    return { from, to };
+  });
+}
+
 function filters(v: unknown): WebSearchFilters {
   if (v === undefined) return {};
   if (!isObj(v)) return fail("Nieprawidłowe filtry.");
@@ -208,7 +256,7 @@ function filters(v: unknown): WebSearchFilters {
     maxStops:
       v.maxStops === undefined
         ? undefined
-        : num(v.maxStops, "przesiadki", { min: 0, max: 5, int: true }),
+        : num(v.maxStops, "przesiadki", { min: 0, max: 9, int: true }),
     directOnly: bool(v.directOnly, "tylko bezpośrednie"),
     maxDurationMinutes:
       v.maxDurationMinutes === undefined
@@ -232,6 +280,7 @@ function filters(v: unknown): WebSearchFilters {
     excludeCarriers: carrierCodes(v.excludeCarriers, "wyklucz linie"),
     departTime: timeWindow(v.departTime, "godzina wylotu"),
     arriveTime: timeWindow(v.arriveTime, "godzina przylotu"),
+    layover: layoverRanges(v.layover),
   };
 }
 

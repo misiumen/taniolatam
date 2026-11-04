@@ -243,7 +243,7 @@ bo na pewno działa (strona międzynarodowa, użytkownik wybiera język i walut�
 
 - **Długość pobytu**: Data API nie wyraża zakresu długości pobytu. Dla `length` pytamy o loty
   powrotne w miesiącu (`one_way=false`, bez `return_at`) i odrzucamy lokalnie te, których pobyt
-  wypada poza `minDays…maxDays`. Przy "gdziekolwiek" (`unique=true`) API zwraca jedną cenę na cel,
+  wypada poza `minDays…maxDays` (obie granice opcjonalne; bez granic nic nie odrzucamy). Przy "gdziekolwiek" (`unique=true`) API zwraca jedną cenę na cel,
   więc cel, którego najtańsza para dat ma złą długość pobytu, **zniknie z wyników**.
 - **Przycięcie miesiąca**: pytamy o cały miesiąc, potem filtrujemy `departFrom…departTo`.
 - **Tylko bezpośrednie**: `direct=true` oraz lokalnie `stops === 0`.

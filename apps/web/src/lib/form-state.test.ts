@@ -4,18 +4,24 @@ import {
   ANYWHERE_CHIP,
   applyDatePreset,
   defaultFormState,
+  formMaxStops,
   formToParams,
+  isAnyLayover,
+  layoverLabel,
   matchPreset,
   paramsToForm,
   presetRange,
   sliderDates,
+  setCustomStops,
   sliderPositions,
+  tripOf,
   toSearchQuery,
   formatClock,
   setExactTime,
   timeChoiceLabel,
   timeChoiceWindows,
   timeWindowLabel,
+  toggleLayover,
   togglePeriod,
   validateForm,
 } from "./form-state";
@@ -44,7 +50,8 @@ describe("form state", () => {
     const q = toSearchQuery(defaultFormState(TODAY));
     expect(q.origins).toEqual([{ kind: "country", code: "PL" }]);
     expect(q.destinations).toEqual([{ kind: "anywhere" }]);
-    expect(q.dates.trip).toEqual({ kind: "length", minDays: 7, maxDays: 21 });
+    // "Dowolna" stay length: a round trip without bounds.
+    expect(q.dates.trip).toEqual({ kind: "length" });
     expect(q.filters).toEqual({});
     expect(q.currency).toBe("PLN");
   });
@@ -52,7 +59,7 @@ describe("form state", () => {
   it("maps filters", () => {
     const s = {
       ...defaultFormState(TODAY),
-      oneWay: true,
+      stayMode: "oneway" as const,
       stops: "direct" as const,
       maxPrice: "1500",
       weekdays: [5, 7] as (5 | 7)[],
@@ -118,6 +125,7 @@ describe("form state", () => {
       weekdays: [5, 6] as (5 | 6)[],
       stops: "max1" as const,
       maxPrice: "2500",
+      stayMode: "range" as const,
       minDays: 5,
       maxDays: 10,
       carrierTypes: ["scheduled" as const, "lowcost" as const],
@@ -135,7 +143,11 @@ describe("form state", () => {
     const s = defaultFormState(TODAY);
     expect(validateForm({ ...s, origins: [] })).toContain("Skąd");
     expect(validateForm({ ...s, maxDurationHours: "7" })).toContain("czas lotu");
-    expect(validateForm({ ...s, minDays: 20, maxDays: 3 })).toContain("długość pobytu");
+    expect(validateForm({ ...s, stayMode: "range", minDays: 20, maxDays: 3 })).toContain(
+      "długość pobytu",
+    );
+    // Ignored while "Dowolna".
+    expect(validateForm({ ...s, minDays: 20, maxDays: 3 })).toBeUndefined();
     expect(validateForm({ ...s, departFrom: "2027-12-01" })).toContain("Data");
   });
 
@@ -325,5 +337,151 @@ describe("form state", () => {
     expect(timeChoiceLabel({ periods: [] })).toBe("dowolnie");
     expect(timeChoiceLabel(setExactTime({ from: 360, to: 1350 }))).toBe("06:00 - 22:30");
     expect(formatClock(1440)).toBe("24:00");
+  });
+});
+
+describe("stops and layover ranges", () => {
+  it("maps the four stop options to maxStops (none for Dowolnie)", () => {
+    const q = (stops: "direct" | "max1" | "max2" | "any") =>
+      toSearchQuery({ ...defaultFormState(TODAY), stops }).filters;
+    expect(q("direct")).toEqual({ directOnly: true, maxStops: 0 });
+    expect(q("max1")).toEqual({ maxStops: 1 });
+    expect(q("max2")).toEqual({ maxStops: 2 });
+    expect(q("any")).toEqual({});
+    expect(defaultFormState(TODAY).stops).toBe("any");
+  });
+
+  it("writes ms only when limited and reads old st links", () => {
+    const params = (stops: "direct" | "max1" | "max2" | "any") =>
+      formToParams({ ...defaultFormState(TODAY), stops });
+    expect(params("max2").get("ms")).toBe("2");
+    expect(params("direct").get("ms")).toBe("0");
+    expect(params("any").has("ms")).toBe(false);
+    expect(params("any").has("st")).toBe(false);
+    const read = (q: string) =>
+      paramsToForm(new URLSearchParams(`o=country:PL:Polska&${q}`), TODAY);
+    expect(read("ms=2").stops).toBe("max2");
+    expect(read("ms=1").stops).toBe("max1");
+    expect(read("st=0").stops).toBe("direct");
+    expect(read("st=1").stops).toBe("max1");
+    expect(read("st=any").stops).toBe("any");
+    expect(read("ms=7")).toMatchObject({ stops: "custom", customStops: "7" });
+    expect(read("ms=12").stops).toBe("any");
+  });
+
+  it("toggles layover chips in order; none or all four = any", () => {
+    let ids = toggleLayover([], "12-");
+    ids = toggleLayover(ids, "2-6");
+    expect(ids).toEqual(["2-6", "12-"]);
+    expect(layoverLabel(ids)).toBe("2-6 h, 12+ h");
+    expect(toggleLayover(ids, "2-6")).toEqual(["12-"]);
+    expect(layoverLabel([])).toBe("dowolnie");
+    expect(isAnyLayover([])).toBe(true);
+    expect(isAnyLayover(["0-2", "2-6", "6-12", "12-"])).toBe(true);
+    expect(isAnyLayover(["0-2"])).toBe(false);
+  });
+
+  it("sends the selected ranges in minutes (12+ without an end)", () => {
+    const s = { ...defaultFormState(TODAY), layover: ["12-", "2-6"] as ("2-6" | "12-")[] };
+    expect(toSearchQuery(s).filters.layover).toEqual([{ from: 120, to: 360 }, { from: 720 }]);
+    const all = { ...s, layover: ["0-2", "2-6", "6-12", "12-"] as const };
+    expect(toSearchQuery({ ...all, layover: [...all.layover] }).filters).not.toHaveProperty(
+      "layover",
+    );
+    expect(toSearchQuery(defaultFormState(TODAY)).filters).not.toHaveProperty("layover");
+  });
+
+  it("keeps the ranges in the URL as hours (lo=0-2,6-12, 12+ as 12-) and drops bad tokens", () => {
+    const s = {
+      ...defaultFormState(TODAY),
+      stops: "max2" as const,
+      layover: ["6-12", "0-2"] as ("0-2" | "6-12")[],
+    };
+    const p = formToParams(s);
+    expect(p.get("lo")).toBe("0-2,6-12");
+    const back = paramsToForm(new URLSearchParams(p.toString()), TODAY);
+    expect(back.layover).toEqual(["0-2", "6-12"]);
+    expect(back.stops).toBe("max2");
+    expect(
+      paramsToForm(new URLSearchParams("o=country:PL:Polska&lo=12-,x,2-6,2-6"), TODAY).layover,
+    ).toEqual(["2-6", "12-"]);
+    expect(formToParams(defaultFormState(TODAY)).has("lo")).toBe(false);
+  });
+
+  it("custom number of stops: 0-2 pick the tile, 3-9 are custom, empty = Dowolnie", () => {
+    expect(setCustomStops("3")).toEqual({ stops: "custom", customStops: "3" });
+    expect(setCustomStops("2")).toEqual({ stops: "max2", customStops: "2" });
+    expect(setCustomStops("0")).toEqual({ stops: "direct", customStops: "0" });
+    expect(setCustomStops("")).toEqual({ stops: "any", customStops: "" });
+    expect(setCustomStops("10")).toEqual({ stops: "any", customStops: "" });
+    expect(setCustomStops("1.5")).toEqual({ stops: "any", customStops: "" });
+    const s = { ...defaultFormState(TODAY), ...setCustomStops("3") };
+    expect(formMaxStops(s)).toBe(3);
+    expect(toSearchQuery(s).filters).toEqual({ maxStops: 3 });
+    expect(toSearchQuery({ ...defaultFormState(TODAY), ...setCustomStops("0") }).filters).toEqual({
+      directOnly: true,
+      maxStops: 0,
+    });
+    const p = formToParams(s);
+    expect(p.get("ms")).toBe("3");
+    const back = paramsToForm(new URLSearchParams(p.toString()), TODAY);
+    expect([back.stops, back.customStops]).toEqual(["custom", "3"]);
+    const tile = paramsToForm(new URLSearchParams("o=country:PL:Polska&ms=1"), TODAY);
+    expect([tile.stops, tile.customStops]).toEqual(["max1", ""]);
+  });
+});
+
+describe("optional stay length and return range", () => {
+  const base = defaultFormState(TODAY);
+  it("Dowolna sends no bounds, Zakres dni sends 7-21, one-way sends oneway", () => {
+    expect(base.stayMode).toBe("any");
+    expect(tripOf(base)).toEqual({ kind: "length" });
+    expect(tripOf({ ...base, stayMode: "range" })).toEqual({
+      kind: "length",
+      minDays: 7,
+      maxDays: 21,
+    });
+    expect(tripOf({ ...base, stayMode: "oneway" })).toEqual({ kind: "oneway" });
+  });
+
+  it("writes stay=7-21 / ow=1 only when set, and reads old min/max links as a range", () => {
+    expect(formToParams(base).has("stay")).toBe(false);
+    expect(formToParams(base).has("min")).toBe(false);
+    expect(formToParams({ ...base, stayMode: "range" }).get("stay")).toBe("7-21");
+    expect(formToParams({ ...base, stayMode: "oneway" }).get("ow")).toBe("1");
+    const read = (q: string) =>
+      paramsToForm(new URLSearchParams(`o=country:PL:Polska&${q}`), TODAY);
+    expect(read("").stayMode).toBe("any");
+    expect(read("stay=3-5")).toMatchObject({ stayMode: "range", minDays: 3, maxDays: 5 });
+    expect(read("min=7&max=21")).toMatchObject({ stayMode: "range", minDays: 7, maxDays: 21 });
+    expect(read("ow=1").stayMode).toBe("oneway");
+  });
+
+  it("a return range with exact dates becomes fixedReturn and lives in rf/rt", () => {
+    const s = {
+      ...base,
+      datePreset: "exact" as const,
+      departFrom: "2027-03-01",
+      departTo: "2027-03-10",
+      returnFrom: "2027-03-12",
+      returnTo: "2027-03-20",
+      stayMode: "oneway" as const,
+    };
+    expect(tripOf(s)).toEqual({
+      kind: "fixedReturn",
+      returnFrom: "2027-03-12",
+      returnTo: "2027-03-20",
+    });
+    const p = formToParams(s);
+    expect([p.get("rf"), p.get("rt")]).toEqual(["2027-03-12", "2027-03-20"]);
+    const back = paramsToForm(new URLSearchParams(p.toString()), TODAY);
+    expect([back.returnFrom, back.returnTo]).toEqual(["2027-03-12", "2027-03-20"]);
+    expect(validateForm(s)).toBeUndefined();
+    expect(validateForm({ ...s, returnTo: "" })).toContain("obie daty powrotu");
+    expect(validateForm({ ...s, returnFrom: "2027-03-25" })).toContain("powrotu");
+    // Without "Dokładne daty" the range is ignored (and not written).
+    const preset = { ...s, datePreset: "6m" as const };
+    expect(tripOf(preset)).toEqual({ kind: "oneway" });
+    expect(formToParams(preset).has("rf")).toBe(false);
   });
 });

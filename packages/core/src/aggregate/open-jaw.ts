@@ -1,4 +1,4 @@
-import { daysBetween, type TripSpec } from "../domain/dates.ts";
+import { daysBetween, stayAllowed, type TripSpec } from "../domain/dates.ts";
 import { offerKey, type Leg, type Offer } from "../domain/offer.ts";
 
 export interface OpenJawOptions {
@@ -39,7 +39,7 @@ export function combineOpenJaw(outbound: Offer[], inbound: Offer[], opts: OpenJa
   const stayOk = (out: Offer, back: Offer) => {
     const stay = daysBetween(out.departDate, back.departDate);
     return trip.kind === "length"
-      ? stay >= trip.minDays && stay <= trip.maxDays
+      ? stayAllowed(trip, stay)
       : stay >= 0 && back.departDate >= trip.returnFrom && back.departDate <= trip.returnTo;
   };
 
@@ -135,6 +135,7 @@ function legOf(o: Offer): Leg {
     source: o.source,
     deepLink: o.deepLink || undefined,
     carrierType: o.carrierType,
+    stops: own?.stops ?? o.stops,
   };
   // Keep legs free of explicit `undefined` keys (stable shapes in tests and JSON).
   for (const k of Object.keys(leg) as (keyof Leg)[]) if (leg[k] === undefined) delete leg[k];

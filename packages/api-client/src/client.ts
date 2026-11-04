@@ -51,6 +51,7 @@ export function calendarQuery(req: CalendarRequest): string {
   if (req.currency) p.set("currency", req.currency);
   if (req.stayMinDays !== undefined) p.set("stayMin", String(req.stayMinDays));
   if (req.stayMaxDays !== undefined) p.set("stayMax", String(req.stayMaxDays));
+  if (req.roundTrip) p.set("roundTrip", "1");
   return p.toString();
 }
 

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { defaultFormState, formToParams, paramsToForm, validateForm } from "./form-state";
-import { describeSearch, EXAMPLE_SEARCHES } from "./search-summary";
+import { describeSearch, EXAMPLE_SEARCHES, layoverText, stopsText } from "./search-summary";
 
 const TODAY = "2026-11-02";
 
 describe("describeSearch", () => {
   it("summarises the default search", () => {
     expect(describeSearch(defaultFormState(TODAY)).join(" · ")).toBe(
-      "Polska → gdziekolwiek · pół roku · 7-21 dni · ceny do 7 dni",
+      "Polska → gdziekolwiek · pół roku · ceny do 7 dni",
     );
   });
 
@@ -25,7 +25,6 @@ describe("describeSearch", () => {
     expect(describeSearch(s)).toEqual([
       "Polska → gdziekolwiek",
       "pół roku",
-      "7-21 dni",
       "wylot: Pt, So",
       "max 1 przesiadka",
       "lot do 24 h",
@@ -42,7 +41,7 @@ describe("describeSearch", () => {
       datePreset: "exact" as const,
       departFrom: "2027-03-10",
       departTo: "2027-04-20",
-      oneWay: true,
+      stayMode: "oneway" as const,
     };
     expect(describeSearch(s).slice(1, 3)).toEqual(["10 mar - 20 kwi 2027", "w jedną stronę"]);
   });
@@ -71,7 +70,6 @@ describe("time window fragments", () => {
     ).toEqual([
       "Polska → gdziekolwiek",
       "pół roku",
-      "7-21 dni",
       "wylot rano lub wieczorem",
       "przylot 06:00-12:00",
       "ceny do 7 dni",
@@ -89,5 +87,46 @@ describe("time window fragments", () => {
         departTime: { periods: ["rano", "popoludnie", "wieczor", "noc"] },
       }).some((p) => p.startsWith("wylot")),
     ).toBe(false);
+  });
+});
+
+describe("stops and layover fragments", () => {
+  it("describes max 2 stops and the layover ranges", () => {
+    const base = defaultFormState(TODAY);
+    expect(describeSearch({ ...base, stops: "max2", layover: ["0-2", "2-6"] })).toEqual([
+      "Polska → gdziekolwiek",
+      "pół roku",
+      "max 2 przesiadki",
+      "przesiadka do 2 h / 2-6 h",
+      "ceny do 7 dni",
+    ]);
+    expect(stopsText({ ...base, stops: "direct" })).toBe("bez przesiadek");
+    expect(stopsText(base)).toBe("dowolne przesiadki");
+    expect(stopsText({ ...base, stops: "custom", customStops: "3" })).toBe("max 3 przesiadki");
+    expect(stopsText({ ...base, stops: "custom", customStops: "5" })).toBe("max 5 przesiadek");
+    expect(layoverText({ ...base, layover: ["12-"] })).toBe("przesiadka 12+ h");
+    // Non-stop only, or every range: nothing to say.
+    expect(layoverText({ ...base, stops: "direct", layover: ["12-"] })).toBeUndefined();
+    expect(layoverText({ ...base, layover: ["0-2", "2-6", "6-12", "12-"] })).toBeUndefined();
+  });
+});
+
+describe("stay fragments", () => {
+  const base = defaultFormState(TODAY);
+  it("omits any stay, shows a day range and a return range", () => {
+    expect(describeSearch(base)).toEqual(["Polska → gdziekolwiek", "pół roku", "ceny do 7 dni"]);
+    expect(describeSearch({ ...base, stayMode: "range" })).toContain("7-21 dni");
+    const exact = {
+      ...base,
+      datePreset: "exact" as const,
+      departFrom: "2027-03-01",
+      departTo: "2027-03-10",
+      returnFrom: "2027-03-12",
+      returnTo: "2027-03-20",
+    };
+    expect(describeSearch(exact)).toContain("powrót 12-20 mar 2027");
+    expect(describeSearch({ ...exact, returnTo: "2027-04-03" })).toContain(
+      "powrót 12 mar - 3 kwi 2027",
+    );
   });
 });

@@ -154,4 +154,67 @@ describe("validateSearchQuery", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.filters.departTime).toEqual(windows);
   });
+
+  it("validates layover ranges: whole minutes from 0, open-ended allowed, at most 4", () => {
+    const ranges = [{ from: 120, to: 360 }, { from: 720 }];
+    const ok = validateSearchQuery({ ...valid, filters: { layover: ranges } });
+    expect(ok.ok).toBe(true);
+    if (ok.ok) expect(ok.value.filters.layover).toEqual(ranges);
+    const big = validateSearchQuery({ ...valid, filters: { layover: [{ from: 0, to: 100_000 }] } });
+    expect(big.ok).toBe(true);
+    for (const bad of [
+      [],
+      {},
+      [{ from: -1, to: 120 }],
+      [{ from: 1.5 }],
+      [{ from: 360, to: 120 }],
+      [{ from: 120, to: 120 }],
+      [{ to: 120 }],
+      [{ from: "0" }],
+      [{ from: 0 }, { from: 1 }, { from: 2 }, { from: 3 }, { from: 4 }],
+    ]) {
+      const r = validateSearchQuery({ ...valid, filters: { layover: bad } });
+      expect(r.ok, JSON.stringify(bad)).toBe(false);
+      if (!r.ok) expect(r.error).toMatch(/czas przesiadki/);
+    }
+  });
+
+  it("accepts a custom max of stops 0-9", () => {
+    const ok = validateSearchQuery({ ...valid, filters: { maxStops: 9 } });
+    expect(ok.ok).toBe(true);
+    for (const bad of [10, -1, 2.5]) {
+      const r = validateSearchQuery({ ...valid, filters: { maxStops: bad } });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toMatch(/przesiadki/);
+    }
+  });
+
+  it("accepts a stay length without bounds, or with one bound, and a fixed return range", () => {
+    const withTrip = (trip: unknown) =>
+      validateSearchQuery({ ...valid, dates: { ...valid.dates, trip } });
+    const any = withTrip({ kind: "length" });
+    expect(any.ok && any.value.dates.trip).toEqual({ kind: "length" });
+    const min = withTrip({ kind: "length", minDays: 3 });
+    expect(min.ok && min.value.dates.trip).toEqual({ kind: "length", minDays: 3 });
+    const range = withTrip({
+      kind: "fixedReturn",
+      returnFrom: "2027-03-12",
+      returnTo: "2027-03-20",
+    });
+    expect(range.ok && range.value.dates.trip).toEqual({
+      kind: "fixedReturn",
+      returnFrom: "2027-03-12",
+      returnTo: "2027-03-20",
+    });
+    for (const bad of [
+      { kind: "length", minDays: -1 },
+      { kind: "length", maxDays: 1.5 },
+      { kind: "length", minDays: "7" },
+      { kind: "fixedReturn", returnFrom: "2027-03-20", returnTo: "2027-03-12" },
+      { kind: "fixedReturn", returnFrom: "2027-03-12" },
+      { kind: "fixedReturn", returnFrom: "2026-12-01", returnTo: "2026-12-05" },
+    ]) {
+      expect(withTrip(bad).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
 });

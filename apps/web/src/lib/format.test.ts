@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   carrierLabel,
   describePrice,
+  formatLayover,
   formatMonthYear,
   formatPrice,
   formatStay,
@@ -131,5 +132,20 @@ describe("trip dates", () => {
     expect(formatStay("2027-03-12", "2027-03-21")).toBe("9 dni");
     expect(formatStay("2027-03-12")).toBe("w jedną stronę");
     expect(formatMonthYear("2027-03")).toBe("mar 2027");
+  });
+});
+
+describe("formatLayover", () => {
+  it("shows the estimate rounded to 5 minutes, singular for one stop", () => {
+    expect(formatLayover(200, 1)).toBe("≈ 3 h 20 przesiadka");
+    expect(formatLayover(202, 2)).toBe("≈ 3 h 20 przesiadki");
+    expect(formatLayover(120, 1)).toBe("≈ 2 h przesiadka");
+    expect(formatLayover(42, 1)).toBe("≈ 40 min przesiadka");
+  });
+
+  it("says nothing when unknown, direct or near zero", () => {
+    expect(formatLayover(undefined, 1)).toBeUndefined();
+    expect(formatLayover(200, 0)).toBeUndefined();
+    expect(formatLayover(2, 1)).toBeUndefined();
   });
 });

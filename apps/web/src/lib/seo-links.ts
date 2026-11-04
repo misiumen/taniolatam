@@ -64,6 +64,7 @@ export const HOME_EXAMPLES: HomeExample[] = [
       undefined,
       {
         datePreset: "3m",
+        stayMode: "range",
         minDays: 2,
         maxDays: 3,
         weekdays: [5, 6],
@@ -94,7 +95,7 @@ export const HOME_EXAMPLES: HomeExample[] = [
     href: routeSearchHref(
       chip({ kind: "city", name: "Gdansk", countryCode: "PL" }, "Gdańsk"),
       chip({ kind: "country", code: "GE" }, "Gruzja"),
-      { minDays: 7, maxDays: 14 },
+      { stayMode: "range", minDays: 7, maxDays: 14 },
     ),
   },
   {

@@ -448,3 +448,219 @@ test("cards show flight times, or a chip when they are unknown", async ({ page }
   await expect(cards.nth(1).getByTestId("times-unknown-chip")).toHaveText("godziny nieznane");
   await expect(cards.nth(1).getByTestId("card-times")).toHaveCount(0);
 });
+
+test("Przesiadki sits under Dokąd with four options; Max 2 goes to the API as ms=2", async ({
+  page,
+}) => {
+  await open(page);
+  const stops = page.getByRole("radiogroup", { name: "Przesiadki" });
+  // In the "Trasa" section (open from the start), not in "Lot".
+  const route = page
+    .getByTestId("form-section")
+    .filter({ has: page.getByRole("combobox", { name: "Dokąd", exact: true }) });
+  await expect(route.getByRole("radiogroup", { name: "Przesiadki" })).toBeVisible();
+  await expect(stops).toHaveCount(1);
+  await expect(stops.getByRole("radio")).toHaveText(["Bez", "Max 1", "Max 2", "Dowolnie"]);
+  await expect(stops.getByRole("radio", { name: "Dowolnie" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: /^Lot/ })).not.toContainText("przesiad");
+
+  await stops.getByRole("radio", { name: "Max 2" }).click();
+  await expect(stops.getByRole("radio", { name: "Max 2" })).toHaveAttribute("aria-checked", "true");
+  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters).toEqual({ maxStops: 2 });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  const params = new URL(page.url()).searchParams;
+  expect(params.get("ms")).toBe("2");
+  expect(params.has("st")).toBe(false);
+  await expect(page.getByTestId("search-summary")).toContainText("max 2 przesiadki");
+
+  // "własna liczba": 3 deselects the tiles and goes out as maxStops 3 / ms=3.
+  const custom = page.getByLabel("własna liczba");
+  await expect(custom).toHaveAttribute("placeholder", "np. 3");
+  await custom.fill("3");
+  for (const name of ["Bez", "Max 1", "Max 2", "Dowolnie"]) {
+    await expect(stops.getByRole("radio", { name })).toHaveAttribute("aria-checked", "false");
+  }
+  const request3 = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const body3 = (await request3).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body3.filters).toEqual({ maxStops: 3 });
+  await expect.poll(() => new URL(page.url()).searchParams.get("ms")).toBe("3");
+  await expect(page.getByTestId("search-summary")).toContainText("max 3 przesiadki");
+  // Typing 1 highlights the matching tile; clearing returns to Dowolnie.
+  await custom.fill("1");
+  await expect(stops.getByRole("radio", { name: "Max 1" })).toHaveAttribute("aria-checked", "true");
+  await custom.fill("");
+  await expect(stops.getByRole("radio", { name: "Dowolnie" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await custom.fill("4");
+
+  // A tile clears the custom input; "Bez" sends the direct-only pair.
+  await stops.getByRole("radio", { name: "Bez" }).click();
+  await expect(custom).toHaveValue("");
+  const request2 = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const body2 = (await request2).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body2.filters).toEqual({ directOnly: true, maxStops: 0 });
+});
+
+test("old st links still work", async ({ page }) => {
+  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await open(page, "/szukaj?o=country:PL:Polska&st=1");
+  const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters).toEqual({ maxStops: 1 });
+  await expect(
+    page.getByRole("radiogroup", { name: "Przesiadki" }).getByRole("radio", { name: "Max 1" }),
+  ).toHaveAttribute("aria-checked", "true");
+});
+
+test("Czas przesiadki: range chips (multi-select) go to the API and the URL", async ({ page }) => {
+  await open(page);
+  const field = page.getByTestId("layover");
+  const chip = (name: string) => field.getByRole("button", { name, exact: true });
+  const label = page.getByTestId("layover-label");
+  await expect(field).toBeVisible();
+  await expect(field).toContainText("Szacowany; dokładny czas pokaże źródło na żywo.");
+  await expect(label).toHaveText("dowolnie");
+  for (const name of ["do 2 h", "2-6 h", "6-12 h", "12+ h"]) {
+    await expect(chip(name)).toHaveAttribute("aria-pressed", "false");
+  }
+
+  await chip("2-6 h").click();
+  await chip("12+ h").click();
+  await expect(chip("2-6 h")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip("12+ h")).toHaveAttribute("aria-pressed", "true");
+  await expect(label).toHaveText("2-6 h, 12+ h");
+
+  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  const body = (await request).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body.filters).toEqual({ layover: [{ from: 120, to: 360 }, { from: 720 }] });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  expect(new URL(page.url()).searchParams.get("lo")).toBe("2-6,12-");
+  await expect(page.getByTestId("search-summary")).toContainText("przesiadka 2-6 h / 12+ h");
+
+  // The shared link restores the chips and sends the same ranges.
+  const request2 = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.reload();
+  await page.locator("[data-hydrated=true]").waitFor({ state: "attached" });
+  const body2 = (await request2).postDataJSON() as { filters: Record<string, unknown> };
+  expect(body2.filters).toEqual({ layover: [{ from: 120, to: 360 }, { from: 720 }] });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  await expect(chip("2-6 h")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip("12+ h")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip("do 2 h")).toHaveAttribute("aria-pressed", "false");
+  await expect(label).toHaveText("2-6 h, 12+ h");
+
+  // Non-stop only: the chips have nothing to filter.
+  await page
+    .getByRole("radiogroup", { name: "Przesiadki" })
+    .getByRole("radio", { name: "Bez" })
+    .click();
+  await expect(chip("2-6 h")).toBeDisabled();
+  await expect(label).toHaveText("tylko bezpośrednie");
+});
+
+test("cards show the estimated layover next to the stops", async ({ page }) => {
+  await open(page, "/szukaj?o=country:PL:Polska&d=continent:AS:Azja&ms=2");
+  const layover = page.getByTestId("card-layover").first();
+  await expect(layover).toBeVisible({ timeout: 30_000 });
+  await expect(layover).toHaveText(/^≈ (\d+ h( \d+)?|\d+ min) przesiadk[ai]$/);
+});
+
+test("Długość pobytu is optional: Dowolna sends no bounds, Zakres dni 7-21, return range = fixedReturn", async ({
+  page,
+}) => {
+  await open(page);
+  const stay = page.getByRole("radiogroup", { name: "Długość pobytu" });
+  await expect(stay.getByRole("radio")).toHaveText([
+    "Dowolna",
+    "Zakres dni",
+    "Tylko w jedną stronę",
+  ]);
+  await expect(stay.getByRole("radio", { name: "Dowolna" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  await expect(page.getByLabel("Minimalna liczba dni")).toHaveCount(0);
+
+  const search = async () => {
+    const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+    await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+    return ((await request).postDataJSON() as { dates: Record<string, unknown> }).dates;
+  };
+  expect((await search()).trip).toEqual({ kind: "length" });
+  await expect(page.getByTestId("destination-card").first()).toBeVisible({ timeout: 30_000 });
+  expect(new URL(page.url()).searchParams.has("stay")).toBe(false);
+
+  // "Zakres dni": the inputs appear prefilled with 7 and 21.
+  await stay.getByRole("radio", { name: "Zakres dni" }).click();
+  await expect(page.getByLabel("Minimalna liczba dni")).toHaveValue("7");
+  await expect(page.getByLabel("Maksymalna liczba dni")).toHaveValue("21");
+  expect((await search()).trip).toEqual({ kind: "length", minDays: 7, maxDays: 21 });
+  await expect.poll(() => new URL(page.url()).searchParams.get("stay")).toBe("7-21");
+  await expect(page.getByTestId("search-summary")).toContainText("7-21 dni");
+
+  // Exact dates + "Powrót między": a fixed return range, the stay control steps aside.
+  await page.getByRole("button", { name: "Dokładne daty" }).click();
+  await page.getByLabel("Wylot od").fill("2027-03-01");
+  await page.getByLabel("Wylot do").fill("2027-03-10");
+  await page.getByLabel("Powrót od", { exact: true }).fill("2027-03-12");
+  await page.getByLabel("Powrót do", { exact: true }).fill("2027-03-20");
+  await expect(stay).toHaveCount(0);
+  await expect(page.getByTestId("stay-from-dates")).toHaveText("Długość pobytu wynika z dat.");
+  expect((await search()).trip).toEqual({
+    kind: "fixedReturn",
+    returnFrom: "2027-03-12",
+    returnTo: "2027-03-20",
+  });
+  await expect
+    .poll(() => {
+      const p = new URL(page.url()).searchParams;
+      return [p.get("rf"), p.get("rt")];
+    })
+    .toEqual(["2027-03-12", "2027-03-20"]);
+  await expect(page.getByTestId("search-summary")).toContainText("powrót 12-20 mar 2027");
+});
+
+test("an empty result links to the route elsewhere and widens the origin", async ({ page }) => {
+  await open(
+    page,
+    "/szukaj?o=airport:GDN:Gda%C5%84sk&d=airport:BKK:Bangkok&from=2027-03-10&to=2027-03-20&preset=exact&stay=9-12&p=1",
+  );
+  await expect(page.getByRole("heading", { name: "Brak wyników" })).toBeVisible({
+    timeout: 30_000,
+  });
+  const links = page.getByTestId("empty-links");
+  await expect(links).toContainText("Sprawdź tę trasę bezpośrednio:");
+  await expect(links.getByRole("link")).toHaveText([
+    "Google Flights",
+    "Skyscanner",
+    "Kiwi.com",
+    "Aviasales",
+  ]);
+  await expect(links.getByRole("link", { name: "Kiwi.com" })).toHaveAttribute(
+    "href",
+    /from=GDN&to=BKK&departure=2027-03-10&return=2027-03-19/,
+  );
+  await expect(links.getByRole("link", { name: "Aviasales" })).toHaveAttribute(
+    "href",
+    /\/search\/GDN1003BKK19031/,
+  );
+  await expect(
+    page.getByTestId("widen-origin").getByRole("button", { name: /^Dodaj / }),
+  ).toBeVisible();
+
+  const request = page.waitForRequest((r) => r.url().includes("/api/v1/search"));
+  await page.getByRole("button", { name: "Szukaj z całej Polski" }).click();
+  const body = (await request).postDataJSON() as { origins: unknown[] };
+  expect(body.origins).toEqual([{ kind: "country", code: "PL" }]);
+  await expect.poll(() => new URL(page.url()).searchParams.get("o")).toBe("country:PL:Polska");
+});

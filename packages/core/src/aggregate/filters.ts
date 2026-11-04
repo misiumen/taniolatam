@@ -3,6 +3,7 @@ import type { Offer } from "../domain/offer.ts";
 import type { SearchFilters } from "../domain/query.ts";
 import { activeTimeWindow, inTimeWindow, parseClock, type TimeWindow } from "../domain/times.ts";
 import type { PlaceIndex } from "../places/place-index.ts";
+import { layoverAllowed } from "./layover.ts";
 
 /**
  * Default `filters.maxPriceAgeHours` applied by `searchDestinations` (7 days: results first,
@@ -189,6 +190,8 @@ export interface FilterContext {
   /**
    * `cityAirports` (optional) lets offers whose destination is a city code
    * (`destinationIsCity`, e.g. LON) match `destinations` / `excludeCountries` via its airports.
+   * Airport coordinates for `filters.layover` come from here too (no `places`: the layover
+   * filter lets everything pass).
    */
   places?: Pick<PlaceIndex, "airport"> & Partial<Pick<PlaceIndex, "cityAirports">>;
   /** Reference time for `filters.maxPriceAgeHours`. Default: the current time. */
@@ -245,6 +248,8 @@ export function matchesFilters(o: Offer, f: SearchFilters, ctx: FilterContext = 
   }
   if (!priceAgeAllowed(o, f, ctx.now ?? new Date())) return false;
   if (!timeWindowsAllowed(o, f)) return false;
+  // Needs coordinates: without `ctx.places` every offer passes (estimate unknown).
+  if (!layoverAllowed(o, f, ctx.places)) return false;
   if (o.returnTo !== undefined && o.returnTo !== o.origin && !f.allowOpenJaw) return false;
   if (ctx.window && !matchesWindow(ctx.window, o.departDate, o.returnDate)) return false;
   return true;

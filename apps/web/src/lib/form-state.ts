@@ -1,5 +1,6 @@
 import type { TimeWindow, WebSearchFilters, WebSearchRequest } from "./api-extensions";
 import {
+  type TripSpec,
   placeKey,
   STRICT_PRICE_AGE_HOURS,
   type CarrierType,
@@ -12,7 +13,99 @@ export interface PlaceChip {
   label: string;
 }
 
-export type StopsMode = "direct" | "max1" | "any";
+/** A tile of "Przesiadki", or "custom" for the "własna liczba" input (see `FormState.customStops`). */
+export type StopsMode = "direct" | "max1" | "max2" | "any" | "custom";
+
+/** Largest value of the "własna liczba" input. */
+export const MAX_CUSTOM_STOPS = 9;
+
+/** "Przesiadki": segmented control, in order; `maxStops` sent for each (none for "any"). */
+export const STOPS_OPTIONS: {
+  value: Exclude<StopsMode, "custom">;
+  label: string;
+  maxStops?: number;
+}[] = [
+  { value: "direct", label: "Bez", maxStops: 0 },
+  { value: "max1", label: "Max 1", maxStops: 1 },
+  { value: "max2", label: "Max 2", maxStops: 2 },
+  { value: "any", label: "Dowolnie" },
+];
+
+/** Typed value of "własna liczba" as a whole number 0-9, or undefined. */
+export function parseCustomStops(v: string | null | undefined): number | undefined {
+  const t = (v ?? "").trim();
+  if (!/^\d{1,2}$/.test(t)) return undefined;
+  const n = Number(t);
+  return n <= MAX_CUSTOM_STOPS ? n : undefined;
+}
+
+/**
+ * Typing into "własna liczba": 0 / 1 / 2 highlight the matching tile, 3-9 select the custom
+ * value, an empty (or invalid) input returns to "Dowolnie".
+ */
+export function setCustomStops(raw: string): Pick<FormState, "stops" | "customStops"> {
+  const n = parseCustomStops(raw);
+  if (n === undefined) return { stops: "any", customStops: "" };
+  const tile = STOPS_OPTIONS.find((o) => o.maxStops === n);
+  return { stops: tile ? tile.value : "custom", customStops: String(n) };
+}
+
+/** Max stops of the form: the tile's, the custom value, or undefined for "Dowolnie". */
+export function formMaxStops(s: Pick<FormState, "stops" | "customStops">): number | undefined {
+  if (s.stops === "custom") return parseCustomStops(s.customStops);
+  return STOPS_OPTIONS.find((o) => o.value === s.stops)?.maxStops;
+}
+
+/** "Czas przesiadki" chips; the id is also the URL token (hours, "12-" = 12 h and more). */
+export type LayoverRangeId = "0-2" | "2-6" | "6-12" | "12-";
+
+/**
+ * Ranges of the estimated total layover per leg, in minutes (`from` inclusive, `to` exclusive,
+ * no `to` = no upper bound). Multi-select, OR; none (or all four) = any.
+ */
+export const LAYOVER_RANGES: { id: LayoverRangeId; label: string; from: number; to?: number }[] = [
+  { id: "0-2", label: "do 2 h", from: 0, to: 120 },
+  { id: "2-6", label: "2-6 h", from: 120, to: 360 },
+  { id: "6-12", label: "6-12 h", from: 360, to: 720 },
+  { id: "12-", label: "12+ h", from: 720 },
+];
+
+const layoverIndex = (id: LayoverRangeId) => LAYOVER_RANGES.findIndex((r) => r.id === id);
+
+/** Unique, known ids in chip order. */
+export const sortLayover = (ids: LayoverRangeId[]): LayoverRangeId[] =>
+  [...new Set(ids)]
+    .filter((id) => layoverIndex(id) >= 0)
+    .sort((a, b) => layoverIndex(a) - layoverIndex(b));
+
+/** Chip click: toggles one range, keeps the others. */
+export function toggleLayover(ids: LayoverRangeId[], id: LayoverRangeId): LayoverRangeId[] {
+  return sortLayover(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
+}
+
+/** None or all four selected = any layover: nothing is sent. */
+export const isAnyLayover = (ids: LayoverRangeId[]): boolean =>
+  ids.length === 0 || sortLayover(ids).length === LAYOVER_RANGES.length;
+
+/** Label next to the field: "dowolnie", "2-6 h, 12+ h". */
+export function layoverLabel(ids: LayoverRangeId[]): string {
+  if (ids.length === 0) return "dowolnie";
+  if (isAnyLayover(ids)) return "dowolnie (wszystkie)";
+  return sortLayover(ids)
+    .map((id) => LAYOVER_RANGES[layoverIndex(id)]!.label)
+    .join(", ");
+}
+
+/** `lo=0-2,6-12` → ["0-2", "6-12"]; unknown tokens are dropped. */
+function parseLayover(v: string | null): LayoverRangeId[] {
+  const ids = LAYOVER_RANGES.map((r) => r.id) as string[];
+  return sortLayover(
+    (v ?? "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter((x): x is LayoverRangeId => ids.includes(x)),
+  );
+}
 
 export const ALL_CARRIER_TYPES: CarrierType[] = ["scheduled", "lowcost", "charter"];
 
@@ -198,6 +291,35 @@ function parseTimeWindow(v: string | null): TimeWindow {
   return ok(from) && ok(to) && from !== to ? { from, to } : { ...ANY_TIME };
 }
 
+/** "Długość pobytu" options. */
+export type StayMode = "any" | "range" | "oneway";
+
+export const STAY_OPTIONS: { value: StayMode; label: string }[] = [
+  { value: "any", label: "Dowolna" },
+  { value: "range", label: "Zakres dni" },
+  { value: "oneway", label: "Tylko w jedną stronę" },
+];
+
+/** Default bounds shown when "Zakres dni" is picked. */
+export const DEFAULT_STAY_DAYS = { min: 7, max: 21 } as const;
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** "Powrót między" applies: "Dokładne daty" with both return dates set. */
+export const hasReturnRange = (
+  s: Pick<FormState, "datePreset" | "returnFrom" | "returnTo">,
+): boolean => s.datePreset === "exact" && ISO_DAY.test(s.returnFrom) && ISO_DAY.test(s.returnTo);
+
+/** Some "Powrót między" date is typed (with "Dokładne daty"): the stay control is hidden. */
+export const returnRangeStarted = (
+  s: Pick<FormState, "datePreset" | "returnFrom" | "returnTo">,
+): boolean => s.datePreset === "exact" && (s.returnFrom !== "" || s.returnTo !== "");
+
+/** One-way search (no return range overrides it). */
+export const isOneWay = (
+  s: Pick<FormState, "stayMode" | "datePreset" | "returnFrom" | "returnTo">,
+) => s.stayMode === "oneway" && !hasReturnRange(s);
+
 export interface FormState {
   origins: PlaceChip[];
   /** Empty, or only the `ANYWHERE_CHIP`, means "gdziekolwiek". */
@@ -206,11 +328,26 @@ export interface FormState {
   departTo: string;
   /** Which "Kiedy" chip is active; the dates stay the canonical value. */
   datePreset: DatePreset;
-  oneWay: boolean;
+  /** "Długość pobytu": any round trip (default, no bounds sent), a day range, or one-way. */
+  stayMode: StayMode;
+  /** Bounds of "Zakres dni" (sent only with `stayMode: "range"`); prefilled 7 and 21. */
   minDays: number;
   maxDays: number;
+  /**
+   * "Powrót między" (only with "Dokładne daty"), "YYYY-MM-DD" or "". Both set = a `fixedReturn`
+   * trip that replaces the stay length.
+   */
+  returnFrom: string;
+  returnTo: string;
   weekdays: Weekday[];
   stops: StopsMode;
+  /**
+   * "własna liczba" input as typed ("" = empty); with `stops: "custom"` it is the max stops
+   * (3-9). Clicking a tile clears it.
+   */
+  customStops: string;
+  /** "Czas przesiadki" (estimated, every leg with stops); empty = any. */
+  layover: LayoverRangeId[];
   /** Empty string = no price cap. */
   maxPrice: string;
   carrierTypes: CarrierType[];
@@ -316,11 +453,15 @@ export function defaultFormState(today = todayIso()): FormState {
     destinations: [],
     ...presetRange(DEFAULT_DATE_PRESET, today)!,
     datePreset: DEFAULT_DATE_PRESET,
-    oneWay: false,
-    minDays: 7,
-    maxDays: 21,
+    stayMode: "any",
+    minDays: DEFAULT_STAY_DAYS.min,
+    maxDays: DEFAULT_STAY_DAYS.max,
+    returnFrom: "",
+    returnTo: "",
     weekdays: [],
     stops: "any",
+    customStops: "",
+    layover: [],
     maxPrice: "",
     carrierTypes: [...ALL_CARRIER_TYPES],
     excludeOriginCountries: true,
@@ -338,7 +479,11 @@ export function validateForm(s: FormState): string | undefined {
   if (s.origins.length === 0) return "Wybierz co najmniej jedno miejsce wylotu (Skąd).";
   if (!s.departFrom || !s.departTo) return "Podaj zakres dat wylotu.";
   if (s.departFrom > s.departTo) return "Data „od” nie może być późniejsza niż „do”.";
-  if (!s.oneWay) {
+  if (returnRangeStarted(s)) {
+    if (!hasReturnRange(s)) return "Podaj obie daty powrotu albo wyczyść pole „Powrót między”.";
+    if (s.returnFrom > s.returnTo) return "Data powrotu „od” nie może być późniejsza niż „do”.";
+    if (s.returnTo < s.departFrom) return "Powrót nie może wypadać przed wylotem.";
+  } else if (s.stayMode === "range") {
     if (!Number.isInteger(s.minDays) || !Number.isInteger(s.maxDays) || s.minDays < 0) {
       return "Podaj długość pobytu w dniach.";
     }
@@ -357,11 +502,15 @@ const isDurationOption = (v: string | null): v is string =>
 
 export function toSearchQuery(s: FormState): WebSearchRequest {
   const filters: WebSearchFilters = {};
-  if (s.stops === "direct") {
-    filters.directOnly = true;
-    filters.maxStops = 0;
-  } else if (s.stops === "max1") {
-    filters.maxStops = 1;
+  const maxStops = formMaxStops(s);
+  if (maxStops === 0) filters.directOnly = true;
+  if (maxStops !== undefined) filters.maxStops = maxStops;
+  // Non-stop only: no layover to filter.
+  if (maxStops !== 0 && !isAnyLayover(s.layover)) {
+    filters.layover = sortLayover(s.layover).map((id) => {
+      const r = LAYOVER_RANGES[layoverIndex(id)]!;
+      return r.to === undefined ? { from: r.from } : { from: r.from, to: r.to };
+    });
   }
   if (s.maxPrice !== "") filters.maxPrice = Number(s.maxPrice);
   if (s.carrierTypes.length < ALL_CARRIER_TYPES.length) filters.carrierTypes = s.carrierTypes;
@@ -393,14 +542,22 @@ export function toSearchQuery(s: FormState): WebSearchRequest {
     dates: {
       departFrom: s.departFrom,
       departTo: s.departTo,
-      trip: s.oneWay
-        ? { kind: "oneway" }
-        : { kind: "length", minDays: s.minDays, maxDays: s.maxDays },
+      trip: tripOf(s),
       ...(s.weekdays.length > 0 ? { departWeekdays: s.weekdays } : {}),
     },
     filters,
     currency: "PLN",
   };
+}
+
+/** Trip of the form: return range, one-way, a stay range, or any round trip (no bounds). */
+export function tripOf(s: FormState): TripSpec {
+  if (hasReturnRange(s)) {
+    return { kind: "fixedReturn", returnFrom: s.returnFrom, returnTo: s.returnTo };
+  }
+  if (s.stayMode === "oneway") return { kind: "oneway" };
+  if (s.stayMode === "range") return { kind: "length", minDays: s.minDays, maxDays: s.maxDays };
+  return { kind: "length" };
 }
 
 // ---- URL <-> form state -------------------------------------------------------------------
@@ -452,7 +609,19 @@ function parseChip(token: string): PlaceChip | undefined {
   }
 }
 
-const STOPS_PARAM: Record<StopsMode, string> = { direct: "0", max1: "1", any: "any" };
+/**
+ * `ms` (max stops 0-9, absent = any), or old links' `st=0` / `st=1` / `st=any`. 0 / 1 / 2 select
+ * the tile, 3-9 the "własna liczba" input.
+ */
+function parseStops(p: URLSearchParams): Pick<FormState, "stops" | "customStops"> {
+  const ms = p.get("ms");
+  if (ms !== null) {
+    const r = setCustomStops(ms);
+    return r.stops === "custom" ? r : { stops: r.stops, customStops: "" };
+  }
+  const st = p.get("st");
+  return { stops: st === "0" ? "direct" : st === "1" ? "max1" : "any", customStops: "" };
+}
 
 export function formToParams(s: FormState): URLSearchParams {
   const p = new URLSearchParams();
@@ -463,13 +632,16 @@ export function formToParams(s: FormState): URLSearchParams {
   p.set("from", s.departFrom);
   p.set("to", s.departTo);
   if (s.datePreset) p.set("preset", s.datePreset);
-  if (s.oneWay) p.set("ow", "1");
-  else {
-    p.set("min", String(s.minDays));
-    p.set("max", String(s.maxDays));
+  if (s.stayMode === "oneway") p.set("ow", "1");
+  else if (s.stayMode === "range") p.set("stay", `${s.minDays}-${s.maxDays}`);
+  if (s.datePreset === "exact") {
+    if (s.returnFrom) p.set("rf", s.returnFrom);
+    if (s.returnTo) p.set("rt", s.returnTo);
   }
   if (s.weekdays.length > 0) p.set("wd", s.weekdays.join(","));
-  p.set("st", STOPS_PARAM[s.stops]);
+  const maxStops = formMaxStops(s);
+  if (maxStops !== undefined) p.set("ms", String(maxStops));
+  if (s.layover.length > 0) p.set("lo", sortLayover(s.layover).join(","));
   if (s.maxPrice !== "") p.set("p", s.maxPrice);
   if (s.carrierTypes.length < ALL_CARRIER_TYPES.length) p.set("ct", s.carrierTypes.join(","));
   if (!s.excludeOriginCountries) p.set("xo", "0");
@@ -506,6 +678,28 @@ function parseCarrierCodes(v: string | null): string[] {
   return [...new Set(codes)].sort();
 }
 
+/**
+ * `ow=1` (one-way), `stay=7-21` (a day range); nothing = any stay. Old links carry `min` / `max`
+ * (always written for round trips, 7-21 by default): they keep their meaning as a range.
+ */
+function parseStay(
+  p: URLSearchParams,
+  base: FormState,
+): Pick<FormState, "stayMode" | "minDays" | "maxDays"> {
+  const range = { minDays: base.minDays, maxDays: base.maxDays };
+  if (p.get("ow") === "1") return { stayMode: "oneway", ...range };
+  const m = /^(\d{1,3})-(\d{1,3})$/.exec(p.get("stay") ?? "");
+  if (m) return { stayMode: "range", minDays: Number(m[1]), maxDays: Number(m[2]) };
+  if (p.has("min") || p.has("max")) {
+    return {
+      stayMode: "range",
+      minDays: toInt(p.get("min"), base.minDays),
+      maxDays: toInt(p.get("max"), base.maxDays),
+    };
+  }
+  return { stayMode: "any", ...range };
+}
+
 export function paramsToForm(p: URLSearchParams, today?: string): FormState {
   const base = defaultFormState(today);
   const origins = p
@@ -516,9 +710,6 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     .getAll("d")
     .map(parseChip)
     .filter((c): c is PlaceChip => !!c);
-  const stops = (Object.keys(STOPS_PARAM) as StopsMode[]).find(
-    (k) => STOPS_PARAM[k] === p.get("st"),
-  );
   const carriers = (p.get("ct") ?? "")
     .split(",")
     .filter((c): c is CarrierType => ALL_CARRIER_TYPES.includes(c as CarrierType));
@@ -548,11 +739,12 @@ export function paramsToForm(p: URLSearchParams, today?: string): FormState {
     departFrom,
     departTo,
     datePreset,
-    oneWay: p.get("ow") === "1",
-    minDays: toInt(p.get("min"), base.minDays),
-    maxDays: toInt(p.get("max"), base.maxDays),
+    ...parseStay(p, base),
+    returnFrom: datePreset === "exact" && isDate(p.get("rf")) ? p.get("rf")! : "",
+    returnTo: datePreset === "exact" && isDate(p.get("rt")) ? p.get("rt")! : "",
     weekdays: [...new Set(weekdays)].sort(),
-    stops: stops ?? "any",
+    ...parseStops(p),
+    layover: parseLayover(p.get("lo")),
     maxPrice: maxPrice !== null && Number(maxPrice) > 0 ? maxPrice : "",
     carrierTypes: carriers.length > 0 ? carriers : [...ALL_CARRIER_TYPES],
     excludeOriginCountries: p.get("xo") !== "0",

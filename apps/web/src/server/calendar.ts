@@ -52,6 +52,9 @@ export function parseCalendarParams(sp: URLSearchParams): Validated<CalendarPara
       };
     }
     trip = { kind: "length", minDays: min, maxDays: max };
+  } else if (sp.get("roundTrip") === "1") {
+    // Round trips of any stay length.
+    trip = { kind: "length" };
   }
   return { ok: true, value: { from: from.value, to: to.value, month, currency, trip } };
 }

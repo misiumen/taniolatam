@@ -37,6 +37,11 @@ describe("calendar", () => {
   it("validates query parameters", () => {
     const ok = parseCalendarParams(new URLSearchParams("from=waw,wmi&to=BKK&month=2027-03"));
     expect(ok.ok && ok.value.from).toEqual(["WAW", "WMI"]);
+    expect(ok.ok && ok.value.trip).toEqual({ kind: "oneway" });
+    const any = parseCalendarParams(
+      new URLSearchParams("from=WAW&to=BKK&month=2027-03&roundTrip=1"),
+    );
+    expect(any.ok && any.value.trip).toEqual({ kind: "length" });
     for (const q of [
       "to=BKK&month=2027-03",
       "from=WAW&to=BKK&month=2027-13",

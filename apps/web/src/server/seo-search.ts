@@ -22,6 +22,8 @@ export async function runSeoSearch(ctx: ServerContext, page: RoutePage): Promise
   const own = chip(page.place, page.chipLabel);
   const query = toSearchQuery({
     ...form,
+    // Route pages keep their stated 7-21 day stays (the form's default is any stay now).
+    stayMode: "range",
     origins: [page.kind === "z" ? own : DEFAULT_ORIGIN],
     destinations: page.kind === "do" ? [own] : [],
   });

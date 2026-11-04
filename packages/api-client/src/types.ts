@@ -34,6 +34,12 @@ export interface FilterExtensions {
   departTime?: { from: number; to: number } | { from: number; to: number }[];
   /** Arrival time window(s), local clock at each leg's destination; as `departTime`. */
   arriveTime?: { from: number; to: number } | { from: number; to: number }[];
+  /**
+   * Estimated total layover per leg in minutes, OR of the ranges (`from` inclusive, `to`
+   * exclusive, no `to` = no upper bound), at most 4. Applies to legs with stops; direct legs and
+   * legs without an estimate pass. Omit for any.
+   */
+  layover?: { from: number; to?: number }[];
 }
 
 export type ApiSearchFilters = SearchFilters & FilterExtensions;
@@ -59,6 +65,10 @@ export interface OfferExtensions {
   originalCurrency?: string;
   /** Short Polish note for the user. */
   note?: string;
+  /** Estimated total layover of the outbound leg in minutes (offers with stops). */
+  layoverMinutesEstimated?: number;
+  /** Some leg with stops has no layover estimate. */
+  layoverUnknown?: boolean;
 }
 
 /** Optional `Leg` clock-time fields (same intersection trick; core declares them too). */
@@ -72,6 +82,10 @@ export interface LegExtensions {
   arriveAtUtc?: string;
   /** Local arrival date-time at the destination, "YYYY-MM-DDTHH:MM". */
   arriveAt?: string;
+  /** Stops on this leg, when the source says. */
+  stops?: number;
+  /** Estimated total layover of this leg in minutes (legs with stops). */
+  layoverMinutesEstimated?: number;
 }
 
 export type ApiLeg = Leg & LegExtensions;
@@ -163,9 +177,31 @@ export interface SearchResponse {
    * `placeKey(destination)`. Lets the UI show "WAW, WMI" for a multi-airport city.
    */
   groupAirports?: Record<string, string[]>;
+  /**
+   * Additive and optional, only when `destinations` is empty: verification links for the exact
+   * query and one-click ways to widen the origin.
+   */
+  emptyHints?: EmptyHints;
+  /** Additive and optional: offers dropped by `filters.layover` (estimated layover). */
+  layover?: { dropped: number };
   /** Additive to the contract: airports referenced by `destinations` (origin and destination IATA). */
   airports: Record<string, AirportInfo>;
   meta: SearchMeta;
+}
+
+/** `SearchResponse.emptyHints`. */
+export interface EmptyHints {
+  /**
+   * Links to check the route on other sites (Google Flights, Skyscanner, Kiwi.com, Aviasales):
+   * first origin airport → first destination airport, first departure date, return after the
+   * minimum stay (7 days when the stay is open) or at the start of the return range. Empty for
+   * "anywhere" or when no builder can format the query.
+   */
+  links: { id: string; label: string; url: string }[];
+  /** The origins resolve to this one airport: the UI offers "Szukaj z całej Polski". */
+  singleOrigin?: string;
+  /** Nearest large airport to `singleOrigin` ("Dodaj Warszawa (WAW)"). */
+  nearestLarge?: { iata: string; label: string };
 }
 
 export interface PlaceSuggestion {
@@ -192,9 +228,14 @@ export interface CalendarRequest {
   to: string | string[];
   month: IsoMonth;
   currency?: string;
-  /** Stay length for round trips; omit both for one-way prices. */
+  /** Stay length for round trips; omit both (and `roundTrip`) for one-way prices. */
   stayMinDays?: number;
   stayMaxDays?: number;
+  /**
+   * Additive and optional: round-trip prices even without stay bounds (any stay length). Implied
+   * by `stayMinDays` / `stayMaxDays`.
+   */
+  roundTrip?: boolean;
 }
 
 export interface CalendarDay {
