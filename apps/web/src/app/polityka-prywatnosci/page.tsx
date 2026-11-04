@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { socialMeta } from "../../lib/seo-meta";
-import { EMAIL_PLACEHOLDER, LegalPage } from "../../components/site/LegalPage";
+import { CONTACT_EMAIL, LegalPage } from "../../components/site/LegalPage";
 
 const TITLE = "Polityka prywatności";
 const DESCRIPTION =
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       <p>
         Gdzie Polecę to bezpłatna wyszukiwarka tanich lotów z polskich lotnisk. Poniżej opisujemy,
         jakie dane przetwarza serwis i z jakich usług zewnętrznych korzysta. Kontakt w sprawach
-        prywatności: {EMAIL_PLACEHOLDER}.
+        prywatności: {CONTACT_EMAIL}.
       </p>
 
       <h2>Jakie dane zbieramy</h2>
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
         Masz prawo do dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania i
         sprzeciwu, a także do wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych. Ponieważ
         nie prowadzimy kont użytkowników, zwykle nie jesteśmy w stanie powiązać danych z konkretną
-        osobą. Napisz do nas: {EMAIL_PLACEHOLDER}.
+        osobą. Napisz do nas: {CONTACT_EMAIL}.
       </p>
 
       <h2>Zmiany</h2>

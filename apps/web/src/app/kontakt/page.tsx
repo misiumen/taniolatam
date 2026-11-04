@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { socialMeta } from "../../lib/seo-meta";
-import { EMAIL_PLACEHOLDER, LegalPage } from "../../components/site/LegalPage";
+import { CONTACT_EMAIL, LegalPage } from "../../components/site/LegalPage";
 
 const TITLE = "Kontakt";
 const DESCRIPTION =
@@ -20,7 +20,7 @@ export default function ContactPage() {
         Masz uwagę do serwisu, znalazłeś błąd w cenie albo chcesz o czymś zapytać? Napisz do nas:
       </p>
       <p className="text-lg font-semibold" data-testid="contact-email">
-        {EMAIL_PLACEHOLDER}
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
       </p>
       <p>
         Opisz, na jakiej stronie to się stało, i podaj parametry wyszukiwania (najlepiej link do

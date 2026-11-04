@@ -54,11 +54,12 @@ describe("copy style", () => {
 });
 
 describe("legal pages", () => {
-  it("never invent a contact address", () => {
+  it("use only the official contact address", () => {
     for (const el of [<PrivacyPage key="p" />, <TermsPage key="t" />, <ContactPage key="c" />]) {
       const out = html(el);
-      expect(out).toContain("[ADRES E-MAIL]");
-      expect(out).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      expect(out).toContain("kontakt@gdziepolece.pl");
+      const addresses = out.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g) ?? [];
+      expect(new Set(addresses)).toEqual(new Set(["kontakt@gdziepolece.pl"]));
     }
   });
 

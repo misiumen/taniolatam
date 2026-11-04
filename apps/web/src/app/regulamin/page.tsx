@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { socialMeta } from "../../lib/seo-meta";
-import { EMAIL_PLACEHOLDER, LegalPage } from "../../components/site/LegalPage";
+import { CONTACT_EMAIL, LegalPage } from "../../components/site/LegalPage";
 
 const TITLE = "Regulamin";
 const DESCRIPTION =
@@ -65,7 +65,7 @@ export default function TermsPage() {
 
       <h2>6. Reklamacje i kontakt</h2>
       <p>
-        Uwagi i reklamacje dotyczące działania serwisu przyjmujemy pod adresem {EMAIL_PLACEHOLDER}.
+        Uwagi i reklamacje dotyczące działania serwisu przyjmujemy pod adresem {CONTACT_EMAIL}.
         Odpowiadamy możliwie szybko.
       </p>
 

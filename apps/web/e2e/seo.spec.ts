@@ -312,11 +312,11 @@ test.describe("legal pages", () => {
     expect(terms).toContain("linki partnerskie");
 
     const contact = await html(request, "/kontakt");
-    expect(contact).toContain("[ADRES E-MAIL]");
+    expect(contact).toContain("kontakt@gdziepolece.pl");
     for (const doc of [privacy, terms, contact]) {
-      expect(doc.replace(/<script.*?<\/script>/gs, "")).not.toMatch(
-        /mailto:|[\w.+-]+@[\w-]+\.[a-z]{2,}/i,
-      );
+      const addresses =
+        doc.replace(/<script.*?<\/script>/gs, "").match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g) ?? [];
+      expect(new Set(addresses)).toEqual(new Set(["kontakt@gdziepolece.pl"]));
     }
   });
 });

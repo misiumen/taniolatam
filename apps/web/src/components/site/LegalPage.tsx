@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import { SiteShell } from "./SiteShell";
 
-/** Placeholder until the owner supplies a real address; never replaced by an invented one. */
-export const EMAIL_PLACEHOLDER = "[ADRES E-MAIL]";
+/** Public contact mailbox of the service (supplied by the owner on 2026-11-04). */
+export const CONTACT_EMAIL = "kontakt@gdziepolece.pl";
+/** @deprecated kept for existing imports; same value as CONTACT_EMAIL. */
+export const EMAIL_PLACEHOLDER = CONTACT_EMAIL;
 
 export function LegalPage({
   title,
